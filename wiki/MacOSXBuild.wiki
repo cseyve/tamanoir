@@ -1,4 +1,4 @@
-#summary One-sentence summary of this page.
+#summary This page explains how to build Tamanoir on MacOS X.
 
 = Introduction =
 
