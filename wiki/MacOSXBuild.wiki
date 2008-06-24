@@ -65,7 +65,6 @@ We must compile without ImageIO to use the libtiff for 16bit support :
 {{{
 ./configure --with-libtiff=yes --enable-libtiff=yes --with-imageio=no
 }}}
-
 We must obtain this kind of configuration :
 {{{
 Image I/O Use ImageIO / Mac OS X: no
@@ -75,6 +74,52 @@ Use libpng: yes
 Use libtiff: yes
 Use libjasper: no
 Use libIlmImf: no
+}}}
+
+
+Or with MacPorts paths: 
+{{{
+CPATH="/opt/local/include" LIBRARY_PATH="/opt/local/lib" ./configure --with-libtiff=yes --enable-libtiff=yes --with-imageio=no
+}}}
+
+For this configuration on a G5 :
+{{{
+General configuration ================================================
+    Compiler:                 g++
+    CXXFLAGS:                 -Wall -fno-rtti -pipe -O3 -g -mcpu=G3 -mtune=G5 -fomit-frame-pointer 
+
+    Install path:             /usr/local
+
+HighGUI configuration ================================================
+
+    Windowing system --------------
+    Use Carbon / Mac OS X:    yes
+    Use gtk+ 2.x:             no
+    Use gthread:              no
+
+    Image I/O ---------------------
+    Use ImageIO / Mac OS X:   no
+    Use libjpeg:              yes
+    Use zlib:                 yes
+    Use libpng:               yes
+    Use libtiff:              yes
+    Use libjasper:            yes
+    Use libIlmImf:            no
+
+    Video I/O ---------------------
+    Use QuickTime / Mac OS X: yes
+    Use xine:                 no
+    Use ffmpeg:               no
+    Use dc1394 & raw1394:     no
+    Use v4l:                  no
+    Use v4l2:                 no
+
+Wrappers for other languages =========================================
+    SWIG                      
+    Python                    yes
+
+Additional build settings ============================================
+    Build demo apps           yes
 }}}
 
 ----
