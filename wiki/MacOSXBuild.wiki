@@ -48,12 +48,15 @@ Compile and Install :
 
 Install a development version of OpenCV with Fink or MacPorts
 {{{
-ports install highgui-dev
+sudo port install opencv
 }}}
 or
 {{{
-fink install highgui-dev
+sudo fink install opencv
 }}}
+
+Project page: [http://www.intel.com/technology/computing/opencv/]
+
 
 === OpenCV *with* 16bit TIFF support ===
 Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
