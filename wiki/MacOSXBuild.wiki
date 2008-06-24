@@ -1,0 +1,94 @@
+#summary One-sentence summary of this page.
+
+= Introduction =
+
+This page explains how to build Tamanoir on Mac OS X.
+
+
+= Details =
+
+Building Tamanoir on Mac OS X.
+
+You need :
+- OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+- Qt4 for Mac
+- XCode
+- Tamanoir
+
+If you want to manipulate 16bit TIFF, you have to patch OpenCV and to use libtiff. 
+If OpenCV uses ImageIO, it will not support import/export of 16bit images. When removing ImageIO from OpenCV, you need to add at least libPNG to open PNG pictures. The building of libJPEG is not needed.
+
+So, for 16bit support, you need to download and rebuild : 
+* libTIFF
+* libPNG
+* OpenCV 
+
+If you do not need 16bit TIFF support, jump to Qt4 section.
+
+----
+==Libtiff==
+
+Download : http://www.libtiff.org/
+Compile and Install :
+{{{
+./configure ; make ; sudo make install
+}}}
+
+----
+==libpng==
+
+Download : [http://libpng.sourceforge.net/] - [ftp://ftp.simplesystems.org/pub/png/]
+Compile and Install :
+./configure ; make ; sudo make install
+
+----
+== OpenCV ==
+
+=== OpenCV *without* 16bit TIFF support ===
+
+Install a development version of OpenCV with Fink or MacPorts
+{{{
+ports install highgui-dev
+}}}
+or
+{{{
+fink install highgui-dev
+}}}
+
+=== OpenCV *with* 16bit TIFF support ===
+Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
+
+We must compile without ImageIO to use the libtiff for 16bit support :
+{{{
+./configure --with-libtiff=yes --enable-libtiff=yes --with-imageio=no
+}}}
+
+We must obtain this kind of configuration :
+{{{
+Image I/O Use ImageIO / Mac OS X: no
+Use libjpeg: yes
+Use zlib: yes
+Use libpng: yes
+Use libtiff: yes
+Use libjasper: no
+Use libIlmImf: no
+}}}
+
+----
+== Qt4 ==
+
+Download : [http://trolltech.com/downloads/opensource]
+Install Qt4.
+
+----
+== Tamanoir ==
+
+Download snapshot : [http://cseyve.free.fr/Vision/download/Tamanoir-snapshot2008-06-19.tar.bz2]
+
+Compile Tamanoir :
+{{{
+cd Tamanoir/
+/Developer/Tools/Qt/qmake
+}}}
+
+Then open the _Tamanoir.xcodeproj_ with XCode then build&run.
