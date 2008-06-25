@@ -1,9 +1,9 @@
-#summary This page explains how to build Tamanoir on MacOS X.
+#summary This page explains how to build Tamanoir on Linux.
 #labels Linux,OpenCV,Qt4
 
 = Introduction =
 
-This page explains how to build Tamanoir on Mac OS X.
+This page explains how to build Tamanoir on Linux.
 
 
 = Details =
