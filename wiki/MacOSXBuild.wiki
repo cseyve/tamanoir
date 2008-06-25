@@ -1,4 +1,5 @@
 #summary This page explains how to build Tamanoir on MacOS X.
+#labels Phase-Requirements,Phase-Implementation
 
 = Introduction =
 
@@ -131,7 +132,12 @@ Install Qt4.
 ----
 == Tamanoir ==
 
-Download snapshot : [http://cseyve.free.fr/Vision/download/Tamanoir-snapshot2008-06-19.tar.bz2]
+Download snapshot : 
+{{{
+# Non-members may check out a read-only working copy anonymously over HTTP.
+svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
+}}}
+
 
 Compile Tamanoir :
 {{{
