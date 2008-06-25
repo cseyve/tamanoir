@@ -1,0 +1,22 @@
+#summary "To do" list for future versions
+#labels Phase-Requirements,Phase-QA
+
+= Introduction =
+
+Here is the roadmap for future versions.
+
+
+= Details =
+
+By subject:
+  * *Image processing*
+    * Improve for negatives and B&W films
+  * *User interface*
+    * Build under Windows
+    * Adapt size of display for larger screens than current size of GUI
+    * Backup copy of original as an option
+  * *Packaging*
+    * Try to use Iceberg for packaging for Mac users
+  * *Interoperability*
+    * Interfacing with Adobe Lightroom (OK for file name as argument under Linux: works fine with gqview for example).
+    * Any interest for Gimp interaction ?
