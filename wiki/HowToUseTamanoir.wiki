@@ -3,12 +3,12 @@
 
 = Introduction =
 
-This page explains how to use the Tamanoir user interface to correct you picture scans.
+This page explains how to use the Tamanoir user interface to correct your picture scans.
 
 
 = Details =
 
-*Caution:* For the moment, only color slides are well supported for dust detection. See ToDo for future developments.
+*Caution:* _For the moment, only color slides are well supported for dust detection. See ToDo for future developments._
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Global.png
 
@@ -86,3 +86,7 @@ There are 2 options to accelerate the use of Tamanoir for the user :
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Options.png
 
+
+----
+
+Comments and suggestions are welcome !! We are looking for new contributors too...
