@@ -1,0 +1,580 @@
+<ui version="4.0" >
+ <class>Tamanoir</class>
+ <widget class="QMainWindow" name="Tamanoir" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>960</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="minimumSize" >
+   <size>
+    <width>960</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="mouseTracking" >
+   <bool>true</bool>
+  </property>
+  <property name="windowTitle" >
+   <string>Tamanoir</string>
+  </property>
+  <widget class="QWidget" name="centralwidget" >
+   <widget class="QFrame" name="frame_2" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>10</y>
+      <width>221</width>
+      <height>231</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="origTextLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>2</y>
+       <width>200</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Original :&lt;/b></string>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QImageDisplay" name="cropPixmapLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>200</width>
+       <height>200</height>
+      </rect>
+     </property>
+     <property name="mouseTracking" >
+      <bool>true</bool>
+     </property>
+     <property name="contextMenuPolicy" >
+      <enum>Qt::CustomContextMenu</enum>
+     </property>
+     <property name="toolTip" >
+      <string>Drag the green rectangle region to change correction origin</string>
+     </property>
+     <property name="pixmap" >
+      <pixmap/>
+     </property>
+     <property name="scaledContents" >
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_3" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>240</y>
+      <width>221</width>
+      <height>231</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="correctTextLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>200</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Correction :&lt;/b></string>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="correctPixmapLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>200</width>
+       <height>200</height>
+      </rect>
+     </property>
+     <property name="pixmap" >
+      <pixmap/>
+     </property>
+     <property name="scaledContents" >
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_5" >
+    <property name="geometry" >
+     <rect>
+      <x>740</x>
+      <y>10</y>
+      <width>211</width>
+      <height>231</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="growTextLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>200</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Grown :&lt;/b></string>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="growPixmapLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>19</y>
+       <width>200</width>
+       <height>200</height>
+      </rect>
+     </property>
+     <property name="pixmap" >
+      <pixmap/>
+     </property>
+     <property name="scaledContents" >
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="largViewFrame" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>40</y>
+      <width>501</width>
+      <height>501</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="mainPixmapLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>480</width>
+       <height>480</height>
+      </rect>
+     </property>
+     <property name="toolTip" >
+      <string>Main display : current dust is marked in blue, corrected ones in green, ones with no proposal are red and not proposals not validated in yellow</string>
+     </property>
+     <property name="pixmap" >
+      <pixmap/>
+     </property>
+     <property name="scaledContents" >
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_4" >
+    <property name="geometry" >
+     <rect>
+      <x>740</x>
+      <y>240</y>
+      <width>211</width>
+      <height>231</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="growTextLabel_2" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>200</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Diff :&lt;/b></string>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="diffPixmapLabel" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>200</width>
+       <height>200</height>
+      </rect>
+     </property>
+     <property name="pixmap" >
+      <pixmap/>
+     </property>
+     <property name="scaledContents" >
+      <bool>true</bool>
+     </property>
+     <property name="wordWrap" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QProgressBar" name="overAllProgressBar" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>550</y>
+      <width>651</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="value" >
+     <number>0</number>
+    </property>
+    <property name="orientation" >
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="skipButton" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>510</y>
+      <width>71</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>Skip the correction and go to next proposal</string>
+    </property>
+    <property name="text" >
+     <string>Skip</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="correctButton" >
+    <property name="geometry" >
+     <rect>
+      <x>590</x>
+      <y>510</y>
+      <width>71</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>Apply this correction then go to next</string>
+    </property>
+    <property name="text" >
+     <string>Apply</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="autoButton" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>480</y>
+      <width>141</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>Automatically correct the whole image</string>
+    </property>
+    <property name="text" >
+     <string>Auto</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="saveButton" >
+    <property name="geometry" >
+     <rect>
+      <x>80</x>
+      <y>0</y>
+      <width>72</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text" >
+     <string>Save</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="loadButton" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>0</y>
+      <width>72</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text" >
+     <string>Load</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="textLabel1_2" >
+    <property name="geometry" >
+     <rect>
+      <x>160</x>
+      <y>0</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text" >
+     <string>&lt;b>Input image :&lt;/b></string>
+    </property>
+    <property name="wordWrap" >
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="loadingTextLabel" >
+    <property name="geometry" >
+     <rect>
+      <x>270</x>
+      <y>0</y>
+      <width>241</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text" >
+     <string/>
+    </property>
+    <property name="wordWrap" >
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QFrame" name="frame" >
+    <property name="geometry" >
+     <rect>
+      <x>670</x>
+      <y>480</y>
+      <width>141</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="label" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>121</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Film type:&lt;/b></string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="typeComboBox" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>120</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="toolTip" >
+      <string>Film type : positive (from digital cameras or slides) or negative</string>
+     </property>
+     <item>
+      <property name="text" >
+       <string>Undefined</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>Negative</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>Positive</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QComboBox" name="dpiComboBox" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>120</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="toolTip" >
+      <string>Scan resolution, used to guess the size on minimal dust</string>
+     </property>
+     <property name="currentIndex" >
+      <number>3</number>
+     </property>
+     <item>
+      <property name="text" >
+       <string>Undefined</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>600 dpi</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>1200 dpi</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>2400 dpi</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>3200 dpi</string>
+      </property>
+     </item>
+     <item>
+      <property name="text" >
+       <string>4800 dpi</string>
+      </property>
+     </item>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_6" >
+    <property name="geometry" >
+     <rect>
+      <x>820</x>
+      <y>480</y>
+      <width>131</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="frameShape" >
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow" >
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QCheckBox" name="trustCheckBox" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>111</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="toolTip" >
+      <string>Trust small dusts with very good correction proposal</string>
+     </property>
+     <property name="text" >
+      <string>Trust mode</string>
+     </property>
+     <property name="checked" >
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>111</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text" >
+      <string>&lt;b>Options:&lt;/b></string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="hotPixelsCheckBox" >
+     <property name="geometry" >
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>111</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="toolTip" >
+      <string>Enable hot pixels removal, e.g. very small light points</string>
+     </property>
+     <property name="text" >
+      <string>Hot pixels</string>
+     </property>
+     <property name="checked" >
+      <bool>false</bool>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QStatusBar" name="statusbar" />
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QImageDisplay</class>
+   <extends>QLabel</extends>
+   <header>qimagedisplay.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
