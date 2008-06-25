@@ -1,0 +1,60 @@
+#summary How to use Tamanoir / user manual
+#labels Phase-Design
+
+= Introduction =
+
+This page explains how to use the Tamanoir user interface to correct you picture scans.
+
+
+= Details =
+
+*Caution:* For the moment, only color slides are well supported for dust detection. See ToDo for future developments.
+
+Tamanoir's GUI is divided in several sections:
+  * *Load/save buttons* on top line
+  * *Global picture display* on left
+  * *Detailed views of dust and correction* on right
+  * *Action buttons* to correct or skip correction
+  * *Options:* film type, correction accelerations
+
+Each button/view contains a tooltip which explains its function.
+
+----
+
+= Load / Save =
+
+  * *Load:* Open a dialog to choose a file, then pre-process the picture with current options/settings, and goes to first detected dust
+  * *Save:* save current image with the *same name than original*. A backup is stored with a _-copy_ extension.
+
+
+= Global view / Main display =
+
+The large image display shows the grayscaled version of input image, with inertion of small rectangles :
+  * *Blue rectangle* where the dust has just been detected. This dust is displayed in blue in global view, and a crop of the neighbouring is shown in detail views (at scale 1:1).
+  * *Green rectangles* where the proposed corrections have been accepted by the user ("Apply" button).
+  * *Yellow rectangles* where the proposed corrections have been refused by the user ("Skip" button).
+  * *Red rectangles* where the process could not find any fitting correction.
+
+
+= Detail views =
+
+To be completed.
+
+
+= Action buttons : Auto/Skip/Apply =
+
+To be completed.
+
+
+
+= Film settings : type and resolution =
+
+To be completed.
+
+
+= Action options =
+
+To be completed.
+
+
+
