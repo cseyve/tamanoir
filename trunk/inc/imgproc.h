@@ -1,0 +1,235 @@
+/***************************************************************************
+ *            imgproc.h
+ *
+ *  Tue Oct 23 21:26:10 2007
+ *  Copyright  2007  Christophe Seyve 
+ *  Email cseyve@free.fr
+ ****************************************************************************/
+
+/*
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+ 
+
+#ifndef IMGPROC_H
+
+#define IMGPROC_H
+
+
+#include "imgutils.h"
+
+
+#define COLORMARK_FAILED	252
+#define COLORMARK_REFUSED	253
+#define COLORMARK_CORRECTED	254
+#define COLORMARK_CURRENT	255
+
+
+#define STATS_MAX_SURF	1000
+
+
+/** @brief Statistics on dust replacement and sizes*/
+typedef struct dust_stats_t_ {
+	/* Cumul variables */
+	unsigned long nb_grown;				/*! grown regions */
+	unsigned long grown_size[STATS_MAX_SURF];		/*! grown size histogram */
+	unsigned long nb_grown_replaced;	/*! grown regions which have been replaced */
+	unsigned long grown_size_replaced[STATS_MAX_SURF];		/*! grown size histogram */
+	unsigned long nb_grown_validated;	/*! grown regions which have been validated */
+	unsigned long grown_size_validated[STATS_MAX_SURF];		/*! grown size histogram */
+	
+	/* Statistics variables */
+	float ratio_replaced_grown;
+	float ratio_validated_grown;
+	float ratio_validated_replaced;
+	
+} dust_stats_t;
+
+/** @brief Process then print statistics */
+void processAndPrintStats(dust_stats_t * dust_stats);
+
+
+/** @brief Local correction storage structure */
+typedef struct t_correction_ {
+	int orig_x;
+	int orig_y;
+	
+	/// top-left of Crop image
+	int crop_x;
+	/// top-left of Crop image
+	int crop_y;
+	
+	/// relative origin of clone
+	int rel_src_x;
+	/// relative origin of clone
+	int rel_src_y;
+	
+	/// relative destination of clone
+	int rel_dest_x;
+	int rel_dest_y;
+	
+	int copy_x;
+	int copy_y;
+	int copy_width;
+	int copy_height;
+	
+	int area;
+} t_correction;
+
+/** \brief main image processing class
+
+
+*/
+class TamanoirImgProc {
+public:
+	TamanoirImgProc();
+	~TamanoirImgProc();
+
+
+	/** @brief Set film type \param type : 0 for undefined, 1 for negative, 2 for positive */
+	void setFilmType(int type);
+	
+	/** @brief Load input image file */
+	int loadFile(const char * filename);
+	
+	/** @brief Save corrected image file */
+	int saveFile(const char * filename);
+	
+	
+	/** @brief Perform image pre-processing */
+	int preProcessImage();
+
+	/** @brief Go to first dust, @return -1 if error, 0 if no more dust, and 1 if still */
+	int firstDust();
+	
+	/** @brief Go to next dust, @return -1 if error, 0 if no more dust, and 1 if still */
+	int nextDust();
+
+
+	/** @brief Change the origin of correction */
+	void setCopySrc(int x, int y);
+
+	/** @brief Apply proposed correction */
+	int applyCorrection();
+
+	/** @brief Get progress in %age */
+	int getProgress();
+	
+	/** @brief 8bit grayscale version of input image */
+	IplImage * getGrayscale() { return grayImage; };
+	
+	/** 8@brief bit grayscale version of input image scaled for display */
+	IplImage * getGrayscaleForDisplay() { return grayImage; };
+	
+	/** @brief Set available size for display : it will scale the 8bit grayscale version
+	 * of input image for this rectangle */
+	void setDisplaySize(int w, int h);
+	IplImage * getDisplayImage() { return displayImage; };
+	
+	// Cropped images
+	IplImage * getCorrectedCrop() { return correctColorImage; };
+	IplImage * getCrop() { return cropColorImage; };
+	IplImage * getDiffCrop() { return cropImage; };
+	IplImage * getMask() { return dilateImage; };
+	
+	CvConnectedComp getDustComp() { return m_lastDustComp; };
+	dust_stats_t getDustStats() { return m_dust_stats; };
+	
+	/** @brief Activate/desactivate hot pixels filtering */
+	bool setHotPixelsFilter(bool on);
+	/** @brief Activate/desactivate trust on good corrections */
+	bool setTrustCorrection(bool on);
+	/** S@brief et the scan resolution to use the statistics on dust sizes */
+	int setResolution(int dpi);
+	
+private:
+	/** Initialize buffers */
+	void init();
+	/** Purge buffers */
+	void purge();
+	
+	/** Film type */
+	int m_FilmType;
+	
+	/** Scan resolution */
+	int m_dpi;
+	
+	/** opened file name */
+	char m_filename[512];
+
+	/** Hot pixels filtering */
+	bool m_hotPixels;
+	
+	/** Trust good correction proposals */
+	bool m_trust;
+	
+	/** Dust statistics */
+	dust_stats_t m_dust_stats;
+	/** Last correct area size */
+	int m_correct_area;
+	
+	
+	/** Perform image processing */
+	int processImage();
+	
+
+	/** Original image size */
+	CvSize originalSize;
+
+
+	// Image buffers
+	IplImage * originalImage;
+	IplImage * grayImage;
+	IplImage * medianImage;
+	IplImage * diffImage;
+	IplImage * growImage;
+	
+	/// image buffer for display
+	IplImage * displayImage;
+	CvSize displaySize;
+	
+	
+	/** Processed imge size */
+	CvSize processingSize;
+	IplImage * dilateImage;
+	IplImage * cropImage;
+	IplImage * tmpCropImage;
+	IplImage * correctImage;
+
+	IplImage * cropColorImage;
+	IplImage * correctColorImage;
+	
+	
+	int m_seed_x;
+	int m_seed_y;
+	u8 m_threshold;
+	
+	int m_dust_area_min;
+	int m_dust_area_max;
+
+	/** Last detected dust */
+	CvConnectedComp m_lastDustComp;
+
+
+
+	/* Correction data */
+	t_correction m_correct;
+	
+	
+};
+
+
+
+#endif // IMGPROC_H
