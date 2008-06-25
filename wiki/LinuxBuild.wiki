@@ -89,14 +89,19 @@ apt-get install qt4-dev
 ----
 == Tamanoir ==
 
-Download snapshot : [http://cseyve.free.fr/Vision/download/Tamanoir-snapshot2008-06-19.tar.bz2]
+Download snapshot : 
+{{{
+# Non-members may check out a read-only working copy anonymously over HTTP.
+svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
+}}}
 
 Compile Tamanoir :
 {{{
 cd Tamanoir/
 qmake
 }}}
-or for Debian 4 Etch :
+
+or for Debian 4 Etch with both Qt3 and Qt4:
 {{{
 qmake-qt4
 }}}
