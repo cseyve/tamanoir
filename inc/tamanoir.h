@@ -53,7 +53,7 @@ protected:
 	virtual void resizeEvent ( QResizeEvent * );
 
 private slots:
-	void on_cropPixmapLabel_mousePressedEvent(QMouseEvent *);
+	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
 
 private:
  	bool m_trust;

@@ -69,7 +69,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_hotPixels = ui.hotPixelsCheckBox->isChecked();
 }
 
-void TamanoirApp::on_cropPixmapLabel_mousePressedEvent(QMouseEvent * e) {
+void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
+	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(e && m_pImgProc) {
 		m_pImgProc->setCopySrc(e->pos().x(), e->pos().y());
 		updateDisplay();
