@@ -570,6 +570,7 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
 	if(originalImage && on)
 	{
 		preProcessImage();
+		firstDust();
 	}
 	return m_hotPixels;
 }
@@ -594,7 +595,10 @@ void TamanoirImgProc::setFilmType(int type) {
 	// Then re-process file
 	fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
 		__func__, __LINE__);
-	if(originalImage) preProcessImage();
+	if(originalImage) {
+		preProcessImage();
+		firstDust();
+	}
 }
 
 int TamanoirImgProc::setResolution(int dpi) {
