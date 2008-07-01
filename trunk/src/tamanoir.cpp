@@ -53,20 +53,114 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
 		homeDirStr = QString(getenv("HOME"));
-	m_currentDir = homeDirStr;
+	strcpy(m_options.currentDir, homeDirStr.ascii());
 	
 	ui.setupUi((QMainWindow *)this);
 	
 	
 	// Connect cropPixmapLabel to mouse handling
 	connect(ui.cropPixmapLabel, SIGNAL(signalMousePressEvent(QMouseEvent *)), this, SLOT(on_cropPixmapLabel_mousePressEvent(QMouseEvent *)));
-	
+
+	loadOptions();
 	
 	ui.loadingTextLabel->setText(QString(""));
 	
-	m_filmType = ui.typeComboBox->currentIndex();
-	m_trust = ui.trustCheckBox->isChecked();
-	m_hotPixels = ui.hotPixelsCheckBox->isChecked();
+}
+
+int TamanoirApp::loadOptions() {
+	// 
+	char homedir[512] = ".";
+	if(getenv("HOME")) {
+		strcpy(homedir, getenv("HOME"));
+	}
+	optionsFile = QString(homedir) + QString("/.tamanoirrc");
+	
+	// Read 
+	FILE * foptions = fopen(optionsFile.ascii(), "r");
+	if(!foptions) {
+		// Update options
+		memset(&m_options, 0, sizeof(tm_options));
+		m_options.filmType = ui.typeComboBox->currentIndex();
+		m_options.trust = ui.trustCheckBox->isChecked();
+		m_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
+		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
+		
+		return 0;
+	}
+	
+	
+	char line[512], *ret=line;
+	while(ret && !feof(foptions)) {
+		line[0] = '#';
+		ret= fgets(line, 511, foptions);
+		if(ret) {
+			if(strlen(line)>1 && line[0] != '#' && line[0] != '\n' && line[0] != '\r' ) {
+				if(line[strlen(line)-1]=='\r')
+					line[strlen(line)-1]='\0';
+				if(strlen(line)>1)
+					if(line[strlen(line)-1]=='\n')
+						line[strlen(line)-1]='\0';
+				
+				char * separation = strstr(line, ":");
+				if(separation) {
+					*separation = '\0';
+					char * cmd = line, *arg = separation+1;
+	
+					if(strcasestr(cmd, "dir")) {
+						strcpy(m_options.currentDir, arg);
+					} else 
+					if(strcasestr(cmd, "trust")) {
+						m_options.trust = (arg[0]=='T');
+					} else
+					if(strcasestr(cmd, "hot")) {
+						m_options.hotPixels = (arg[0]=='T');
+					} else
+					if(strcasestr(cmd, "film")) {
+						m_options.filmType = atoi(arg);
+					} else
+					if(strcasestr(cmd, "dpi")) {
+						m_options.dpi = atoi(arg);
+					} 
+				}
+			}
+		}
+					
+		// 
+		
+	}
+	
+	fclose(foptions);
+	return 1;
+}
+
+/* Tamanoir settings/options *
+typedef struct {
+	QString currentDir;
+	bool trust;		/ *! Trust mode activated * /
+	bool hotPixels;	/ *! Hot pixels detection activated * /
+	int filmType;	/ *! Film type * /
+	int dpi;		/ *! Scan resolution in dot per inch * /
+} tm_options;
+*/
+void fprintfOptions(FILE * f, tm_options * p_options) {
+	if(!f) return;
+	
+	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
+	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
+	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
+	fprintf(f, "FilmType:%d\n", p_options->filmType);
+	fprintf(f, "DPI:%d\n", p_options->dpi);
+	fflush(f);
+}
+
+void TamanoirApp::saveOptions() {
+	FILE * foptions = fopen(optionsFile.ascii(), "w");
+	if(!foptions) {
+		return;
+	}
+	
+	fprintfOptions(foptions, &m_options);
+	fclose(foptions);
 }
 
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
@@ -105,7 +199,7 @@ void TamanoirApp::on_loadButton_clicked()
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
                    	tr("open file dialog"),
-                   	m_currentDir,
+                   	m_options.currentDir,
                     tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 	if(s.isEmpty()) {
@@ -122,8 +216,8 @@ void TamanoirApp::loadFile(QString s) {
 		return;
 	m_currentFile = s;
 	
-	m_currentDir = fi.absolutePath();
-	
+	strcpy(m_options.currentDir, fi.absolutePath().ascii());
+	saveOptions();
 	
 	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
 	statusBar()->update();
@@ -133,9 +227,9 @@ void TamanoirApp::loadFile(QString s) {
 	// Open file
 	if(!m_pImgProc) {
 		m_pImgProc = new TamanoirImgProc();
-		m_pImgProc->setHotPixelsFilter(m_hotPixels);
-		m_pImgProc->setTrustCorrection(m_trust);
-		m_pImgProc->setResolution(m_dpi);
+		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
+		m_pImgProc->setTrustCorrection(m_options.trust);
+		m_pImgProc->setResolution(m_options.dpi);
 	}
 	int ret = m_pImgProc->loadFile(s.ascii());
 	if(ret < 0) {
@@ -312,7 +406,7 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	statusBar()->showMessage( tr("Changed film type: please wait...") );
 	statusBar()->update();
 	
-	m_filmType = i;
+	m_options.filmType = i;
 	if(m_pImgProc) {
 		m_pImgProc->setFilmType(i);
 		
@@ -323,6 +417,8 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	}
 	statusBar()->showMessage( tr("Changed film type: done.") );
 	statusBar()->update();
+	
+	saveOptions();
 }
 
 void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
@@ -333,12 +429,12 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 	
 	int dpi = 2400;
 	if(sscanf(str.ascii(), "%d", &dpi) != 1)
-		m_dpi = 2400;
+		m_options.dpi = 2400;
 	else
-		m_dpi = dpi;
+		m_options.dpi = dpi;
 	
 	if(m_pImgProc) {
-		m_pImgProc->setResolution(m_dpi);
+		m_pImgProc->setResolution(m_options.dpi);
 		
 		
 		// Refresh main display
@@ -348,22 +444,26 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 	}
 	statusBar()->showMessage( tr("Changed scan resolution: done.") );
 	statusBar()->update();
+	
+	saveOptions();
 }
 
 void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 	statusBar()->showMessage(tr("Changed to 'trust' mode : " + (on?tr("ON"):tr("OFF"))));
 	
-	m_trust = on;
+	m_options.trust = on;
 	
 	if(m_pImgProc) {
 		m_pImgProc->setTrustCorrection(on);
 	}
+	
+	saveOptions();
 }
 
 void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed hot pixels filter: please wait...") );
 	statusBar()->update();
-	m_hotPixels = on;
+	m_options.hotPixels = on;
 	if(m_pImgProc) {
 		m_pImgProc->setHotPixelsFilter(on);
 		

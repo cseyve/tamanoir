@@ -31,12 +31,24 @@
 #include "ui_tamanoir.h"
 #include <QtGui>
 
+/** @brief Tamanoir settings/options */
+typedef struct {
+	char currentDir[512];
+	bool trust;		/*! Trust mode activated */
+	bool hotPixels;	/*! Hot pixels detection activated */
+	int filmType;	/*! Film type */
+	int dpi;		/*! Scan resolution in dot per inch */
+} tm_options;
 
+void fprintfOptions(FILE * f, tm_options * p_options);
 
+/** @brief Tamanoir main application / user interface 
+
+*/
 class TamanoirApp : public QMainWindow
 {
 	Q_OBJECT
-  
+
 public:
 	/** construtor */
 	TamanoirApp(QWidget *l_parent = NULL);
@@ -56,16 +68,22 @@ private slots:
 	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
 
 private:
- 	bool m_trust;
-	bool m_hotPixels;
-	int m_filmType;
-        int m_dpi;
-        
-        /** Refresh the main display */
-        void refreshMainDisplay();
-        
- 	/** Update all displays */
- 	void updateDisplay();
+	/** Application options */
+	tm_options m_options;
+
+	QString optionsFile;
+	
+	/** Load last saved options */
+	int loadOptions();	
+	
+	/** Save current options for next launch of Tamanoir */
+	void saveOptions();
+
+	/** Refresh the main display */
+	void refreshMainDisplay();
+	
+	/** Update all displays */
+	void updateDisplay();
 signals:
 	
 private slots:
@@ -87,7 +105,6 @@ private slots:
 	
 private:
 	TamanoirImgProc * m_pImgProc;
-	QString m_currentDir;
 	QString m_currentFile;
 };
 

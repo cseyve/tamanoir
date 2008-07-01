@@ -876,9 +876,9 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 	int surf = 1;
 	int rmin = 0; 
-	int rmax = sheight; 
+	int rmax = sheight-1; 
 	int cmin = 0; 
-	int cmax = swidth; 
+	int cmax = swidth-1; 
 
 	if(fillValue==0)
 		fillValue=1;
