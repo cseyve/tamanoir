@@ -60,8 +60,6 @@ TamanoirImgProc::TamanoirImgProc() {
 
 void TamanoirImgProc::init() {
 
-	g_debug_savetmp = 0;
-	
 	m_filename[0] = '\0';
 	
 	m_FilmType = FILM_UNDEFINED;
@@ -69,7 +67,7 @@ void TamanoirImgProc::init() {
 	
 	/* Trust good correction proposals */
 	m_trust = false;
-
+	
 	/** Original image size */
 	originalSize = cvSize(0,0);
 
@@ -78,6 +76,8 @@ void TamanoirImgProc::init() {
 
 	// Image buffers
 	originalImage = NULL;
+	origBlurredImage = NULL;
+	
 	grayImage = NULL;
 	medianImage = NULL;
 	diffImage = NULL;
@@ -259,6 +259,11 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		cvReleaseImage(&grayImage);  grayImage = NULL;
 	}
 	
+	if(origBlurredImage) {
+		cvReleaseImage(&origBlurredImage); 
+		origBlurredImage = NULL;
+	}
+	
 	
 	#ifdef CV_LOAD_IMAGE_GRAYSCALE
 	fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n", 
@@ -270,8 +275,6 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	else
 	#endif
 	{
-	
-	
 	
 	
 	// convert full image to grayscale
@@ -334,9 +337,7 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	// Gaussian image
-	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image...\n", 
-		__func__, __LINE__);
-
+	
 	if(medianImage) {
 		cvReleaseImage(&medianImage);  medianImage = NULL;
 	}
@@ -351,16 +352,43 @@ int TamanoirImgProc::preProcessImage() {
 		IPL_DEPTH_8U, 1);
 
 	
+	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
+	m_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
+	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image ... size %dx%d\n", 
+		__func__, __LINE__, m_smooth_size, m_smooth_size);
+
 	switch(m_FilmType) {
-	default:
+	default: {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : smoothing input image as medianImage...\n", 
+			__func__, __LINE__);
+		
 		cvSmooth(grayImage, medianImage, 
                CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-               9, 9 );
-		break;
+               m_smooth_size, m_smooth_size );
+		
+		}break;
 	case FILM_NEGATIVE:
+		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n", 
+			__func__, __LINE__);
+		if(!origBlurredImage) {
+			origBlurredImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
+				originalImage->depth, originalImage->nChannels);
+			
+			// First, blur the color image
+			cvSmooth( originalImage, origBlurredImage,
+               CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+               9, 9); //int param1=3, int param2=0 );
+			// FIXME : adapt size to resolution
+		}
+		
+		
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image...\n", 
 			__func__, __LINE__);
-		tmOpenImage(grayImage, medianImage, diffImage, 1);
+		tmOpenImage(
+			grayImage,  // => src 
+			medianImage, // => dest
+			diffImage, // => tmp
+			1);
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image OK\n", 
 			__func__, __LINE__);
 		break;
@@ -408,7 +436,9 @@ int TamanoirImgProc::preProcessImage() {
 		cvSmooth(grayImage, diffImage, 
                CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
                3, 3 );
-		memcpy(grayImage->imageData, diffImage->imageData, diffImage->widthStep*diffImage->height);
+		
+		memcpy(grayImage->imageData, diffImage->imageData, 
+			diffImage->widthStep*diffImage->height);
 		unsigned long diffHisto2[256];
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
@@ -442,7 +472,8 @@ int TamanoirImgProc::preProcessImage() {
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
 			
-			if( diff >= m_threshold || 
+			if( (diff >= m_threshold && grayImageBuffer[pos]>164) 
+				|| 
 				grayImageBuffer[pos]>240) // Opaque pixels are white
 				diffImageBuffer[pos] = 127;
 		}
@@ -498,14 +529,10 @@ int TamanoirImgProc::preProcessImage() {
 	tmpCropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
 	
-	if(originalImage->nChannels == 1) {
-		cropColorImage = cropImage;
-	}
-	else {
-		if(cropColorImage != cropImage && cropColorImage)
-			cvReleaseImage(&cropColorImage);
-		cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	}
+	if(cropColorImage)
+		cvReleaseImage(&cropColorImage);
+	
+	cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	
 	// Insert difference histogram in cropColorImage
 	fprintf(logfile, "TamanoirImgProc::%s:%d :Insert difference histogram in cropColorImage...\n", 
@@ -618,8 +645,11 @@ int TamanoirImgProc::setResolution(int dpi) {
 			__func__, __LINE__, m_dust_area_min);
 		
 		m_dust_area_max = 800 * dpi / 2400;
-		if(dpi != m_dpi)
+		if(dpi != m_dpi) {
+			preProcessImage();
 			firstDust();
+		}
+		
 	}
 	m_dpi = dpi;
 	
@@ -810,6 +840,7 @@ int TamanoirImgProc::nextDust() {
 						
 						// Do a dilatation around the grown 
 						tmDilateImage(correctImage, dilateImage);
+						
 						// => this dilated image will be used as mask for correlation search
 						// but we have to fill the center of the dust 
 						//	A full circle will only give us a empty circle : O
@@ -822,6 +853,7 @@ int TamanoirImgProc::nextDust() {
 						tmCropImage(medianImage, 
 									tmpCropImage, 
 									crop_x, crop_y);
+						
 						int r,c, histoDiff[512];
 						memset(histoDiff, 0, 512*sizeof(int));
 						for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
@@ -856,10 +888,6 @@ int TamanoirImgProc::nextDust() {
 						}
 						
 						
-						// Crop original image
-						tmCropImage(originalImage, 
-									correctColorImage, 
-									crop_x, crop_y);
 						
 						// Process search around the dust in original image
 						// Use center x,y - width,height
@@ -882,6 +910,28 @@ int TamanoirImgProc::nextDust() {
 							copy_width, copy_height;
 						int best_correl = 10000;
 						
+						
+						// Crop original image
+						switch(m_FilmType) {
+						default:
+						case FILM_POSITIVE:
+							tmCropImage(originalImage, 
+									correctColorImage, 
+									crop_x, crop_y);
+							break;
+						case FILM_UNDEFINED:
+						case FILM_NEGATIVE:
+							if(origBlurredImage) 
+								tmCropImage(origBlurredImage, 
+									correctColorImage, 
+									crop_x, crop_y);
+							else
+								tmCropImage(originalImage, 
+									correctColorImage, 
+									crop_x, crop_y);
+							break;
+						}
+						// Find best proposal in originalImage
 						int ret = tmSearchBestCorrelation(
 							correctColorImage, dilateImage, 
 							connect_center_x, connect_center_y,
@@ -951,6 +1001,7 @@ int TamanoirImgProc::nextDust() {
 								// Original image for display in GUI
 								tmCropImage(originalImage, cropColorImage, 
 											crop_x, crop_y);
+								
 								if(g_debug_savetmp)
 								{
 									tmSaveImage(TMP_DIRECTORY "a-cropImage" IMG_EXTENSION, 
@@ -978,6 +1029,12 @@ int TamanoirImgProc::nextDust() {
 									tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
 										dilateImage);
 								}
+
+								// If we use a blurred version for searching,
+								//	update cropped color with original this time
+								tmCropImage(originalImage, correctColorImage, 
+											crop_x, crop_y);
+								
 								// Clone image region 
 								tmCloneRegion(correctColorImage, 
 									copy_dest_x, copy_dest_y, // dest
@@ -991,6 +1048,7 @@ int TamanoirImgProc::nextDust() {
 									copy_width, copy_height,
 									false // mark move dest
 									);
+								
 								
 								
 								if(g_debug_savetmp)
@@ -1399,13 +1457,13 @@ void low_update() {
 		low_update_buf[r] = low_update_rate * (float)imageIn[r] + rest * low_update_buf[r];
 		imageOut[r] = (unsigned char)low_update_buf[r];
 	}
-	
 }
 
 
 IplImage * cvImIn = NULL;
 IplImage * cvGray = NULL;
 IplImage * cvBlurred = NULL;
+
 IplImage * cvDiff = NULL;
 
 void allocateImage(IplImage ** img, int w, int h) {
@@ -1450,8 +1508,9 @@ void dust_remove() {
 	
 	// Now we have a grayscaled image
 	
+	
 	// First, blur the grayscaled image
-	cvSmooth( cvGray, cvBlurred,
+	cvSmooth( cvGray, cvBlurred, 
                CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
                9, 9); //int param1=3, int param2=0 );
 	

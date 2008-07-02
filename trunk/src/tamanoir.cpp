@@ -57,10 +57,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	
 	ui.setupUi((QMainWindow *)this);
 	
-	
-	// Connect cropPixmapLabel to mouse handling
-	connect(ui.cropPixmapLabel, SIGNAL(signalMousePressEvent(QMouseEvent *)), this, SLOT(on_cropPixmapLabel_mousePressEvent(QMouseEvent *)));
-
+	// Load last options
 	loadOptions();
 	
 	ui.loadingTextLabel->setText(QString(""));
@@ -130,6 +127,17 @@ int TamanoirApp::loadOptions() {
 	}
 	
 	fclose(foptions);
+	
+	// Update GUI with those options
+	ui.typeComboBox->setCurrentIndex( m_options.filmType );
+	ui.trustCheckBox->setChecked( m_options.trust );
+	ui.hotPixelsCheckBox->setChecked( m_options.hotPixels );
+	QString str;
+	str.sprintf("%d", m_options.dpi);
+	int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
+	if(ind >= 0)
+		ui.dpiComboBox->setCurrentIndex(ind);
+		
 	return 1;
 }
 
@@ -185,9 +193,25 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 	QString argsStr = tr("Args=");
 	if(argc > 1) {
 		for(int arg=1; arg<argc; arg++) {
-			loadFile( argv[arg] );
+			
+			if(argv[arg][0] == '-') //option
+			{
+				fprintf(stderr, "TamanoirApp::%s:%d option '%s'\n", 
+					__func__, __LINE__, argv[arg]);
+				if(strcasestr(argv[arg], "debug")) // All debug options
+					g_debug_savetmp = g_debug_imgverbose = 1;
+				if(strcasestr(argv[arg], "save")) // All debug options
+					g_debug_savetmp = 1;
+				
+			} else {
+				loadFile( argv[arg] );
+			}
+			
+			
 			argsStr += QString(argv[arg]);
+			
 		}
+		
 		statusBar()->showMessage( argsStr );
 	}
 }
@@ -230,6 +254,7 @@ void TamanoirApp::loadFile(QString s) {
 		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
 		m_pImgProc->setTrustCorrection(m_options.trust);
 		m_pImgProc->setResolution(m_options.dpi);
+		m_pImgProc->setFilmType(m_options.filmType);
 	}
 	int ret = m_pImgProc->loadFile(s.ascii());
 	if(ret < 0) {
@@ -243,8 +268,19 @@ void TamanoirApp::loadFile(QString s) {
 
         refreshMainDisplay();
 	
-	statusBar()->showMessage( tr("Loaded and pre-processed ") + fi.fileName() );
-	ui.loadingTextLabel->setText( fi.fileName() );
+	
+	QString str;
+	IplImage * curImage = m_pImgProc->getOriginal();
+	if(!curImage) {
+		statusBar()->showMessage( tr("Could not load file ") 
+			+ fi.fileName() );
+	} else {
+		str.sprintf("%d x %d x %dbit", curImage->width, curImage->height, 8*tmByteDepth(curImage));
+	
+		statusBar()->showMessage( tr("Loaded and pre-processed. Image: ") 
+			+ fi.fileName() + tr(". Size:") + str);
+		ui.loadingTextLabel->setText( fi.fileName() );
+	}
 	
 	ui.overAllProgressBar->setValue(0);
 	
@@ -472,8 +508,9 @@ void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 		
 		updateDisplay();
 	}
+	saveOptions();
 	
-	statusBar()->showMessage( tr("Changed hot pixels filter: done.") );
+	statusBar()->showMessage( tr("Changed hot pixels filter: ") + (on?tr("ON"):tr("OFF")) + tr(" done."));
 	statusBar()->update();
 }
 
@@ -537,8 +574,8 @@ void TamanoirApp::refreshMainDisplay() {
 	if(!m_pImgProc) return;
 	
 	int scaled_width = ui.largViewFrame->width()-12;
-        int scaled_height = ui.largViewFrame->height()-12;
-        
+	int scaled_height = ui.largViewFrame->height()-12;
+		
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
 
@@ -549,10 +586,10 @@ void TamanoirApp::updateDisplay()
 {
 	if(m_pImgProc) {
 		// After pre-processing, we can get the grayscale version of input image
-		IplImage * curImage = m_pImgProc->getGrayscale();
 		
-		if(curImage) {
-			IplImage * displayImage = m_pImgProc->getDisplayImage();
+		IplImage * displayImage = m_pImgProc->getDisplayImage();
+		if(displayImage) {
+			
 			
 			// Display in main frame
 			int gray_width = displayImage->widthStep;
@@ -598,7 +635,9 @@ void TamanoirApp::updateDisplay()
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
 		
-		// Display images
+		IplImage * curImage;
+		
+		// Top-left : Display cropped / detailled images
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
@@ -613,27 +652,8 @@ void TamanoirApp::updateDisplay()
 			pLabel->repaint();
 		}
 		
-		
-		// Mask image = dust in white on black background
-		IplImage * maskImage = m_pImgProc->getMask();
-		curImage = maskImage;
-		if(curImage) {
-			QLabel * pLabel = ui.growPixmapLabel;
-			
-			
-			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage);
-			QPixmap pixmap;
-			pixmap.convertFromImage( 
-				grayQImage.scaledToWidth(pLabel->width()),
-					QPixmap::Color);
-			pLabel->setPixmap(pixmap);
-			pLabel->repaint();
-		}
-		
-		// Proposed correction
-		IplImage * correctImage = m_pImgProc->getCorrectedCrop();
-		curImage = correctImage;
+		// Bottom-left : Proposed correction
+		curImage = m_pImgProc->getCorrectedCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.correctPixmapLabel;
 			
@@ -648,24 +668,48 @@ void TamanoirApp::updateDisplay()
 		}
 		
 		
-		// Display dust info
+		// Mask image = dust in white on black background
+		curImage = m_pImgProc->getMask();
+		if(curImage) {
+			QLabel * pLabel = ui.growPixmapLabel;
+			
+			// Display in frame
+			QImage grayQImage = iplImageToQImage(curImage);
+			QPixmap pixmap;
+			pixmap.convertFromImage( 
+				grayQImage.scaledToWidth(pLabel->width()),
+					QPixmap::Color);
+			pLabel->setPixmap(pixmap);
+			pLabel->repaint();
+		}
+		
+		
+		
+		// Top-right : Display dust info
 		CvConnectedComp dust = m_pImgProc->getDustComp();
+		
 		char strinfo[32];
-		sprintf(strinfo, "%dx%d / %d pix",
-			(int)dust.rect.width, (int)dust.rect.height, (int)dust.area);
+		float width_mm = 25.4f * dust.rect.width / m_options.dpi;
+		float height_mm = 25.4f * dust.rect.height / m_options.dpi;
+		
+		sprintf(strinfo, "%dx%d-%d pix/%.1gx%.1g mm",
+			(int)dust.rect.width, (int)dust.rect.height, (int)dust.area,
+			width_mm, height_mm);
 		QString str = tr("Dust: ") + QString(strinfo);
 		ui.growTextLabel->setText(str);
 		
-		// Display diff image
-		IplImage * grayImage = m_pImgProc->getDiffCrop();
+		// Bottom-right : Display diff image (neighbouring)
+		curImage = m_pImgProc->getDiffCrop();
 		if(g_debug_correlation)
-			grayImage = getCorrelationImage();
+		{
+			curImage = getCorrelationImage();
+		}
 		
-		if(grayImage) {
+		if(curImage) {
 			QLabel * pLabel = ui.diffPixmapLabel;
 
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(grayImage);
+			QImage grayQImage = iplImageToQImage(curImage);
 			QPixmap pixmap;
 			pixmap.convertFromImage( grayQImage.smoothScale(pLabel->width(),pLabel->height()),
 				QPixmap::Color);
