@@ -127,6 +127,9 @@ public:
 	/** @brief Get progress in %age */
 	int getProgress();
 	
+	/** @brief original version of input image */
+	IplImage * getOriginal() { return originalImage; };
+	
 	/** @brief 8bit grayscale version of input image */
 	IplImage * getGrayscale() { return grayImage; };
 	
@@ -191,6 +194,9 @@ private:
 
 	// Image buffers
 	IplImage * originalImage;
+	
+	IplImage * origBlurredImage;
+	
 	IplImage * grayImage;
 	IplImage * medianImage;
 	IplImage * diffImage;
@@ -215,6 +221,7 @@ private:
 	int m_seed_x;
 	int m_seed_y;
 	u8 m_threshold;
+	int m_smooth_size; // For smoothed processed images
 	
 	int m_dust_area_min;
 	int m_dust_area_max;
