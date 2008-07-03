@@ -397,7 +397,7 @@ void TamanoirApp::on_skipButton_clicked()
 	if(m_pProcThread) {
 		int state = m_pProcThread->getCommand();
 		
-		int ret = m_pProcThread->nextDust();
+		int ret = m_curCommand = m_pProcThread->nextDust();
 		
 		if(ret == 0) // Finished
 		{
@@ -407,9 +407,13 @@ void TamanoirApp::on_skipButton_clicked()
 			return;
 		}
 		if(state == PROTH_NOTHING) // Search was done
+		{
+			m_curCommand = PROTH_NOTHING;
+	
 			updateDisplay();
-		else
+		} else {
 			refreshTimer.start(250);
+		}
 	}
 }
 
