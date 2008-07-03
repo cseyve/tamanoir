@@ -40,7 +40,6 @@ extern u8 g_debug_imgverbose;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_correlation;
 
-QImage iplImageToQImage(IplImage * iplImage);
 
 /** constructor */
 TamanoirApp::TamanoirApp(QWidget * l_parent) 
@@ -50,6 +49,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	statusBar()->showMessage( QString("") );
 	
 	m_pImgProc = NULL;
+	m_pProcThread = NULL;
+	
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
 		homeDirStr = QString(getenv("HOME"));
@@ -60,8 +61,220 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	// Load last options
 	loadOptions();
 	
+	connect(&refreshTimer, SIGNAL(timeout()), this, SLOT(on_refreshTimer_timeout()));
+
+	
 	ui.loadingTextLabel->setText(QString(""));
 	
+}
+
+void TamanoirApp::on_refreshTimer_timeout() {
+	if(m_pProcThread) {
+		if(refreshTimer.isActive() && 
+			m_pProcThread->getCommand() == PROTH_NOTHING) {
+			// Stop timer
+			refreshTimer.stop();
+		}
+		
+		fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
+			m_curCommand, m_pProcThread->getCommand());
+		
+		// If nothing changed, just update GUI
+		if( m_curCommand == m_pProcThread->getCommand()) {
+			// Update Progress bar
+			ui.overAllProgressBar->setValue( m_pImgProc->getProgress() );
+			
+			// Do specific updates
+			switch(m_curCommand) {
+			default:
+				break;
+			case PROTH_SEARCH:
+				refreshMainDisplay();
+				updateDisplay();
+				break;
+			}
+			
+			return;
+		}
+		
+			
+		// If we WERE loading a file and now it's done
+		if( (m_curCommand == PROTH_LOAD_FILE 
+			|| m_curCommand == PROTH_OPTIONS)
+			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
+			refreshMainDisplay();
+			
+			QFileInfo fi(m_currentFile);
+			QString str;
+			IplImage * curImage = m_pImgProc->getOriginal();
+			if(!curImage) {
+				statusBar()->showMessage( tr("Could not load file ") 
+					+ fi.fileName() );
+			} else {
+				str.sprintf("%d x %d x %dbit", curImage->width, curImage->height, 8*tmByteDepth(curImage));
+				
+				statusBar()->showMessage( tr("Loaded and pre-processed. Image: ") 
+					+ fi.fileName() + tr(". Size:") + str);
+				ui.loadingTextLabel->setText( fi.fileName() );
+			}
+			
+			ui.overAllProgressBar->setValue(0);
+			
+			
+			if(!g_debug_imgverbose) {
+				
+				m_pImgProc->firstDust();
+			}
+			
+			
+			// Update little frame displays
+			updateDisplay();
+		}
+	}
+}
+
+
+void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
+	
+	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	if(e && m_pProcThread) {
+		
+		m_pImgProc->setCopySrc(m_pProcThread->getCorrectionPointer(),
+			e->pos().x(), e->pos().y());
+		updateDisplay();
+	}
+}
+
+
+/** destructor */
+TamanoirApp::~TamanoirApp() {
+	
+}
+
+
+void TamanoirApp::setArgs(int argc, char **argv) {
+	ui.loadingTextLabel->setText(QString(""));
+	statusBar()->showMessage( QString("") );
+	
+	QString argsStr = tr("Args=");
+	if(argc > 1) {
+		for(int arg=1; arg<argc; arg++) {
+			
+			if(argv[arg][0] == '-') //option
+			{
+				fprintf(stderr, "TamanoirApp::%s:%d option '%s'\n", 
+					__func__, __LINE__, argv[arg]);
+				if(strcasestr(argv[arg], "debug")) // All debug options
+					g_debug_savetmp = g_debug_imgverbose = 1;
+				if(strcasestr(argv[arg], "save")) // All debug options
+					g_debug_savetmp = 1;
+				
+			} else {
+				loadFile( argv[arg] );
+			}
+			
+			
+			argsStr += QString(argv[arg]);
+			
+		}
+		
+		statusBar()->showMessage( argsStr );
+	}
+}
+
+/****************************** Button slots ******************************/
+void TamanoirApp::on_loadButton_clicked() 	
+{
+	ui.loadingTextLabel->setText(tr(""));
+	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	QString s = QFileDialog::getOpenFileName(this,
+                   	tr("open file dialog"),
+                   	m_options.currentDir,
+                    tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
+								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
+	if(s.isEmpty()) {
+		fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
+		return;
+	}
+
+	loadFile( s);
+}
+
+void TamanoirApp::loadFile(QString s) {
+	QFileInfo fi(s);
+	if(!fi.exists()) 
+		return;
+	
+	
+	m_currentFile = s;
+	
+	strcpy(m_options.currentDir, fi.absolutePath().ascii());
+	saveOptions();
+	
+	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
+	statusBar()->update();
+	
+	fprintf(stderr, "TamanoirApp::%s:%d : file='%s'...\n", 
+		__func__, __LINE__, s.latin1());
+	// Open file
+	if(!m_pImgProc) {
+		m_pImgProc = new TamanoirImgProc();
+		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
+		m_pImgProc->setTrustCorrection(m_options.trust);
+		m_pImgProc->setResolution(m_options.dpi);
+		m_pImgProc->setFilmType(m_options.filmType);
+	}
+	if(!m_pProcThread) {
+		m_pProcThread = new TamanoirThread(m_pImgProc);
+	}
+	
+	int ret = m_pProcThread->loadFile(s.ascii());
+	if(ret < 0) {
+		
+		QMessageBox::critical( 0, tr("Tamanoir"),
+			tr("Cannot load file ") + s + tr(". Format or compression is not compatible"));
+		
+		return;
+	}
+	
+	m_curCommand = m_pProcThread->getCommand();
+	refreshTimer.start(500);
+}
+
+
+void TamanoirApp::on_saveButton_clicked()
+{
+	fprintf(stderr, "TamanoirApp::%s:%d : saving in original file, and use a copy for backup...\n", __func__, __LINE__);
+	
+	QFileInfo fi(m_currentFile);
+	QString ext = fi.extension(FALSE);
+	QString base = fi.baseName( TRUE ); 
+       
+	
+	
+    // Save a copy before saving output image
+	QString copystr = base + tr("-copy.") + ext;
+	if(m_pImgProc) {
+		QString msg = tr("Saveing ") + m_currentFile;
+		
+		// Save a copy 
+		QDir dir( fi.dirPath(TRUE) );
+		dir.rename(m_currentFile, copystr);
+		msg+= tr(" + backup as ") + copystr;
+		
+		// Save image
+		m_pProcThread->saveFile(m_currentFile.ascii());
+		
+		
+		statusBar()->showMessage( msg );
+		
+		// Store statistics
+		dust_stats_t stats = m_pImgProc->getDustStats();
+		processAndPrintStats(&stats);
+		
+		// Display in progress bar
+		
+	}
 }
 
 int TamanoirApp::loadOptions() {
@@ -171,170 +384,11 @@ void TamanoirApp::saveOptions() {
 	fclose(foptions);
 }
 
-void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
-	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-	if(e && m_pImgProc) {
-		m_pImgProc->setCopySrc(e->pos().x(), e->pos().y());
-		updateDisplay();
-	}
-}
-
-
-/** destructor */
-TamanoirApp::~TamanoirApp() {
-	
-}
-
-
-void TamanoirApp::setArgs(int argc, char **argv) {
-	ui.loadingTextLabel->setText(QString(""));
-	statusBar()->showMessage( QString("") );
-	
-	QString argsStr = tr("Args=");
-	if(argc > 1) {
-		for(int arg=1; arg<argc; arg++) {
-			
-			if(argv[arg][0] == '-') //option
-			{
-				fprintf(stderr, "TamanoirApp::%s:%d option '%s'\n", 
-					__func__, __LINE__, argv[arg]);
-				if(strcasestr(argv[arg], "debug")) // All debug options
-					g_debug_savetmp = g_debug_imgverbose = 1;
-				if(strcasestr(argv[arg], "save")) // All debug options
-					g_debug_savetmp = 1;
-				
-			} else {
-				loadFile( argv[arg] );
-			}
-			
-			
-			argsStr += QString(argv[arg]);
-			
-		}
-		
-		statusBar()->showMessage( argsStr );
-	}
-}
-
-/****************************** Button slots ******************************/
-void TamanoirApp::on_loadButton_clicked() 	
-{
-	ui.loadingTextLabel->setText(tr(""));
-	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-	QString s = QFileDialog::getOpenFileName(this,
-                   	tr("open file dialog"),
-                   	m_options.currentDir,
-                    tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
-								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
-	if(s.isEmpty()) {
-		fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
-		return;
-	}
-
-	loadFile( s);
-}
-
-void TamanoirApp::loadFile(QString s) {
-	QFileInfo fi(s);
-	if(!fi.exists()) 
-		return;
-	m_currentFile = s;
-	
-	strcpy(m_options.currentDir, fi.absolutePath().ascii());
-	saveOptions();
-	
-	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
-	statusBar()->update();
-	
-	fprintf(stderr, "TamanoirApp::%s:%d : file='%s'...\n", 
-		__func__, __LINE__, s.latin1());
-	// Open file
-	if(!m_pImgProc) {
-		m_pImgProc = new TamanoirImgProc();
-		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
-		m_pImgProc->setTrustCorrection(m_options.trust);
-		m_pImgProc->setResolution(m_options.dpi);
-		m_pImgProc->setFilmType(m_options.filmType);
-	}
-	int ret = m_pImgProc->loadFile(s.ascii());
-	if(ret < 0) {
-		
-		QMessageBox::critical( 0, tr("Tamanoir"),
-			tr("Cannot load file ") + s + tr(". Format or compression is not compatible"));
-			
-		return;
-	}
-	
-
-        refreshMainDisplay();
-	
-	
-	QString str;
-	IplImage * curImage = m_pImgProc->getOriginal();
-	if(!curImage) {
-		statusBar()->showMessage( tr("Could not load file ") 
-			+ fi.fileName() );
-	} else {
-		str.sprintf("%d x %d x %dbit", curImage->width, curImage->height, 8*tmByteDepth(curImage));
-	
-		statusBar()->showMessage( tr("Loaded and pre-processed. Image: ") 
-			+ fi.fileName() + tr(". Size:") + str);
-		ui.loadingTextLabel->setText( fi.fileName() );
-	}
-	
-	ui.overAllProgressBar->setValue(0);
-	
-	if(!g_debug_imgverbose) {
-		
-		m_pImgProc->firstDust();
-	}
-	
-	
-	// Update little frame displays
-	updateDisplay();
-}
-
-void TamanoirApp::on_saveButton_clicked()
-{
-	fprintf(stderr, "TamanoirApp::%s:%d : saving in original file, and use a copy for backup...\n", __func__, __LINE__);
-	
-	QFileInfo fi(m_currentFile);
-	QString ext = fi.extension(FALSE);
-	QString base = fi.baseName( TRUE ); 
-       
-	
-	
-    // Save a copy before saving output image
-	QString copystr = base + tr("-copy.") + ext;
-	if(m_pImgProc) {
-		QString msg = tr("Saved ") + m_currentFile;
-		
-		// Save a copy 
-		QDir dir( fi.dirPath(TRUE) );
-		dir.rename(m_currentFile, copystr);
-		msg+= tr(" + backup as ") + copystr;
-		
-		// Save image
-		m_pImgProc->saveFile(m_currentFile.ascii());
-		
-		
-		statusBar()->showMessage( msg );
-		
-		// Store statistics
-		dust_stats_t stats = m_pImgProc->getDustStats();
-		processAndPrintStats(&stats);
-		
-		// Display in progress bar
-		
-	}
-}
-
-
 
 void TamanoirApp::on_skipButton_clicked()
 {
-	if(m_pImgProc) {
-		int ret = m_pImgProc->nextDust();
+	if(m_pProcThread) {
+		int ret = m_pProcThread->nextDust();
 		
 		if(ret == 0) // Finished
 		{
@@ -343,10 +397,8 @@ void TamanoirApp::on_skipButton_clicked()
 			
 			return;
 		}
-			
+		
 		updateDisplay();
-		
-		
 	}
 }
 
@@ -354,7 +406,7 @@ void TamanoirApp::on_correctButton_clicked()
 {
 	// Apply previous correction
 	if(m_pImgProc)
-		m_pImgProc->applyCorrection();
+		m_pImgProc->applyCorrection(m_pProcThread->getCorrection());
 	
 	// Then go to next dust
 	on_skipButton_clicked();
@@ -443,16 +495,13 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	statusBar()->update();
 	
 	m_options.filmType = i;
-	if(m_pImgProc) {
-		m_pImgProc->setFilmType(i);
-		
-		// Refresh main display
-		refreshMainDisplay();
-		
-		updateDisplay();
-	}
-	statusBar()->showMessage( tr("Changed film type: done.") );
-	statusBar()->update();
+	
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else m_curCommand = PROTH_NOTHING;
+	
+
 	
 	saveOptions();
 }
@@ -469,17 +518,11 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 	else
 		m_options.dpi = dpi;
 	
-	if(m_pImgProc) {
-		m_pImgProc->setResolution(m_options.dpi);
-		
-		
-		// Refresh main display
-		refreshMainDisplay();
-		
-		updateDisplay();
-	}
-	statusBar()->showMessage( tr("Changed scan resolution: done.") );
-	statusBar()->update();
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else m_curCommand = PROTH_NOTHING;
+	
 	
 	saveOptions();
 }
@@ -489,9 +532,10 @@ void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 	
 	m_options.trust = on;
 	
-	if(m_pImgProc) {
-		m_pImgProc->setTrustCorrection(on);
-	}
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else m_curCommand = PROTH_NOTHING;
 	
 	saveOptions();
 }
@@ -500,28 +544,21 @@ void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed hot pixels filter: please wait...") );
 	statusBar()->update();
 	m_options.hotPixels = on;
-	if(m_pImgProc) {
-		m_pImgProc->setHotPixelsFilter(on);
-		
-		// Refresh main display
-		refreshMainDisplay();
-		
-		updateDisplay();
-	}
-	saveOptions();
 	
-	statusBar()->showMessage( tr("Changed hot pixels filter: ") + (on?tr("ON"):tr("OFF")) + tr(" done."));
-	statusBar()->update();
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else m_curCommand = PROTH_NOTHING;
+	
+	saveOptions();
 }
+
 
 void TamanoirApp::on_cropPixmapLabel_customContextMenuRequested(QPoint p)
 {
 	fprintf(stderr, "TamanoirApp::%s:%d : clicked on %d,%d", __func__, __LINE__, p.x(), p.y());
 	
 }
-
-
-
 
 
 QImage iplImageToQImage(IplImage * iplImage) {
@@ -570,6 +607,8 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	}
 	return qImage;
 }
+
+
 void TamanoirApp::refreshMainDisplay() {
 	if(!m_pImgProc) return;
 	
@@ -586,7 +625,6 @@ void TamanoirApp::updateDisplay()
 {
 	if(m_pImgProc) {
 		// After pre-processing, we can get the grayscale version of input image
-		
 		IplImage * displayImage = m_pImgProc->getDisplayImage();
 		if(displayImage) {
 			
@@ -636,6 +674,11 @@ void TamanoirApp::updateDisplay()
 		}
 		
 		IplImage * curImage;
+		
+		// Update cropped buffers
+		if(m_pProcThread) {
+			m_pImgProc->cropCorrectionImages(m_pProcThread->getCorrection());
+		}
 		
 		// Top-left : Display cropped / detailled images
 		curImage = m_pImgProc->getCrop();
@@ -722,4 +765,172 @@ void TamanoirApp::updateDisplay()
 	} else {
 		ui.overAllProgressBar->setValue(0);
 	}
+}
+
+
+
+
+
+TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
+	m_pImgProc = p_pImgProc;
+	
+	current_command = PROTH_NOTHING;
+	
+	m_run = m_running = false;
+}
+
+int TamanoirThread::setOptions(tm_options options) {
+	m_options = options;
+	if(!m_pImgProc) 
+		return 0;
+	if(!m_run)
+		start();
+	
+	int ret = current_command = PROTH_OPTIONS;
+	
+	// Unlock thread 
+	mutex.lock();
+	waitCond.wakeAll();
+	mutex.unlock();
+	
+	return ret;
+}
+
+
+int TamanoirThread::loadFile(QString s) {
+	m_filename = s;
+	
+	if(!m_run)
+		start();
+	next_dust_retval = -1;
+	
+	memset(&next_dust, 0, sizeof(t_correction));
+	memset(&current_dust, 0, sizeof(t_correction));
+	
+	int ret = current_command = PROTH_LOAD_FILE;
+	QFileInfo fi(s);
+	if(!fi.exists()) return -1;
+	
+	// Unlock thread 
+	mutex.lock();
+	waitCond.wakeAll();
+	mutex.unlock();
+	
+	return ret;
+}
+
+TamanoirThread::~TamanoirThread() {
+	m_run = false;
+	while(m_running) {
+		fprintf(stderr, "TmThread::%s:%d : waiting for thread to stop\n", 
+				__func__, __LINE__);
+		sleep(1);
+	}
+}
+
+int TamanoirThread::saveFile(QString s) {
+	m_filename = s;
+	
+	if(!m_run)
+		start();
+	
+	int ret = current_command = PROTH_SAVE_FILE;
+	mutex.lock();
+	waitCond.wakeAll();
+	mutex.unlock();
+	// Unlock thread 
+	return ret;
+}
+
+/* Get last detected dust correction */
+t_correction TamanoirThread::getCorrection() {
+	return current_dust;
+}
+
+/* Get pointer to last detected dust correction */
+t_correction * TamanoirThread::getCorrectionPointer()  {
+	return &current_dust;
+}
+
+
+int TamanoirThread::nextDust() {
+	if(!m_pImgProc) 
+		return -1;
+	
+	current_dust = next_dust;
+	int ret = next_dust_retval;
+	if(ret == 0) // No more values
+		return ret;
+	
+	ret = current_command = PROTH_SEARCH;
+	mutex.lock();
+	waitCond.wakeAll();
+	mutex.unlock();
+	return ret;
+}
+
+int TamanoirThread::getProgress() { 
+	if(current_command == PROTH_NOTHING) return 100;
+	if(!m_pImgProc) return 100;
+	
+	return m_pImgProc->getProgress(); 
+}
+
+void TamanoirThread::run() {
+	m_running = true;
+	m_run = true;
+	
+	while(m_run) {
+		mutex.lock();
+		waitCond.wait(&mutex);
+		fprintf(stderr, "TmThread::%s:%d : run\n", __func__, __LINE__);
+		int ret;
+		
+		switch(current_command) {
+		default:
+		case PROTH_NOTHING:
+			fprintf(stderr, "TmThread::%s:%d : do NOTHING ???\n", __func__, __LINE__);
+			sleep(1);
+			break;
+		case PROTH_LOAD_FILE:
+			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
+				__func__, __LINE__, m_filename.ascii());
+			m_pImgProc->loadFile(m_filename);
+			next_dust_retval = m_pImgProc->firstDust();
+			next_dust = m_pImgProc->getCorrection();
+			break;
+		case PROTH_SAVE_FILE:
+			fprintf(stderr, "TmThread::%s:%d : save file '%s'\n", 
+				__func__, __LINE__, m_filename.ascii());
+			m_pImgProc->saveFile(m_filename);
+			break;
+		case PROTH_SEARCH:
+			fprintf(stderr, "TmThread::%s:%d : searching for next dust\n", 
+				__func__, __LINE__);
+			
+			next_dust_retval = m_pImgProc->nextDust();
+			next_dust = m_pImgProc->getCorrection();
+			fprintf(stderr, "TmThread::%s:%d : => next dust ret=%d\n", 
+				__func__, __LINE__, next_dust_retval);
+			
+			break;
+		case PROTH_OPTIONS:
+			fprintf(stderr, "TmThread::%s:%d : process options changes\n", 
+				__func__, __LINE__);
+			m_pImgProc->setFilmType(m_options.filmType);
+			m_pImgProc->setResolution(m_options.dpi);
+			m_pImgProc->setTrustCorrection(m_options.trust);
+			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
+			
+			next_dust_retval = m_pImgProc->nextDust();
+			next_dust = m_pImgProc->getCorrection();
+			
+			break;
+		}
+		
+		current_command = PROTH_NOTHING;
+		mutex.unlock();
+	}
+	
+	m_running = false;
 }

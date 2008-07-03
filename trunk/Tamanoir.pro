@@ -20,7 +20,7 @@ HEADERS += inc/imgproc.h \
 
 FORMS = ui/tamanoir.ui
 
-SOURCES += src/imgproc.cpp \
+SOURCES = src/imgproc.cpp \
 		src/imgutils.cpp \
 		src/main.cpp \
 		src/tamanoir.cpp \
@@ -71,6 +71,15 @@ unix: {
 				DEFINES += HAVE_LIBTIFF
 				
 				STATIC_LIBS += /sw/lib/libtiff.a
+			} else {
+				exists( /usr/include/tiffio.h ) {
+					INCLUDEPATH += /usr/include
+					DYN_LIBS += -L/usr/lib
+					SOURCES += src/cv2tiff.cpp
+					DEFINES += HAVE_LIBTIFF
+					
+					STATIC_LIBS += /usr/lib/libtiff.a
+				}
 			}
 		}
 	}
@@ -174,11 +183,19 @@ unix: {
 DYN_LIBS += -lcvaux -lhighgui -ltiff
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a $$OPENCV_STATIC_LIBDIR/lib_cvaux.a $$OPENCV_STATIC_LIBDIR/lib_highgui.a 
 
-# Dynamic libraries version
-#LIBS = $$DYN_LIBS
+BUILD_STATIC = $$(BUILD_STATIC)
 
+contains(BUILD_STATIC, true) {
+message("Building static version of binary :")
 # Test for building releases
 LIBS = $$STATIC_LIBS
+
+} else {
+message("Building dynamic libraries version of binary :")
+
+# Dynamic libraries version
+LIBS = $$DYN_LIBS
+}
 
 message( "Configuration : ")
 message( "   defs : $$DEFINES ")
