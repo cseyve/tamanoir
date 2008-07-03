@@ -83,6 +83,7 @@ void TamanoirImgProc::init() {
 	diffImage = NULL;
 	growImage = NULL;
 	
+	// Working images
 	cropImage = NULL;
 	dilateImage = NULL;
 	correctImage = NULL;
@@ -90,6 +91,13 @@ void TamanoirImgProc::init() {
 
 	cropColorImage = NULL;
 	correctColorImage = NULL;
+	
+	// Display images
+	disp_cropColorImage =
+		disp_correctColorImage =
+		disp_dilateImage = 
+		disp_cropImage = NULL;
+	
 	
 	
 	displaySize = cvSize(0,0);;
@@ -281,7 +289,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	else
 	#endif
 	{
-	
+	m_progress = 20;
 	
 	// convert full image to grayscale
 	grayImage = cvCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
@@ -305,6 +313,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	}
 	}
 	m_progress = 25;
+	
+	if(displaySize.width > 0)
+		setDisplaySize(displaySize.width, displaySize.height);
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
 		__func__, __LINE__);
@@ -537,14 +548,26 @@ int TamanoirImgProc::preProcessImage() {
 	
 	if(cropImage) cvReleaseImage(&cropImage);  cropImage = NULL;
 	cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	
+	if(disp_cropImage) cvReleaseImage(&disp_cropImage);  disp_cropImage = NULL;
+	disp_cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	
 	if(tmpCropImage) cvReleaseImage(&tmpCropImage);  tmpCropImage = NULL;
 	tmpCropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
 	
 	if(cropColorImage)
 		cvReleaseImage(&cropColorImage);
-	
 	cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	
+	
+	if(disp_cropColorImage)
+		cvReleaseImage(&disp_cropColorImage);
+	disp_cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	if(disp_correctColorImage)
+		cvReleaseImage(&disp_correctColorImage);
+	disp_correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	
 	
 	// Insert difference histogram in cropColorImage
 	fprintf(logfile, "TamanoirImgProc::%s:%d :Insert difference histogram in cropColorImage...\n", 
@@ -569,8 +592,8 @@ int TamanoirImgProc::preProcessImage() {
 	if(dilateImage) cvReleaseImage(&dilateImage);  dilateImage = NULL;
 	dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
-	if(last_dilateImage) cvReleaseImage(&last_dilateImage);  last_dilateImage = NULL;
-	last_dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(disp_dilateImage) cvReleaseImage(&disp_dilateImage); 
+	disp_dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
 	
 	if(correctImage) cvReleaseImage(&correctImage);  correctImage = NULL;
@@ -613,9 +636,16 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
 		__func__, __LINE__);
 	if(originalImage && on)
 	{
+		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
+			__func__, __LINE__);
 		preProcessImage();
+		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
+			__func__, __LINE__);
 		firstDust();
 	}
+	fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
+			__func__, __LINE__);
+		
 	return m_hotPixels;
 }
 
@@ -633,19 +663,29 @@ bool TamanoirImgProc::setTrustCorrection(bool on) {
 }
 
 void TamanoirImgProc::setFilmType(int type) {
-	if(m_FilmType == type) return;
+	if(m_FilmType == type)
+		return;
+	
 	m_FilmType = type; 
 	
 	// Then re-process file
-	fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-		__func__, __LINE__);
 	if(originalImage) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
+			__func__, __LINE__);
 		preProcessImage();
+		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : go to first durst...\n", 
+			__func__, __LINE__);
 		firstDust();
+		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : done.\n", 
+			__func__, __LINE__);
+		
 	}
 }
 
 int TamanoirImgProc::setResolution(int dpi) {
+	
 	// Then re-process file
 	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n", 
 		__func__, __LINE__, dpi);
@@ -669,6 +709,8 @@ int TamanoirImgProc::setResolution(int dpi) {
 		
 	}
 	m_dpi = dpi;
+	fprintf(logfile, "TamanoirImgProc::%s:%d : scan resolution = %d\n", 
+		__func__, __LINE__, m_dpi);
 	
 	return m_dpi;
 }
@@ -714,7 +756,7 @@ int TamanoirImgProc::nextDust() {
 						__func__, __LINE__, m_seed_y, m_seed_x);
 	
 	// If there were a correction, and it has been refused, draw yellow color
-	if(m_correct.copy_width) {
+	if(m_correct.copy_width && displayImage) {
 		// Mark failure on displayImage
 		int disp_x = (m_correct.orig_x ) * displayImage->width / grayImage->width;
 		int disp_y = (m_correct.orig_y ) * displayImage->height / grayImage->height;
@@ -1017,11 +1059,11 @@ int TamanoirImgProc::nextDust() {
 							if(return_now) {
 								
 								// Copy last dilateImage
-								memcpy(last_dilateImage->imageData, dilateImage->imageData, 
-									dilateImage->widthStep * dilateImage->height);
+								//memcpy(last_dilateImage->imageData, dilateImage->imageData, 
+								//	dilateImage->widthStep * dilateImage->height);
 								
 								// Call cropping functions
-								cropViewImages();
+								//cropViewImages();
 								
 								return 1;
 							}
@@ -1042,13 +1084,14 @@ int TamanoirImgProc::nextDust() {
 							}
 							
 							// Mark failure on displayImage
-							int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
-							int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
-							int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
-							int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
-							tmMarkFailureRegion(displayImage, 
-									disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
-							
+							if(displayImage) {
+								int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
+								int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
+								int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
+								int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
+								tmMarkFailureRegion(displayImage, 
+										disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
+							}							
 							
 							if(g_debug_imgoutput) {
 
@@ -1110,8 +1153,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(correction.copy_width < 0) return;
 	if(!originalImage) return;
 	
-	// Original image for display in GUI
-	tmCropImage(originalImage, cropColorImage, 
+// Top-left on GUI : Original image for display in GUI
+	tmCropImage(originalImage, disp_cropColorImage, 
 				correction.crop_x, correction.crop_y);
 	
 	if(g_debug_savetmp)
@@ -1125,50 +1168,53 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	}
 	
 	
-	// Diff image for display in GUI
-	tmCropImage(diffImage, 
-			cropImage, 
-			correction.crop_x, correction.crop_y);
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
-			cropImage);
-		
-	}
-
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
-			dilateImage);
-	}
-
+	
+// Bottom-Left
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
-	tmCropImage(originalImage, correctColorImage, 
-				correction.crop_x, correction.crop_y);
+	tmCropImage(originalImage, disp_correctColorImage, 
+			correction.crop_x, correction.crop_y);
 	
 	// Clone image region 
-	tmCloneRegion(correctColorImage, 
+	tmCloneRegion(disp_correctColorImage, 
 		correction.rel_dest_x, correction.rel_dest_y, // dest
 		correction.rel_src_x, correction.rel_src_y, // src
 		correction.copy_width, correction.copy_height
 		);
 	
-	tmMarkCloneRegion(cropColorImage, 
+	tmMarkCloneRegion(disp_cropColorImage, 
 		correction.rel_dest_x, correction.rel_dest_y, // dest
 		correction.rel_src_x, correction.rel_src_y, // src
 		correction.copy_width, correction.copy_height,
 		false // mark move dest
 		);
 	
-	
-	
 	if(g_debug_savetmp)
 	{
 		tmSaveImage(TMP_DIRECTORY "c-correctImage" IMG_EXTENSION, 
-			correctColorImage);
+			disp_correctColorImage);
 	}
 	
+// Top-right = dilatation image of dust
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
+			disp_dilateImage);
+	}
+	
+// Bottom-right: Diff image for display in GUI
+	tmCropImage(diffImage, 
+			disp_cropImage, 
+			correction.crop_x, correction.crop_y);
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
+			disp_cropImage);
+		
+	}
+
+	
+// Main windows	
 	if(displayImage) {
 		
 		// Return when we can propose something for correction

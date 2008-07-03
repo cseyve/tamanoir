@@ -146,10 +146,10 @@ public:
 	IplImage * getDisplayImage() { return displayImage; };
 	
 	// Cropped images
-	IplImage * getCorrectedCrop() { return correctColorImage; };
-	IplImage * getCrop() { return cropColorImage; };
-	IplImage * getDiffCrop() { return cropImage; };
-	IplImage * getMask() { return last_dilateImage; };
+	IplImage * getCorrectedCrop() { return disp_correctColorImage; };
+	IplImage * getCrop() { return disp_cropColorImage; };
+	IplImage * getDiffCrop() { return disp_cropImage; };
+	IplImage * getMask() { return disp_dilateImage; };
 	
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
@@ -222,13 +222,19 @@ private:
 	/** Processed imge size */
 	CvSize processingSize;
 	IplImage * dilateImage;
-	IplImage * last_dilateImage; // For display only
 	IplImage * cropImage;
 	IplImage * tmpCropImage;
 	IplImage * correctImage;
 
 	IplImage * cropColorImage;
 	IplImage * correctColorImage;
+	
+	// Same images for display
+	IplImage * disp_cropColorImage;
+	IplImage * disp_correctColorImage;
+	IplImage * disp_dilateImage; 
+	IplImage * disp_cropImage;
+	
 	
 	/** @brief Crop images to create cropped views for GUI */
 	void cropViewImages();
