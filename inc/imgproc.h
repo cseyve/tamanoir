@@ -118,11 +118,15 @@ public:
 	int nextDust();
 
 
-	/** @brief Change the origin of correction */
+	/** @brief Change the origin of current correction */
 	void setCopySrc(int x, int y);
-
+	/** @brief Change the origin of a former correction */
+	void setCopySrc(t_correction * pcorrection, int rel_x, int rel_y);
+	
 	/** @brief Apply proposed correction */
 	int applyCorrection();
+	/** @brief Apply a former correction */
+	int applyCorrection(t_correction correction);
 
 	/** @brief Get progress in %age */
 	int getProgress();
@@ -145,7 +149,7 @@ public:
 	IplImage * getCorrectedCrop() { return correctColorImage; };
 	IplImage * getCrop() { return cropColorImage; };
 	IplImage * getDiffCrop() { return cropImage; };
-	IplImage * getMask() { return dilateImage; };
+	IplImage * getMask() { return last_dilateImage; };
 	
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
@@ -156,6 +160,12 @@ public:
 	bool setTrustCorrection(bool on);
 	/** S@brief et the scan resolution to use the statistics on dust sizes */
 	int setResolution(int dpi);
+	
+	/** @brief return correction proposal */
+	t_correction getCorrection() { return m_correct; };
+	
+	/** @brief Crop images for detailled view arround a previous correction */
+	void cropCorrectionImages(t_correction correction);
 	
 private:
 	/** Initialize buffers */
@@ -187,6 +197,8 @@ private:
 	/** Perform image processing */
 	int processImage();
 	
+	/** @brief Progress value */
+	int m_progress;
 
 	/** Original image size */
 	CvSize originalSize;
@@ -210,6 +222,7 @@ private:
 	/** Processed imge size */
 	CvSize processingSize;
 	IplImage * dilateImage;
+	IplImage * last_dilateImage; // For display only
 	IplImage * cropImage;
 	IplImage * tmpCropImage;
 	IplImage * correctImage;
@@ -217,6 +230,8 @@ private:
 	IplImage * cropColorImage;
 	IplImage * correctColorImage;
 	
+	/** @brief Crop images to create cropped views for GUI */
+	void cropViewImages();
 	
 	int m_seed_x;
 	int m_seed_y;
@@ -229,12 +244,9 @@ private:
 	/** Last detected dust */
 	CvConnectedComp m_lastDustComp;
 
-
-
-	/* Correction data */
+	/** Correction data */
 	t_correction m_correct;
-	
-	
+
 };
 
 

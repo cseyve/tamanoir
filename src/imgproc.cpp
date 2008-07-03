@@ -196,6 +196,7 @@ IplImage * addBorder4x(IplImage * originalImage) {
 }
 	
 int TamanoirImgProc::loadFile(const char * filename) {
+	m_progress = 0;
 
 	/* Load with OpenCV cvLoadImage 
 	IplImage* cvLoadImage( const char* filename, int iscolor CV_DEFAULT(1));
@@ -210,7 +211,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	originalImage = cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
 					);
-	
+	m_progress = 10;
+
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : cannot open file '%s' !!\n",
 					__func__, __LINE__, filename);
@@ -247,8 +249,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		originalImage->width, originalImage->height, originalImage->nChannels,
 		tmByteDepth(originalImage));
 	
-	
+
 	originalImage = addBorder4x(originalImage);
+	m_progress = 15;
 	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x channels=%d => %d bytes per pixel\n", 
 			__func__, __LINE__, filename, 
 			originalImage->width, originalImage->height, originalImage->nChannels,
@@ -270,7 +273,10 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		__func__, __LINE__);
 	if(originalImage->depth != IPL_DEPTH_8U) {
 		grayImage = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		m_progress = 20;
 		grayImage = addBorder4x(grayImage);
+		m_progress = 25;
+
 	}
 	else
 	#endif
@@ -298,6 +304,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		break;
 	}
 	}
+	m_progress = 25;
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
 		__func__, __LINE__);
@@ -328,7 +335,7 @@ int TamanoirImgProc::saveFile(const char * filename) {
 int TamanoirImgProc::preProcessImage() {
 	
 	
-	
+	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
 	
 		// Test de sauvegarde
@@ -351,7 +358,7 @@ int TamanoirImgProc::preProcessImage() {
 	diffImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
 		IPL_DEPTH_8U, 1);
 
-	
+	m_progress = 30;
 	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
 	m_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
 	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image ... size %dx%d\n", 
@@ -380,7 +387,7 @@ int TamanoirImgProc::preProcessImage() {
                9, 9); //int param1=3, int param2=0 );
 			// FIXME : adapt size to resolution
 		}
-		
+		m_progress = 35;
 		
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image...\n", 
 			__func__, __LINE__);
@@ -396,6 +403,8 @@ int TamanoirImgProc::preProcessImage() {
 		// Test de sauvegarde
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
 	
+	m_progress = 40;
+		
 	fprintf(logfile, "TamanoirImgProc::%s:%d : difference processing image...\n", 
 		__func__, __LINE__);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
@@ -428,7 +437,9 @@ int TamanoirImgProc::preProcessImage() {
 			__func__, __LINE__, cdgH);
 
 	m_threshold = (u8)roundf(cdgH * 2.0);
-		
+	
+	m_progress = 45;
+	
 	// If image is really noisy, for example with B&W grain, pre-process a 3x3 blur filter
 	if( cdgH >= 3.0 ) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Process 3x3 blur filter on input image ...\n",
@@ -436,7 +447,7 @@ int TamanoirImgProc::preProcessImage() {
 		cvSmooth(grayImage, diffImage, 
                CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
                3, 3 );
-		
+		m_progress = 50;
 		memcpy(grayImage->imageData, diffImage->imageData, 
 			diffImage->widthStep*diffImage->height);
 		unsigned long diffHisto2[256];
@@ -445,7 +456,7 @@ int TamanoirImgProc::preProcessImage() {
 		
 		processDiff(m_FilmType, grayImage, medianImage, diffImage, diffHisto2);
 	}
-	
+	m_progress = 60;
 	
 	if(m_threshold < 4)
 		m_threshold = 4;
@@ -490,6 +501,7 @@ int TamanoirImgProc::preProcessImage() {
 	}
 		// Test de sauvegarde
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage" IMG_EXTENSION, diffImage);
+	m_progress = 70;
 	
 	// Do a close operation on diffImage
 	tmCloseImage(diffImage, medianImage, grayImage, 1);
@@ -497,7 +509,7 @@ int TamanoirImgProc::preProcessImage() {
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
 	memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
 	
-	
+	m_progress = 80;
 	int hThresh = (u8)roundf(cdgH * 3.0);;
 	
 	
@@ -541,7 +553,7 @@ int TamanoirImgProc::preProcessImage() {
 	int pitch = cropColorImage->widthStep;
 	int depth = cropColorImage->nChannels;
 	memset(colorCropImageBuffer, 0, pitch*processingSize.height);
-	
+	m_progress = 90;
 	for( int h=0; h<tmmin(256, processingSize.width); h++) {
 		if(diffHisto[h]>1) {
 			// Use log histogram
@@ -557,6 +569,10 @@ int TamanoirImgProc::preProcessImage() {
 	if(dilateImage) cvReleaseImage(&dilateImage);  dilateImage = NULL;
 	dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
+	if(last_dilateImage) cvReleaseImage(&last_dilateImage);  last_dilateImage = NULL;
+	last_dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	
+	
 	if(correctImage) cvReleaseImage(&correctImage);  correctImage = NULL;
 	correctImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(originalImage->nChannels == 1)
@@ -568,7 +584,8 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 	setResolution(m_dpi);
-
+	
+	m_progress = 100;
 	return 0;
 }
 
@@ -658,20 +675,19 @@ int TamanoirImgProc::setResolution(int dpi) {
 
 
 
-
-
+/* @brief Get progress in %age */
 int TamanoirImgProc::getProgress() {
 	if(!grayImage) return 0;
 	if(!grayImage->height) return 0;
-	
-	return (int)(100 * m_seed_y / grayImage->height);
+
+	return m_progress;
 }
 
 int TamanoirImgProc::firstDust() 
 {
 	// Reset last dust position
 	m_seed_x = m_seed_y = 0;
-	
+	m_progress = 0;
 	
 	// Clear buffer of known dusts
 	if(growImage)
@@ -867,6 +883,7 @@ int TamanoirImgProc::nextDust() {
 								}
 							}
 						}
+						
 						int min_dif = 255;
 						int max_dif = -255;
 						for(int h=0; h<256; h++) 
@@ -931,6 +948,7 @@ int TamanoirImgProc::nextDust() {
 									crop_x, crop_y);
 							break;
 						}
+						
 						// Find best proposal in originalImage
 						int ret = tmSearchBestCorrelation(
 							correctColorImage, dilateImage, 
@@ -998,80 +1016,15 @@ int TamanoirImgProc::nextDust() {
 								
 							if(return_now) {
 								
-								// Original image for display in GUI
-								tmCropImage(originalImage, cropColorImage, 
-											crop_x, crop_y);
+								// Copy last dilateImage
+								memcpy(last_dilateImage->imageData, dilateImage->imageData, 
+									dilateImage->widthStep * dilateImage->height);
 								
-								if(g_debug_savetmp)
-								{
-									tmSaveImage(TMP_DIRECTORY "a-cropImage" IMG_EXTENSION, 
-										cropColorImage);
-									
-									
-									tmSaveImage(TMP_DIRECTORY "z-cropImageGray" IMG_EXTENSION, 
-										cropImage);
-								}
+								// Call cropping functions
+								cropViewImages();
 								
-								
-								// Diff image for display in GUI
-								tmCropImage(diffImage, 
-										cropImage, 
-										crop_x, crop_y);
-								if(g_debug_savetmp)
-								{
-									tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
-										cropImage);
-									
-								}
-		
-								if(g_debug_savetmp)
-								{
-									tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
-										dilateImage);
-								}
-
-								// If we use a blurred version for searching,
-								//	update cropped color with original this time
-								tmCropImage(originalImage, correctColorImage, 
-											crop_x, crop_y);
-								
-								// Clone image region 
-								tmCloneRegion(correctColorImage, 
-									copy_dest_x, copy_dest_y, // dest
-									copy_src_x, copy_src_y, // src
-									copy_width, copy_height
-									);
-								
-								tmMarkCloneRegion(cropColorImage, 
-									copy_dest_x, copy_dest_y, // dest
-									copy_src_x, copy_src_y, // src
-									copy_width, copy_height,
-									false // mark move dest
-									);
-								
-								
-								
-								if(g_debug_savetmp)
-								{
-									tmSaveImage(TMP_DIRECTORY "c-correctImage" IMG_EXTENSION, 
-										correctColorImage);
-								}
-								
-							
-									
-								// Return when we can propose something for correction
-								// Mark current on displayImage
-								int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
-								int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
-								int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
-								int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
-								
-								tmMarkFailureRegion(displayImage, 
-											disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
 								return 1;
 							}
-							
-	
 						} else {
 							if(g_debug_imgverbose > 1) {
 								fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
@@ -1141,15 +1094,101 @@ int TamanoirImgProc::nextDust() {
 			}			
 		}
 		
+		
 		m_seed_x = 0;
+		m_progress = (int)(100 * y / grayImage->height);
 	}
 	
 	return 0;
 }
 
+void TamanoirImgProc::cropViewImages() {
+	cropCorrectionImages(m_correct);
+}
+
+void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
+	if(correction.copy_width < 0) return;
+	if(!originalImage) return;
+	
+	// Original image for display in GUI
+	tmCropImage(originalImage, cropColorImage, 
+				correction.crop_x, correction.crop_y);
+	
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "a-cropImage" IMG_EXTENSION, 
+			cropColorImage);
+		
+		
+		tmSaveImage(TMP_DIRECTORY "z-cropImageGray" IMG_EXTENSION, 
+			cropImage);
+	}
+	
+	
+	// Diff image for display in GUI
+	tmCropImage(diffImage, 
+			cropImage, 
+			correction.crop_x, correction.crop_y);
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
+			cropImage);
+		
+	}
+
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
+			dilateImage);
+	}
+
+	// If we use a blurred version for searching,
+	//	update cropped color with original this time
+	tmCropImage(originalImage, correctColorImage, 
+				correction.crop_x, correction.crop_y);
+	
+	// Clone image region 
+	tmCloneRegion(correctColorImage, 
+		correction.rel_dest_x, correction.rel_dest_y, // dest
+		correction.rel_src_x, correction.rel_src_y, // src
+		correction.copy_width, correction.copy_height
+		);
+	
+	tmMarkCloneRegion(cropColorImage, 
+		correction.rel_dest_x, correction.rel_dest_y, // dest
+		correction.rel_src_x, correction.rel_src_y, // src
+		correction.copy_width, correction.copy_height,
+		false // mark move dest
+		);
+	
+	
+	
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "c-correctImage" IMG_EXTENSION, 
+			correctColorImage);
+	}
+	
+	if(displayImage) {
+		
+		// Return when we can propose something for correction
+		// Mark current on displayImage
+		int disp_x = (correction.crop_x + correction.rel_dest_x) * displayImage->width / grayImage->width;
+		int disp_y = (correction.crop_y + correction.rel_dest_y) * displayImage->height / grayImage->height;
+		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
+		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
+		
+		tmMarkFailureRegion(displayImage, 
+					disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
+	}
+}
 
 void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
-	if(m_correct.orig_x < 0) return;
+	setCopySrc(&m_correct, rel_x, rel_y);
+}
+
+void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_y) {
+	if(pcorrection->orig_x < 0) return;
 	if(!originalImage) return;
 	
 	if(g_debug_imgverbose)
@@ -1158,52 +1197,58 @@ void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
 	
 	
 	// update center of source 
-	int x = rel_x - m_correct.copy_width / 2;
-	int y = rel_y - m_correct.copy_height / 2;
+	int x = rel_x - pcorrection->copy_width / 2;
+	int y = rel_y - pcorrection->copy_height / 2;
 	
 	
 	// Store correction in full image buffer
-	m_correct.orig_x = m_correct.crop_x + x;
-	m_correct.orig_y = m_correct.crop_y + y;
+	pcorrection->orig_x = pcorrection->crop_x + x;
+	pcorrection->orig_y = pcorrection->crop_y + y;
 	
-	m_correct.rel_src_x = x;
-	m_correct.rel_src_y = y;
+	pcorrection->rel_src_x = x;
+	pcorrection->rel_src_y = y;
 	
 	// Update dest
-	m_correct.copy_x = m_correct.crop_x + m_correct.rel_src_x;
-	m_correct.copy_y = m_correct.crop_y + m_correct.rel_src_y;
+	pcorrection->copy_x = pcorrection->crop_x + pcorrection->rel_src_x;
+	pcorrection->copy_y = pcorrection->crop_y + pcorrection->rel_src_y;
 
 
 
 	// Update display
 	// Original image for display in GUI
 	tmCropImage(originalImage, cropColorImage, 
-			m_correct.crop_x, m_correct.crop_y);
+			pcorrection->crop_x, pcorrection->crop_y);
 	tmCropImage(originalImage, 
 			correctColorImage, 
-			m_correct.crop_x, m_correct.crop_y);
+			pcorrection->crop_x, pcorrection->crop_y);
 	
 	
 	// Clone image region 
 	tmCloneRegion(correctColorImage, 
-		m_correct.rel_dest_x, m_correct.rel_dest_y, // dest
-		m_correct.rel_src_x, m_correct.rel_src_y, // src
-		m_correct.copy_width, m_correct.copy_height
+		pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
+		pcorrection->rel_src_x, pcorrection->rel_src_y, // src
+		pcorrection->copy_width, pcorrection->copy_height
 		);
 	
 	tmMarkCloneRegion(cropColorImage, 
-		m_correct.rel_dest_x, m_correct.rel_dest_y, // dest
-		m_correct.rel_src_x, m_correct.rel_src_y, // src
-		m_correct.copy_width, m_correct.copy_height,
+		pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
+		pcorrection->rel_src_x, pcorrection->rel_src_y, // src
+		pcorrection->copy_width, pcorrection->copy_height,
 		false // mark move dest
 		);
 
 }
 
-
+/* Apply proposed correction */
 int TamanoirImgProc::applyCorrection()
 {
-	if(m_correct.orig_x < 0)
+	return applyCorrection(m_correct);
+}
+
+/* Apply a former correction */
+int TamanoirImgProc::applyCorrection(t_correction correction)
+{
+	if(correction.orig_x < 0)
 		return -1; // no available correction
 	
 	if(g_debug_imgverbose)
@@ -1212,22 +1257,22 @@ int TamanoirImgProc::applyCorrection()
 	
 	/** Update stats */
 	m_dust_stats.nb_grown_validated++;
-	if(m_correct.area<STATS_MAX_SURF) {
-		m_dust_stats.grown_size_validated[m_correct.area]++;
+	if(correction.area<STATS_MAX_SURF) {
+		m_dust_stats.grown_size_validated[correction.area]++;
 	}
 	
 	// Apply clone on original image
 	tmCloneRegion(originalImage, 
-					m_correct.orig_x, m_correct.orig_y,
-					m_correct.copy_x, m_correct.copy_y,
-					m_correct.copy_width, m_correct.copy_height);
+					correction.orig_x, correction.orig_y,
+					correction.copy_x, correction.copy_y,
+					correction.copy_width, correction.copy_height);
 	
 	
 	// Mark failure on displayImage
-	int disp_x = (m_correct.orig_x ) * displayImage->width / grayImage->width;
-	int disp_y = (m_correct.orig_y ) * displayImage->height / grayImage->height;
-	int disp_w = m_correct.copy_width * displayImage->width / grayImage->width;
-	int disp_h = m_correct.copy_height * displayImage->height / grayImage->height;
+	int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
+	int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
+	int disp_w = correction.copy_width * displayImage->width / grayImage->width;
+	int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 	tmMarkFailureRegion(displayImage, 
 			disp_x, disp_y, disp_w, disp_h, COLORMARK_CORRECTED);
 	
@@ -1237,14 +1282,14 @@ int TamanoirImgProc::applyCorrection()
 	if(g_debug_imgoutput) {
 
 		tmMarkCloneRegion(originalImage, 
-					m_correct.orig_x, m_correct.orig_y,
-					m_correct.copy_x, m_correct.copy_y,
-					m_correct.copy_width, m_correct.copy_height);
+					correction.orig_x, correction.orig_y,
+					correction.copy_x, correction.copy_y,
+					correction.copy_width, correction.copy_height);
 	}
 	
 	
-	memset(&m_correct, 0, sizeof(t_correction));
-	
+	memset(&correction, 0, sizeof(t_correction));
+	correction.orig_x = -1;
 	return 0;
 }
 

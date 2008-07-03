@@ -42,6 +42,69 @@ typedef struct {
 
 void fprintfOptions(FILE * f, tm_options * p_options);
 
+
+/** @brief Tamanoir processing thread 
+*/
+class TamanoirThread : public QThread 
+{
+	Q_OBJECT
+public:
+	TamanoirThread(TamanoirImgProc * p_pImgProc);
+
+	~TamanoirThread();
+
+	virtual void run();
+
+	int loadFile(QString s);
+	int saveFile(QString s);
+	int setOptions(tm_options options);
+
+	/** Stop processing thread */
+	void stop() { m_run = false; };
+	
+	/** @brief Returns processing state, PROTH_NOTHING if done */
+	int getCommand() { return current_command; };
+	
+	/** @brief Returns processing progress value (0 to 100), 100 if done */
+	int getProgress();
+	
+	/** @brief Search for next dust */
+	int nextDust();
+	
+	/** @brief Get last detected dust correction */
+	t_correction getCorrection();
+	
+	/** @brief Get pointer to last detected dust correction */
+	t_correction * getCorrectionPointer();
+	
+private:
+#define PROTH_NOTHING	0
+#define PROTH_LOAD_FILE	1
+#define PROTH_SAVE_FILE	2
+#define PROTH_SEARCH	3
+#define PROTH_OPTIONS	4
+	
+	/** @brief Current running command */
+	int current_command;
+	
+	QString m_filename;
+
+	bool m_run;	
+	bool m_running;	
+	QMutex mutex;
+	QWaitCondition waitCond;
+	
+	tm_options m_options;
+	
+	int next_dust_retval;
+	t_correction current_dust;
+	t_correction next_dust;
+	
+	/** @brief image processing module */
+	TamanoirImgProc * m_pImgProc;
+};
+
+
 /** @brief Tamanoir main application / user interface 
 
 */
@@ -84,6 +147,10 @@ private:
 	
 	/** Update all displays */
 	void updateDisplay();
+
+	QTimer refreshTimer;
+	int m_curCommand;
+
 signals:
 	
 private slots:
@@ -103,9 +170,17 @@ private slots:
 	void on_hotPixelsCheckBox_toggled(bool);
 	void on_trustCheckBox_toggled(bool);
 	
+	void on_refreshTimer_timeout();
+
 private:
 	TamanoirImgProc * m_pImgProc;
+	TamanoirThread * m_pProcThread;
+	
 	QString m_currentFile;
 };
+
+/** @brief Convert an OpenCV IplImage to a Qt QImage */
+QImage iplImageToQImage(IplImage * iplImage);
+
 
 #endif
