@@ -96,8 +96,12 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			
 			return;
 		}
+		// If we WERE loading a file and now it's done
+		if( m_curCommand == PROTH_SEARCH
+			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
+			updateDisplay();
+		}
 		
-			
 		// If we WERE loading a file and now it's done
 		if( (m_curCommand == PROTH_LOAD_FILE 
 			|| m_curCommand == PROTH_OPTIONS)
@@ -219,6 +223,9 @@ void TamanoirApp::loadFile(QString s) {
 	// Open file
 	if(!m_pImgProc) {
 		m_pImgProc = new TamanoirImgProc();
+		
+		refreshMainDisplay();
+		
 		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
 		m_pImgProc->setTrustCorrection(m_options.trust);
 		m_pImgProc->setResolution(m_options.dpi);
@@ -238,7 +245,7 @@ void TamanoirApp::loadFile(QString s) {
 	}
 	
 	m_curCommand = m_pProcThread->getCommand();
-	refreshTimer.start(500);
+	refreshTimer.start(1000);
 }
 
 
@@ -388,6 +395,8 @@ void TamanoirApp::saveOptions() {
 void TamanoirApp::on_skipButton_clicked()
 {
 	if(m_pProcThread) {
+		int state = m_pProcThread->getCommand();
+		
 		int ret = m_pProcThread->nextDust();
 		
 		if(ret == 0) // Finished
@@ -397,8 +406,10 @@ void TamanoirApp::on_skipButton_clicked()
 			
 			return;
 		}
-		
-		updateDisplay();
+		if(state == PROTH_NOTHING) // Search was done
+			updateDisplay();
+		else
+			refreshTimer.start(250);
 	}
 }
 
@@ -774,9 +785,11 @@ void TamanoirApp::updateDisplay()
 TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	m_pImgProc = p_pImgProc;
 	
-	current_command = PROTH_NOTHING;
+	req_command = current_command = PROTH_NOTHING;
 	
 	m_run = m_running = false;
+	
+	start();
 }
 
 int TamanoirThread::setOptions(tm_options options) {
@@ -786,7 +799,7 @@ int TamanoirThread::setOptions(tm_options options) {
 	if(!m_run)
 		start();
 	
-	int ret = current_command = PROTH_OPTIONS;
+	int ret = req_command = PROTH_OPTIONS;
 	
 	// Unlock thread 
 	mutex.lock();
@@ -807,12 +820,17 @@ int TamanoirThread::loadFile(QString s) {
 	memset(&next_dust, 0, sizeof(t_correction));
 	memset(&current_dust, 0, sizeof(t_correction));
 	
-	int ret = current_command = PROTH_LOAD_FILE;
 	QFileInfo fi(s);
-	if(!fi.exists()) return -1;
+	if(!fi.exists()) {
+		fprintf(stderr, "TmThread::%s:%d : file '%s' does not exists\n", __func__, __LINE__, s.ascii());
+		return -1;
+	}
 	
-	// Unlock thread 
+	int ret = req_command = PROTH_LOAD_FILE;
+	fprintf(stderr, "TmThread::%s:%d : request load file '%s' \n", __func__, __LINE__, s.ascii());
+		
 	mutex.lock();
+	// Unlock thread 
 	waitCond.wakeAll();
 	mutex.unlock();
 	
@@ -834,10 +852,11 @@ int TamanoirThread::saveFile(QString s) {
 	if(!m_run)
 		start();
 	
-	int ret = current_command = PROTH_SAVE_FILE;
 	mutex.lock();
+	int ret = req_command = PROTH_SAVE_FILE;
 	waitCond.wakeAll();
 	mutex.unlock();
+	
 	// Unlock thread 
 	return ret;
 }
@@ -862,10 +881,11 @@ int TamanoirThread::nextDust() {
 	if(ret == 0) // No more values
 		return ret;
 	
-	ret = current_command = PROTH_SEARCH;
 	mutex.lock();
+	ret = req_command = PROTH_SEARCH;
 	waitCond.wakeAll();
 	mutex.unlock();
+	
 	return ret;
 }
 
@@ -883,7 +903,12 @@ void TamanoirThread::run() {
 	while(m_run) {
 		mutex.lock();
 		waitCond.wait(&mutex);
-		fprintf(stderr, "TmThread::%s:%d : run\n", __func__, __LINE__);
+		mutex.unlock();
+		
+		fprintf(stderr, "TmThread::%s:%d : run command = %d\n", __func__, __LINE__, req_command);
+		current_command = req_command;
+		req_command = PROTH_NOTHING;
+		
 		int ret;
 		
 		switch(current_command) {
@@ -895,6 +920,7 @@ void TamanoirThread::run() {
 		case PROTH_LOAD_FILE:
 			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
 				__func__, __LINE__, m_filename.ascii());
+			
 			m_pImgProc->loadFile(m_filename);
 			next_dust_retval = m_pImgProc->firstDust();
 			next_dust = m_pImgProc->getCorrection();
@@ -905,7 +931,7 @@ void TamanoirThread::run() {
 			m_pImgProc->saveFile(m_filename);
 			break;
 		case PROTH_SEARCH:
-			fprintf(stderr, "TmThread::%s:%d : searching for next dust\n", 
+			fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
 				__func__, __LINE__);
 			
 			next_dust_retval = m_pImgProc->nextDust();
@@ -929,7 +955,7 @@ void TamanoirThread::run() {
 		}
 		
 		current_command = PROTH_NOTHING;
-		mutex.unlock();
+		
 	}
 	
 	m_running = false;

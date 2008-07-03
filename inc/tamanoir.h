@@ -86,6 +86,8 @@ private:
 	
 	/** @brief Current running command */
 	int current_command;
+	/** @brief Next running command */
+	int req_command;
 	
 	QString m_filename;
 
