@@ -104,7 +104,8 @@ int tmSearchBestCorrelation(
 void tmCloneRegion(IplImage * origImage, 
 	int orig_x, int orig_y, 
 	int copy_x, int copy_y,
-	int copy_width, int copy_height);
+	int copy_width, int copy_height,
+	IplImage * destImage = NULL);
 	
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
 void tmMarkCloneRegion(IplImage * origImage, 

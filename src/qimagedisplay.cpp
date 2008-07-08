@@ -45,3 +45,10 @@ void QImageDisplay::mouseMoveEvent(QMouseEvent * e)
 			emit signalMousePressEvent(e);
 	}
 }
+
+void QImageDisplay::wheelEvent(QWheelEvent * e)
+{
+    fprintf(stderr, "QImageDisplay::%s:%d : e=%p delta=%d\n", 
+		__func__, __LINE__, e, e->delta());
+    emit signalWheelEvent(e);
+}
