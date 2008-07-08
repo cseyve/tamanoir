@@ -131,6 +131,7 @@ protected:
 
 private slots:
 	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
+	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
 
 private:
 	/** Application options */

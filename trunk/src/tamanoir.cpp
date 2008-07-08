@@ -67,6 +67,13 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.loadingTextLabel->setText(QString(""));
 	
 }
+/** destructor */
+TamanoirApp::~TamanoirApp() {
+	if(m_pProcThread)
+		delete m_pProcThread;
+	if(m_pImgProc)
+		delete m_pImgProc;
+}
 
 void TamanoirApp::on_refreshTimer_timeout() {
 	if(m_pProcThread) {
@@ -149,11 +156,26 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	}
 }
 
-
-/** destructor */
-TamanoirApp::~TamanoirApp() {
-	
+void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
+	if(e && m_pProcThread) {
+		t_correction * l_correction = m_pProcThread->getCorrectionPointer();
+		int inc = 0;
+		if(e->delta() >0) {
+			inc = 2;
+		} else {
+			inc = -2;
+		}
+		l_correction->copy_width  += inc;
+		l_correction->copy_height += inc;
+		
+		m_pImgProc->setCopySrc(l_correction,
+			l_correction->rel_src_x - inc/2 + l_correction->copy_width/2,
+			l_correction->rel_src_y - inc/2 + l_correction->copy_height/2);
+		
+		updateDisplay();
+	}
 }
+
 
 
 void TamanoirApp::setArgs(int argc, char **argv) {
@@ -844,9 +866,15 @@ int TamanoirThread::loadFile(QString s) {
 TamanoirThread::~TamanoirThread() {
 	m_run = false;
 	while(m_running) {
+		mutex.lock();
+		req_command = PROTH_NOTHING;
+		waitCond.wakeAll();
+		mutex.unlock();
+	
 		fprintf(stderr, "TmThread::%s:%d : waiting for thread to stop\n", 
 				__func__, __LINE__);
-		sleep(1);
+		if(m_running)
+			sleep(1);
 	}
 }
 

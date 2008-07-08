@@ -110,6 +110,8 @@ void TamanoirImgProc::init() {
 	memset(&m_dust_stats, 0, sizeof(dust_stats_t));
 }
 
+TamanoirImgProc::~TamanoirImgProc() {
+}
 
 void TamanoirImgProc::setDisplaySize(int w, int h) {
 	if(!grayImage) {
@@ -1270,11 +1272,11 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 	
 	
 	// Clone image region 
-	tmCloneRegion(correctColorImage, 
+	tmCloneRegion(cropColorImage, 
 		pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
 		pcorrection->rel_src_x, pcorrection->rel_src_y, // src
-		pcorrection->copy_width, pcorrection->copy_height
-		);
+		pcorrection->copy_width, pcorrection->copy_height,
+		correctColorImage);
 	
 	tmMarkCloneRegion(cropColorImage, 
 		pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest

@@ -37,10 +37,12 @@ public:
 private:
     void mousePressEvent(QMouseEvent * e);
     void mouseMoveEvent(QMouseEvent * e);
-    
+	void wheelEvent ( QWheelEvent * e );
+
 signals:
     void signalMousePressEvent(QMouseEvent * e);
     void signalMouseMoveEvent(QMouseEvent * e);
+	void signalWheelEvent( QWheelEvent * e );
 };
 
 #endif

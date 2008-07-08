@@ -176,12 +176,16 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h)
 void tmCloneRegion(IplImage * origImage, 
 	int orig_x, int orig_y,
 	int copy_x, int copy_y, 
-	int copy_width, int copy_height	)
+	int copy_width, int copy_height,
+	IplImage * destImage )
 {
 
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
 
+	if(!destImage)
+		destImage = origImage;
+	
 	if(orig_x<0) { orig_x = 0; }
 	if(orig_y<0) { orig_y = 0; }
 	if(copy_x<0) { copy_x = 0; }
@@ -220,11 +224,12 @@ void tmCloneRegion(IplImage * origImage,
 	int channels = origImage->nChannels;
 	
 	u8 * origImageBuffer = (u8 *)origImage->imageData;
+	u8 * destImageBuffer = (u8 *)destImage->imageData;
 
 	// Raw copy
 	if(0) {
 		for(int y=0; y<copy_height; y++, orig_y++, copy_y++) {
-			memcpy(origImageBuffer + orig_y * pitch + orig_x*byte_depth, 
+			memcpy(destImageBuffer + orig_y * pitch + orig_x*byte_depth, 
 				origImageBuffer + copy_y * pitch + copy_x*byte_depth, 
 				copylength);
 		}
@@ -265,11 +270,15 @@ void tmCloneRegion(IplImage * origImage,
 					
 					u8 * porig_u8 = NULL;
 					u16 * porig_u16 = NULL;
+					u8 * pdest_u8 = NULL;
+					u16 * pdest_u16 = NULL;
 					
 					switch(origImage->depth) {
 					default:
 						break;
 					case IPL_DEPTH_8U:
+						pdest_u8 = (u8 *)((destImageBuffer + orig_y * origImage->widthStep)
+											+ channels * (orig_x + x)) + d;
 						porig_u8 = (u8 *)((origImageBuffer + orig_y * origImage->widthStep)
 											+ channels * (orig_x + x)) + d;
 						val_orig = (float)( *porig_u8);
@@ -277,6 +286,8 @@ void tmCloneRegion(IplImage * origImage,
 											+ channels*( copy_x + x) + d);
 						break;
 					case IPL_DEPTH_16U:
+						pdest_u16 = (u16 *)(destImageBuffer + orig_y * origImage->widthStep)
+											+ channels * (orig_x + x) + d;
 						porig_u16 = (u16 *)(origImageBuffer + orig_y * origImage->widthStep)
 											+ channels * (orig_x + x) + d;
 						val_orig = (float)( *porig_u16);
@@ -287,10 +298,10 @@ void tmCloneRegion(IplImage * origImage,
 					
 					//float out_val = val_copy;
 					float out_val = coef_orig * val_orig + coef_copy * val_copy;
-					if(porig_u8)
-						*porig_u8 = (u8)roundf(out_val);
-					else if(porig_u16)
-						*porig_u16 = (u16)roundf(out_val);
+					if(pdest_u8)
+						*pdest_u8 = (u8)roundf(out_val);
+					else if(pdest_u16)
+						*pdest_u16 = (u16)roundf(out_val);
 				}
 			}
 		}
