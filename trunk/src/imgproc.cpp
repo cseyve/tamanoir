@@ -773,7 +773,9 @@ int TamanoirImgProc::nextDust() {
 	memset(&m_lastDustComp, 0, sizeof(CvConnectedComp));
 	
 	m_correct.orig_x = -1; // Clear stored correction
-	for(y = m_seed_y; y<height-1; y++) {
+	
+	
+	for(y = m_seed_y; y<height; y++) {
 		pos = y * diffImage->widthStep + m_seed_x;
 		for(x = m_seed_x; x<width-1; x++, pos++) {
 			
@@ -1037,6 +1039,12 @@ int TamanoirImgProc::nextDust() {
 							m_correct.copy_y = m_correct.crop_y + m_correct.rel_src_y;
 							m_correct.area = connect_area;
 							
+							// Fill size statistics
+							m_correct.area = connect.area;
+							m_correct.width_mm = 25.4f * connect.rect.width / m_dpi;
+							m_correct.height_mm = 25.4f * connect.rect.height / m_dpi;
+							
+							
 							if(m_trust) {
 								// Check if correction area is in diff image
 								float fill_failure = tmNonZeroRatio(diffImage,
@@ -1147,13 +1155,16 @@ int TamanoirImgProc::nextDust() {
 	return 0;
 }
 
+
 void TamanoirImgProc::cropViewImages() {
 	cropCorrectionImages(m_correct);
 }
 
+
 void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(correction.copy_width < 0) return;
 	if(!originalImage) return;
+	if(!disp_cropColorImage) return;
 	
 // Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 

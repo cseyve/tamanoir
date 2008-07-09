@@ -85,7 +85,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 		
 		fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
 			m_curCommand, m_pProcThread->getCommand());
-		
+		if(m_curCommand == PROTH_NOTHING && 
+			m_pProcThread->getCommand() != PROTH_NOTHING)
+			m_curCommand = m_pProcThread->getCommand();
+			
 		// If nothing changed, just update GUI
 		if( m_curCommand == m_pProcThread->getCommand()) {
 			// Update Progress bar
@@ -94,6 +97,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Do specific updates
 			switch(m_curCommand) {
 			default:
+				break;
+			case PROTH_LOAD_FILE:
+				refreshMainDisplay();
+				updateDisplay();
 				break;
 			case PROTH_SEARCH:
 				refreshMainDisplay();
@@ -150,7 +157,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(e && m_pProcThread) {
 		
-		m_pImgProc->setCopySrc(m_pProcThread->getCorrectionPointer(),
+		m_pImgProc->setCopySrc(&current_dust,
 			e->pos().x(), e->pos().y());
 		updateDisplay();
 	}
@@ -158,7 +165,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 	if(e && m_pProcThread) {
-		t_correction * l_correction = m_pProcThread->getCorrectionPointer();
+		t_correction * l_correction = &current_dust;
 		int inc = 0;
 		if(e->delta() >0) {
 			inc = 2;
@@ -428,16 +435,20 @@ void TamanoirApp::on_skipButton_clicked()
 			
 			return;
 		}
+		
+		
 		if(state == PROTH_NOTHING) // Search was done
 		{
 			m_curCommand = PROTH_NOTHING;
-	
+			
 			updateDisplay();
 		} else {
 			refreshTimer.start(250);
 		}
 	}
 }
+
+
 
 void TamanoirApp::on_correctButton_clicked()
 {
@@ -766,14 +777,13 @@ void TamanoirApp::updateDisplay()
 		
 		
 		// Top-right : Display dust info
-		CvConnectedComp dust = m_pImgProc->getDustComp();
 		
 		char strinfo[32];
-		float width_mm = 25.4f * dust.rect.width / m_options.dpi;
-		float height_mm = 25.4f * dust.rect.height / m_options.dpi;
+		float width_mm = current_dust.width_mm;
+		float height_mm = current_dust.width_mm;
 		
-		sprintf(strinfo, "%dx%d-%d pix/%.1gx%.1g mm",
-			(int)dust.rect.width, (int)dust.rect.height, (int)dust.area,
+		sprintf(strinfo, "%d pix/%.1gx%.1g mm",
+			current_dust.area,
 			width_mm, height_mm);
 		QString str = tr("Dust: ") + QString(strinfo);
 		ui.growTextLabel->setText(str);
@@ -818,6 +828,15 @@ TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	start();
 }
 
+int TamanoirThread::getCommand() {
+	if(req_command)
+		return req_command;
+	
+	return current_command;
+}
+
+
+
 int TamanoirThread::setOptions(tm_options options) {
 	m_options = options;
 	if(!m_pImgProc) 
@@ -839,12 +858,15 @@ int TamanoirThread::setOptions(tm_options options) {
 int TamanoirThread::loadFile(QString s) {
 	m_filename = s;
 	
-	if(!m_run)
+	if(!m_run) {
 		start();
-	next_dust_retval = -1;
+		// Wait for thread to start
+		while(!m_run) usleep(200000);
+	}
 	
-	memset(&next_dust, 0, sizeof(t_correction));
-	memset(&current_dust, 0, sizeof(t_correction));
+	// Clear dust list
+	dust_list.clear();
+	
 	
 	QFileInfo fi(s);
 	if(!fi.exists()) {
@@ -895,11 +917,26 @@ int TamanoirThread::saveFile(QString s) {
 
 /* Get last detected dust correction */
 t_correction TamanoirThread::getCorrection() {
+	t_correction current_dust;
+	if(dust_list.isEmpty())
+		memset(&current_dust, 0, sizeof(t_correction));
+	else
+		current_dust = dust_list.takeFirst();
+	
 	return current_dust;
 }
 
 /* Get pointer to last detected dust correction */
 t_correction * TamanoirThread::getCorrectionPointer()  {
+	return NULL;
+	
+	t_correction current_dust;
+	if(dust_list.isEmpty())
+		memset(&current_dust, 0, sizeof(t_correction));
+	else
+		current_dust = dust_list.takeFirst();
+	
+	// FIXME
 	return &current_dust;
 }
 
@@ -907,14 +944,13 @@ t_correction * TamanoirThread::getCorrectionPointer()  {
 int TamanoirThread::nextDust() {
 	if(!m_pImgProc) 
 		return -1;
+	if(dust_list.isEmpty())
+		return 0;
 	
-	current_dust = next_dust;
-	int ret = next_dust_retval;
-	if(ret == 0) // No more values
-		return ret;
+	int ret = 1;
 	
 	mutex.lock();
-	ret = req_command = PROTH_SEARCH;
+	req_command = PROTH_SEARCH;
 	waitCond.wakeAll();
 	mutex.unlock();
 	
@@ -936,7 +972,6 @@ void TamanoirThread::run() {
 		mutex.lock();
 		waitCond.wait(&mutex);
 		mutex.unlock();
-		
 		fprintf(stderr, "TmThread::%s:%d : run command = %d\n", __func__, __LINE__, req_command);
 		current_command = req_command;
 		req_command = PROTH_NOTHING;
@@ -954,8 +989,17 @@ void TamanoirThread::run() {
 				__func__, __LINE__, m_filename.ascii());
 			
 			m_pImgProc->loadFile(m_filename);
-			next_dust_retval = m_pImgProc->firstDust();
-			next_dust = m_pImgProc->getCorrection();
+			
+			
+			// Then search for first dust
+			ret = m_pImgProc->nextDust();
+			if(ret > 0) {
+				// Add to list
+				t_correction l_dust = m_pImgProc->getCorrection();
+				
+				dust_list.append(l_dust);
+			}
+			
 			break;
 		case PROTH_SAVE_FILE:
 			fprintf(stderr, "TmThread::%s:%d : save file '%s'\n", 
@@ -965,11 +1009,16 @@ void TamanoirThread::run() {
 		case PROTH_SEARCH:
 			fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
 				__func__, __LINE__);
+			ret = m_pImgProc->nextDust();
+			if(ret > 0) {
+				// Add to list
+				t_correction l_dust = m_pImgProc->getCorrection();
+				
+				dust_list.append(l_dust);
+			}
 			
-			next_dust_retval = m_pImgProc->nextDust();
-			next_dust = m_pImgProc->getCorrection();
 			fprintf(stderr, "TmThread::%s:%d : => next dust ret=%d\n", 
-				__func__, __LINE__, next_dust_retval);
+				__func__, __LINE__, ret);
 			
 			break;
 		case PROTH_OPTIONS:
@@ -980,13 +1029,12 @@ void TamanoirThread::run() {
 			m_pImgProc->setTrustCorrection(m_options.trust);
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
 			
-			next_dust_retval = m_pImgProc->nextDust();
-			next_dust = m_pImgProc->getCorrection();
 			
 			break;
 		}
 		
 		current_command = PROTH_NOTHING;
+		
 		
 	}
 	

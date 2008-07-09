@@ -85,7 +85,11 @@ typedef struct t_correction_ {
 	int copy_width;
 	int copy_height;
 	
+	// Dust size statistics
 	int area;
+	float width_mm;
+	float height_mm;
+	
 } t_correction;
 
 /** \brief main image processing class
