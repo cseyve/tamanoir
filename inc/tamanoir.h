@@ -31,6 +31,8 @@
 #include "ui_tamanoir.h"
 #include <QtGui>
 
+
+
 /** @brief Tamanoir settings/options */
 typedef struct {
 	char currentDir[512];
@@ -63,7 +65,7 @@ public:
 	void stop() { m_run = false; };
 	
 	/** @brief Returns processing state, PROTH_NOTHING if done */
-	int getCommand() { return current_command; };
+	int getCommand();
 	
 	/** @brief Returns processing progress value (0 to 100), 100 if done */
 	int getProgress();
@@ -98,12 +100,11 @@ private:
 	
 	tm_options m_options;
 	
-	int next_dust_retval;
-	t_correction current_dust;
-	t_correction next_dust;
-	
 	/** @brief image processing module */
 	TamanoirImgProc * m_pImgProc;
+	
+	/** List of proposed corrections */
+	QList<t_correction> dust_list;
 };
 
 
@@ -153,7 +154,7 @@ private:
 
 	QTimer refreshTimer;
 	int m_curCommand;
-
+	t_correction current_dust;
 signals:
 	
 private slots:
