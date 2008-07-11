@@ -32,6 +32,13 @@
 #include <QtGui>
 
 
+// Tamanoir processing thread commands
+
+#define PROTH_NOTHING	0
+#define PROTH_LOAD_FILE	1
+#define PROTH_SAVE_FILE	2
+#define PROTH_SEARCH	3
+#define PROTH_OPTIONS	4
 
 /** @brief Tamanoir settings/options */
 typedef struct {
@@ -76,15 +83,9 @@ public:
 	/** @brief Get last detected dust correction */
 	t_correction getCorrection();
 	
-	/** @brief Get pointer to last detected dust correction */
-	t_correction * getCorrectionPointer();
 	
 private:
-#define PROTH_NOTHING	0
-#define PROTH_LOAD_FILE	1
-#define PROTH_SAVE_FILE	2
-#define PROTH_SEARCH	3
-#define PROTH_OPTIONS	4
+
 	
 	/** @brief Current running command */
 	int current_command;

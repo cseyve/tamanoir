@@ -166,18 +166,21 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 	if(e && m_pProcThread) {
 		t_correction * l_correction = &current_dust;
-		int inc = 0;
-		if(e->delta() >0) {
-			inc = 2;
-		} else {
-			inc = -2;
-		}
+		int numDegrees = e->delta() / 8;
+		int numSteps = numDegrees / 15;
+		
+		int inc = -numSteps * 2;
+
+		int center_x = l_correction->rel_src_x + l_correction->copy_width/2;
+		int center_y = l_correction->rel_src_y + l_correction->copy_height/2;
+		
 		l_correction->copy_width  += inc;
 		l_correction->copy_height += inc;
 		
+		// This function only update l_correction
 		m_pImgProc->setCopySrc(l_correction,
-			l_correction->rel_src_x - inc/2 + l_correction->copy_width/2,
-			l_correction->rel_src_y - inc/2 + l_correction->copy_height/2);
+			center_x,
+			center_y);
 		
 		updateDisplay();
 	}
@@ -424,27 +427,39 @@ void TamanoirApp::saveOptions() {
 void TamanoirApp::on_skipButton_clicked()
 {
 	if(m_pProcThread) {
-		int state = m_pProcThread->getCommand();
+		// Mark skip on image
+		if(m_pImgProc)
+			m_pImgProc->skipCorrection(current_dust);
+	
 		
-		int ret = m_curCommand = m_pProcThread->nextDust();
+		// First check if a new dust if available
+		current_dust = m_pProcThread->getCorrection();
 		
-		if(ret == 0) // Finished
+		if(current_dust.copy_width <= 0) // No dust available, wait for a new one
 		{
-			ui.overAllProgressBar->setValue(100);
-			statusBar()->showMessage(tr("Finished"));
+			int state = m_pProcThread->getCommand();
 			
-			return;
-		}
-		
-		
-		if(state == PROTH_NOTHING) // Search was done
-		{
-			m_curCommand = PROTH_NOTHING;
+			int ret = m_curCommand = m_pProcThread->nextDust();
 			
+			if(ret == 0) // Finished
+			{
+				ui.overAllProgressBar->setValue(100);
+				statusBar()->showMessage(tr("Finished"));
+				
+				return;
+			}
+			
+			
+			if(state == PROTH_NOTHING) // Search was done
+			{
+				m_curCommand = PROTH_NOTHING;
+				
+				updateDisplay();
+			} else {
+				refreshTimer.start(250);
+			}
+		} else 
 			updateDisplay();
-		} else {
-			refreshTimer.start(250);
-		}
 	}
 }
 
@@ -454,7 +469,10 @@ void TamanoirApp::on_correctButton_clicked()
 {
 	// Apply previous correction
 	if(m_pImgProc)
-		m_pImgProc->applyCorrection(m_pProcThread->getCorrection());
+		m_pImgProc->applyCorrection(current_dust);
+	
+	// Clear current dust
+	memset(&current_dust, 0, sizeof(t_correction));
 	
 	// Then go to next dust
 	on_skipButton_clicked();
@@ -632,6 +650,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	else {
 		u8 * buffer3 = (u8 *)iplImage->imageData;
 		u8 * buffer4 = (u8 *)qImage.bits();
+		
 		for(int r=0; r<iplImage->height; r++)
 		{
 			int pos3 = r * iplImage->widthStep;
@@ -662,7 +681,7 @@ void TamanoirApp::refreshMainDisplay() {
 	
 	int scaled_width = ui.largViewFrame->width()-12;
 	int scaled_height = ui.largViewFrame->height()-12;
-		
+	
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
 
@@ -725,7 +744,7 @@ void TamanoirApp::updateDisplay()
 		
 		// Update cropped buffers
 		if(m_pProcThread) {
-			m_pImgProc->cropCorrectionImages(m_pProcThread->getCorrection());
+			m_pImgProc->cropCorrectionImages(current_dust);
 		}
 		
 		// Top-left : Display cropped / detailled images
@@ -923,22 +942,15 @@ t_correction TamanoirThread::getCorrection() {
 	else
 		current_dust = dust_list.takeFirst();
 	
+	fprintf(stderr, "[TMThread]::%s:%d : dust=%d,%d +%dx%d\n", 
+		__func__, __LINE__, 
+		current_dust.crop_x + current_dust.rel_dest_x,
+		current_dust.crop_y + current_dust.rel_dest_y,
+		current_dust.copy_width, current_dust.copy_height);
+	
 	return current_dust;
 }
 
-/* Get pointer to last detected dust correction */
-t_correction * TamanoirThread::getCorrectionPointer()  {
-	return NULL;
-	
-	t_correction current_dust;
-	if(dust_list.isEmpty())
-		memset(&current_dust, 0, sizeof(t_correction));
-	else
-		current_dust = dust_list.takeFirst();
-	
-	// FIXME
-	return &current_dust;
-}
 
 
 int TamanoirThread::nextDust() {
@@ -968,11 +980,15 @@ void TamanoirThread::run() {
 	m_running = true;
 	m_run = true;
 	
+	bool no_more_dusts = false;
 	while(m_run) {
 		mutex.lock();
-		waitCond.wait(&mutex);
+		waitCond.wait(&mutex, 200);
 		mutex.unlock();
-		fprintf(stderr, "TmThread::%s:%d : run command = %d\n", __func__, __LINE__, req_command);
+		
+		if(req_command != PROTH_NOTHING)
+			fprintf(stderr, "TmThread::%s:%d : run command = %d\n", __func__, __LINE__, req_command);
+		
 		current_command = req_command;
 		req_command = PROTH_NOTHING;
 		
@@ -981,15 +997,19 @@ void TamanoirThread::run() {
 		switch(current_command) {
 		default:
 		case PROTH_NOTHING:
-			fprintf(stderr, "TmThread::%s:%d : do NOTHING ???\n", __func__, __LINE__);
-			sleep(1);
+			//fprintf(stderr, "TmThread::%s:%d : do NOTHING ???\n", __func__, __LINE__);
+			if(!no_more_dusts) {
+				req_command = PROTH_SEARCH;
+				fprintf(stderr, "nothing\t=>\tTmThread::%s:%d : => PROTH_SEARCH !!!\n", __func__, __LINE__);
+			}
+			
 			break;
 		case PROTH_LOAD_FILE:
 			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
 				__func__, __LINE__, m_filename.ascii());
 			
 			m_pImgProc->loadFile(m_filename);
-			
+			no_more_dusts = false;
 			
 			// Then search for first dust
 			ret = m_pImgProc->nextDust();
@@ -1013,9 +1033,11 @@ void TamanoirThread::run() {
 			if(ret > 0) {
 				// Add to list
 				t_correction l_dust = m_pImgProc->getCorrection();
-				
+				no_more_dusts = false;
 				dust_list.append(l_dust);
-			}
+			} else 
+				if(ret == 0) 
+					no_more_dusts = true;
 			
 			fprintf(stderr, "TmThread::%s:%d : => next dust ret=%d\n", 
 				__func__, __LINE__, ret);
@@ -1028,14 +1050,12 @@ void TamanoirThread::run() {
 			m_pImgProc->setResolution(m_options.dpi);
 			m_pImgProc->setTrustCorrection(m_options.trust);
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
-			
+			no_more_dusts = false;
 			
 			break;
 		}
 		
 		current_command = PROTH_NOTHING;
-		
-		
 	}
 	
 	m_running = false;
