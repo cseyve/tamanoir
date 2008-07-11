@@ -288,11 +288,11 @@ void tmCloneRegion(IplImage * origImage,
 					case IPL_DEPTH_16U:
 						pdest_u16 = (u16 *)(destImageBuffer + orig_y * origImage->widthStep)
 											+ channels * (orig_x + x) + d;
+						val_copy = (float) *( (u16 *)(origImageBuffer + copy_y * origImage->widthStep)
+											+ channels * (copy_x + x) + d);
 						porig_u16 = (u16 *)(origImageBuffer + orig_y * origImage->widthStep)
 											+ channels * (orig_x + x) + d;
 						val_orig = (float)( *porig_u16);
-						val_copy = (float) *( (u16 *)(origImageBuffer + copy_y * origImage->widthStep)
-											+ channels*( copy_x + x) + d);
 						break;
 					}
 					
@@ -884,6 +884,9 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	pile_x[0] = c;
 	pile_y[0] = r;
 	areaOut->area = 0.f; // for current pix
+
+	if(c<0 || c>=swidth) return;
+	if(r<0 || r>=sheight) return;
 
 	int surf = 1;
 	int rmin = 0; 

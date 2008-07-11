@@ -132,6 +132,9 @@ public:
 	/** @brief Apply a former correction */
 	int applyCorrection(t_correction correction);
 
+	/** @brief Mark a former correction proposal as refused by user*/
+	int skipCorrection(t_correction correction);
+
 	/** @brief Get progress in %age */
 	int getProgress();
 	
