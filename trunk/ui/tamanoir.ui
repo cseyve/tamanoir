@@ -21,6 +21,9 @@
   <property name="windowTitle" >
    <string>Tamanoir</string>
   </property>
+  <property name="windowIcon" >
+   <iconset>../icon/tamanoir32.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget" >
    <widget class="QFrame" name="frame_2" >
     <property name="geometry" >
