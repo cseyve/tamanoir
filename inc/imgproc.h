@@ -260,6 +260,9 @@ private:
 	/** Correction data */
 	t_correction m_correct;
 
+	/** Last applied ou refused correction */
+	t_correction m_last_correction;
+
 };
 
 

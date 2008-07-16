@@ -430,7 +430,7 @@ void TamanoirApp::on_skipButton_clicked()
 		// Mark skip on image
 		if(m_pImgProc)
 			m_pImgProc->skipCorrection(current_dust);
-	
+		
 		
 		// First check if a new dust if available
 		current_dust = m_pProcThread->getCorrection();
@@ -956,10 +956,11 @@ t_correction TamanoirThread::getCorrection() {
 int TamanoirThread::nextDust() {
 	if(!m_pImgProc) 
 		return -1;
-	if(dust_list.isEmpty())
-		return 0;
 	
 	int ret = 1;
+	
+	if(dust_list.isEmpty())
+		ret = 0;
 	
 	mutex.lock();
 	req_command = PROTH_SEARCH;

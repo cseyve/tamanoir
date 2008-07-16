@@ -105,6 +105,7 @@ void TamanoirImgProc::init() {
 	m_dpi = 2400;
 	
 	memset(&m_correct, 0, sizeof(t_correction));
+	memset(&m_last_correction, 0, sizeof(t_correction));
 	
 	/** Clear stats */
 	memset(&m_dust_stats, 0, sizeof(dust_stats_t));
@@ -207,7 +208,7 @@ IplImage * addBorder4x(IplImage * originalImage) {
 	
 int TamanoirImgProc::loadFile(const char * filename) {
 	m_progress = 0;
-
+	
 	/* Load with OpenCV cvLoadImage 
 	IplImage* cvLoadImage( const char* filename, int iscolor CV_DEFAULT(1));
 	*/
@@ -347,6 +348,7 @@ int TamanoirImgProc::saveFile(const char * filename) {
 
 int TamanoirImgProc::preProcessImage() {
 	
+	memset(&m_last_correction, 0, sizeof(t_correction));
 	
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
@@ -658,8 +660,12 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
 bool TamanoirImgProc::setTrustCorrection(bool on) {
 	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s trust on good correction proposals\n", __func__, __LINE__,
 		(on ? "ACTIVATE" : "DESACTIVATE" ) );
+	if(m_trust != on) { // We changed to trust mode, return to last correction
+		m_seed_x = m_last_correction.crop_x;
+		m_seed_y = m_last_correction.crop_y;
+	}
 	
-	m_trust = on ;
+	m_trust = on;
 	
 	return m_trust;
 }
@@ -1271,6 +1277,8 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 int TamanoirImgProc::skipCorrection(t_correction correction) {
 	if(correction.copy_width <= 0) return 0;
 	
+	memcpy(&m_last_correction, &correction, sizeof(t_correction));
+	
 	// Mark skip action on displayImage
 	int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
 	int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
@@ -1296,6 +1304,10 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 {
 	if(correction.orig_x < 0)
 		return -1; // no available correction
+	if(correction.copy_width <= 0)
+		return -1; // no available correction
+	
+	memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	
 	if(g_debug_imgverbose)
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image.\n", 

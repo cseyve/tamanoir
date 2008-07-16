@@ -25,6 +25,8 @@
 #include "qimagedisplay.h"
 #include <qevent.h>
 
+unsigned char g_debug_QImageDisplay = 0;
+
 QImageDisplay::QImageDisplay(QWidget * l_parent)
     : QLabel(l_parent) {
     
@@ -32,13 +34,15 @@ QImageDisplay::QImageDisplay(QWidget * l_parent)
 
 void QImageDisplay::mousePressEvent(QMouseEvent * e)
 {
-    //fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+    if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
     emit signalMousePressEvent(e);
 }
 
 void QImageDisplay::mouseMoveEvent(QMouseEvent * e)
 {
-    //fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+    if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
     emit signalMouseMoveEvent(e);
     if(e) {
 		if(e->state() == Qt::LeftButton)
@@ -51,21 +55,24 @@ void QImageDisplay::wheelEvent(QWheelEvent * e)
 	if(e) {	
 		int numDegrees = e->delta() / 8;
 		int numSteps = numDegrees / 15;
-		fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n", 
-			__func__, __LINE__, e, e->delta());
-		fprintf(stderr, "\tDeplacement :\t%d steps = %d degrees\n",
-			numSteps, numDegrees );
-		fprintf(stderr, "\tOrientation :\t");
-		switch(e->orientation()) {
-		case Qt::Horizontal:
-			fprintf(stderr, "Qt::Horizontal\n");
-			break;
-		case Qt::Vertical:
-			fprintf(stderr, "Qt::Vertical\n");
-			break;
-		default:
-			fprintf(stderr, "Unknown\n");
-			break;
+		
+		if(g_debug_QImageDisplay) {
+			fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n", 
+				__func__, __LINE__, e, e->delta());
+			fprintf(stderr, "\tDeplacement :\t%d steps = %d degrees\n",
+				numSteps, numDegrees );
+			fprintf(stderr, "\tOrientation :\t");
+			switch(e->orientation()) {
+			case Qt::Horizontal:
+				fprintf(stderr, "Qt::Horizontal\n");
+				break;
+			case Qt::Vertical:
+				fprintf(stderr, "Qt::Vertical\n");
+				break;
+			default:
+				fprintf(stderr, "Unknown\n");
+				break;
+			}
 		}
 	}
 	
