@@ -129,6 +129,8 @@ public:
 	
 	/** @brief Apply proposed correction */
 	int applyCorrection();
+	
+	
 	/** @brief Apply a former correction */
 	int applyCorrection(t_correction correction);
 

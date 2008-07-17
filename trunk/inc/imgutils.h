@@ -83,7 +83,8 @@ void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int c
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h);
 
-
+/** @brief Add a border to image to reach a 4x size */
+IplImage * tmAddBorder4x(IplImage * originalImage);
 
 /** @brief Return correlation image */
 IplImage * getCorrelationImage();
