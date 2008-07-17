@@ -40,6 +40,8 @@ extern u8 g_debug_imgverbose;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_correlation;
 
+u8 g_debug_TmThread = 0; 
+
 
 /** constructor */
 TamanoirApp::TamanoirApp(QWidget * l_parent) 
@@ -82,9 +84,9 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Stop timer
 			refreshTimer.stop();
 		}
-		
-		fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
-			m_curCommand, m_pProcThread->getCommand());
+		if(g_debug_TmThread)
+			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
+				m_curCommand, m_pProcThread->getCommand());
 		if(m_curCommand == PROTH_NOTHING && 
 			m_pProcThread->getCommand() != PROTH_NOTHING)
 			m_curCommand = m_pProcThread->getCommand();
@@ -949,7 +951,8 @@ t_correction TamanoirThread::getCorrection() {
 	else
 		current_dust = dust_list.takeFirst();
 	
-	fprintf(stderr, "[TMThread]::%s:%d : dust=%d,%d +%dx%d\n", 
+	if(g_debug_TmThread)
+	fprintf(stderr, "TMThread::%s:%d : dust=%d,%d +%dx%d\n", 
 		__func__, __LINE__, 
 		current_dust.crop_x + current_dust.rel_dest_x,
 		current_dust.crop_y + current_dust.rel_dest_y,
@@ -991,10 +994,10 @@ void TamanoirThread::run() {
 	bool no_more_dusts = false;
 	while(m_run) {
 		mutex.lock();
-		waitCond.wait(&mutex, 200);
+		waitCond.wait(&mutex, 100);
 		mutex.unlock();
 		
-		if(req_command != PROTH_NOTHING)
+		if(req_command != PROTH_NOTHING && g_debug_TmThread)
 			fprintf(stderr, "TmThread::%s:%d : run command = %d\n", __func__, __LINE__, req_command);
 		
 		current_command = req_command;
@@ -1008,7 +1011,8 @@ void TamanoirThread::run() {
 			//fprintf(stderr, "TmThread::%s:%d : do NOTHING ???\n", __func__, __LINE__);
 			if(!no_more_dusts) {
 				req_command = PROTH_SEARCH;
-				fprintf(stderr, "nothing\t=>\tTmThread::%s:%d : => PROTH_SEARCH !!!\n", __func__, __LINE__);
+				if(g_debug_TmThread) 
+					fprintf(stderr, "nothing\t=>\tTmThread::%s:%d : => PROTH_SEARCH !!!\n", __func__, __LINE__);
 			}
 			
 			break;
@@ -1038,29 +1042,39 @@ void TamanoirThread::run() {
 			m_pImgProc->saveFile(m_filename);
 			break;
 		case PROTH_SEARCH:
-			fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
-				__func__, __LINE__);
+			if(g_debug_TmThread)
+				fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
+					__func__, __LINE__);
 			ret = m_pImgProc->nextDust();
 			if(ret > 0) {
 				// Add to list
 				t_correction l_dust = m_pImgProc->getCorrection();
 				no_more_dusts = false;
 				dust_list.append(l_dust);
-			} else 
-				if(ret == 0) 
+			} else {
+				if(ret == 0) {
 					no_more_dusts = true;
-			
-			fprintf(stderr, "TmThread::%s:%d : => next dust ret=%d\n", 
-				__func__, __LINE__, ret);
+					
+					fprintf(stderr, "TmThread::%s:%d : no more dust (ret=%d)\n", 
+						__func__, __LINE__, ret);
+				}
+			}
+			if(g_debug_TmThread)
+				fprintf(stderr, "TmThread::%s:%d : => next dust ret=%d\n", 
+					__func__, __LINE__, ret);
 			
 			break;
 		case PROTH_OPTIONS:
 			fprintf(stderr, "TmThread::%s:%d : process options changes\n", 
 				__func__, __LINE__);
+			// Clear dust list
+			dust_list.clear();
+			
 			m_pImgProc->setFilmType(m_options.filmType);
 			m_pImgProc->setResolution(m_options.dpi);
 			m_pImgProc->setTrustCorrection(m_options.trust);
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
+
 			no_more_dusts = false;
 			
 			break;
