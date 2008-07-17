@@ -144,11 +144,12 @@ void TamanoirImgProc::purge() {
 }
 
 void TamanoirImgProc::setDisplaySize(int w, int h) {
-	if(!grayImage) {
+	if(!medianImage) {
 		displaySize = cvSize(w, h);
 		return;
 	}
-	if(displayImage) return; // Already displayed
+	if(displayImage) 
+		return; // Already displayed
 	
 	
 	// Get best fit w/h for display in main frame
