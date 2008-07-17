@@ -86,6 +86,44 @@ void tmDilateImage(IplImage * src, IplImage * dst) {
 }
 
 
+// If image has a odd size, many functions will fail on OpenCV, so add a pixel
+IplImage * tmAddBorder4x(IplImage * originalImage) {
+	if(   (originalImage->width % 4) > 0
+	   || (originalImage->height % 4) > 0
+	   ) {
+		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : => Size %dx%d is odd\n",
+				__func__, __LINE__, originalImage->width, originalImage->height);
+		int new_width = originalImage->width;
+		while( (new_width % 4)) new_width++;
+		int new_height = originalImage->height;
+		while( (new_height % 4)) new_height++;
+		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : => resize to %d x %d \n",
+				__func__, __LINE__, new_width, new_height);
+		IplImage * copyImage = cvCreateImage(
+				cvSize( new_width, new_height),
+				originalImage->depth,
+				originalImage->nChannels);
+		memset(copyImage->imageData, 0, copyImage->widthStep * copyImage->height);
+		for(int r = 0; r < originalImage->height; r++) {
+			memcpy( copyImage->imageData + r * copyImage->widthStep,
+			      originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
+		}
+		
+		IplImage * oldImage = originalImage;
+		cvReleaseImage(&oldImage);
+		
+		
+		originalImage = copyImage;
+		
+		
+		return originalImage;
+	}
+	
+	return originalImage;
+}
+
 /** Allocate a morphology structural element */
 IplConvKernel * createStructElt()
 {

@@ -171,9 +171,16 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 		
 		int inc = -numSteps * 2;
 
-		int center_x = l_correction->rel_src_x + l_correction->copy_width/2;
-		int center_y = l_correction->rel_src_y + l_correction->copy_height/2;
+		int center_x = l_correction->rel_src_x + (l_correction->copy_width+1)/2;
+		int center_y = l_correction->rel_src_y + (l_correction->copy_height+1)/2;
 		
+		l_correction->rel_dest_x -= inc/2; 
+		l_correction->rel_dest_y -= inc/2;
+		
+		if(inc < 0) {
+			if(l_correction->copy_width<=2 || l_correction->copy_height<=2)
+				return;
+		}
 		l_correction->copy_width  += inc;
 		l_correction->copy_height += inc;
 		
@@ -1011,6 +1018,9 @@ void TamanoirThread::run() {
 			
 			m_pImgProc->loadFile(m_filename);
 			no_more_dusts = false;
+			
+			fprintf(stderr, "TmThread::%s:%d : file '%s' LOADED => search for first dust\n", 
+				__func__, __LINE__, m_filename.ascii());
 			
 			// Then search for first dust
 			ret = m_pImgProc->nextDust();
