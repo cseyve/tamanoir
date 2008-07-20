@@ -362,7 +362,10 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 30;
 	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
 	m_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
-	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image ... size %dx%d\n", 
+	if(m_smooth_size < 3)
+		m_smooth_size = 3;
+	
+	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image ... size %d x %d\n", 
 		__func__, __LINE__, m_smooth_size, m_smooth_size);
 
 	switch(m_FilmType) {
@@ -717,8 +720,11 @@ int TamanoirImgProc::firstDust()
 int TamanoirImgProc::nextDust() {
 	int x, y;
 	int pos;
+	if(!diffImage) return -1;
+	
 	int width = diffImage->width;
 	int height = diffImage->height;
+	
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
 	
@@ -1005,9 +1011,19 @@ int TamanoirImgProc::nextDust() {
 							
 							if(m_trust) {
 								// Check if correction area is in diff image
+								int left = tmmin(copy_src_x, copy_dest_x);
+								int right = tmmax(copy_src_x + copy_width, copy_dest_x + copy_width);
+								int top = tmmin(copy_src_y, copy_dest_y);
+								int bottom = tmmax(copy_src_y + copy_height, copy_dest_y + copy_height);
+								
 								float fill_failure = tmNonZeroRatio(diffImage,
-									crop_x + copy_src_x, crop_y + copy_src_y,
-									copy_width, copy_height);
+									crop_x + left, crop_y + top,
+									right - left, bottom - top,
+									crop_x + copy_dest_x, crop_y + copy_dest_y,
+									copy_width, copy_height
+									);
+								//	crop_x + left, crop_y + top,
+								//	right - left, bottom - top);
 								
 								//fprintf(stderr, "[imgproc] %s:%d : fill_failure=%g\n", 
 								//	__func__, __LINE__, fill_failure);
@@ -1015,7 +1031,7 @@ int TamanoirImgProc::nextDust() {
 								// If we can trust the correction proposal, let's correct know !
 								if( best_correl < TRUST_CORREL_MAX
 									&& m_correct.area < TRUST_AREA_MAX
-									&& fill_failure < 0.2f) {
+									&& fill_failure == 0) {
 									
 									applyCorrection();
 									return_now = 0;
@@ -1230,7 +1246,7 @@ void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
 
 void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_y) {
 	if(pcorrection->orig_x < 0) return;
-	if(!originalImage) return;
+	if(!diffImage) return;
 	
 	if(g_debug_imgverbose)
 		fprintf(stderr, "[imgproc] %s:%d : rel_x=%d rel_y=%d  %dx%d\n", __func__, __LINE__,

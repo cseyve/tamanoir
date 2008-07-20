@@ -48,12 +48,12 @@ extern u8 g_debug_correlation;
 void displayHelp() {
 	fprintf(stderr, "Usage : ./tamanoir [options]\n"
 					"Options:\n"
-					"\toutput : insert marks on output image\n"
-					"\tcorrelation : display correlation between the current dust and its neiboughood (lots of printf !)\n"
-					"\tdebug : all debug flags on\n"
-					"\tfull : display at full screen (default)\n"
-					"\tmaximized : display without full screen and at maximal screen size (with window)\n"
-					"\tminimized : display without full screen and at normal size (not maximized)\n"
+					"\t--output : insert marks on output image\n"
+					"\t--correlation : display correlation between the current dust and its neiboughood (lots of printf !)\n"
+					"\t--debug : all debug flags on\n"
+					"\t--full : display at full screen (default)\n"
+					"\t--maximized : display without full screen and at maximal screen size (with window)\n"
+					"\t--minimized : display without full screen and at normal size (not maximized)\n"
 					);
 }
 
