@@ -179,8 +179,10 @@ void tmMarkFailureRegion(IplImage * origImage,
 			cvPoint(x +w + 1, y+h+1),
 			CV_RGB(color,color,color), 1);
 }
+
 /** Return the ratio of pixels non 0 in an IplImage in a region */
-float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h) {
+float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
+                int exclu_x, int exclu_y, int exclu_w, int exclu_h) {
 	int nbpixnon0 = 0;
 	
 	int orig_width = origImage->width;
@@ -200,8 +202,10 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h)
 	for(int y=orig_y; y<orig_y+h; y++) {
 		int pos = y * origImage->widthStep + orig_x;
 		for(int x=orig_x; x<orig_x+w; x++, pos++) {
-			if( origBuffer[pos] == 127)
-				nbpixnon0++;
+                        if( (x<exclu_x || x >exclu_x+exclu_w)
+                            && (y<exclu_y || y >exclu_y+exclu_h))
+                        	if( origBuffer[pos] == 127)
+                        		nbpixnon0++;
 		}
 	}
 	

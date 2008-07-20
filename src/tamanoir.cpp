@@ -115,7 +115,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 		// If we WERE loading a file and now it's done
 		if( m_curCommand == PROTH_SEARCH
 			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
-			updateDisplay();
+			on_skipButton_clicked(); //updateDisplay();
 		}
 		
 		// If we WERE loading a file and now it's done
@@ -303,7 +303,7 @@ void TamanoirApp::on_saveButton_clicked()
     // Save a copy before saving output image
 	QString copystr = base + tr("-copy.") + ext;
 	if(m_pImgProc) {
-		QString msg = tr("Saveing ") + m_currentFile;
+		QString msg = tr("Saving ") + m_currentFile;
 		
 		// Save a copy 
 		QDir dir( fi.dirPath(TRUE) );
@@ -1016,30 +1016,21 @@ void TamanoirThread::run() {
 			}
 			
 			break;
-		case PROTH_LOAD_FILE:
-			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
-				__func__, __LINE__, m_filename.ascii());
-			
-			m_pImgProc->loadFile(m_filename);
-			no_more_dusts = false;
-			
-			fprintf(stderr, "TmThread::%s:%d : file '%s' LOADED => search for first dust\n", 
-				__func__, __LINE__, m_filename.ascii());
-			
-			// Then search for first dust
-			ret = m_pImgProc->nextDust();
-			if(ret > 0) {
-				// Add to list
-				t_correction l_dust = m_pImgProc->getCorrection();
-				
-				dust_list.append(l_dust);
-			}
-			
-			break;
 		case PROTH_SAVE_FILE:
 			fprintf(stderr, "TmThread::%s:%d : save file '%s'\n", 
 				__func__, __LINE__, m_filename.ascii());
 			m_pImgProc->saveFile(m_filename);
+			break;
+		case PROTH_LOAD_FILE:
+			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
+				__func__, __LINE__, m_filename.ascii());
+			
+			ret = m_pImgProc->loadFile(m_filename);
+			no_more_dusts = false;
+			fprintf(stderr, "TmThread::%s:%d : file '%s' LOADED => search for first dust\n", 
+				__func__, __LINE__, m_filename.ascii());
+			if(ret >= 0)
+				req_command = PROTH_SEARCH;
 			break;
 		case PROTH_SEARCH:
 			if(g_debug_TmThread)

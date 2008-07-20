@@ -81,7 +81,8 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int center_y);
 
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
-float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h);
+float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h,
+                int exclu_x, int exclu_y, int exclu_w, int exclu_h);
 
 /** @brief Add a border to image to reach a 4x size */
 IplImage * tmAddBorder4x(IplImage * originalImage);
