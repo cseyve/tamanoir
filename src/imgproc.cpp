@@ -65,8 +65,14 @@ void TamanoirImgProc::init() {
 	m_FilmType = FILM_UNDEFINED;
 	m_hotPixels = false;
 	
-	/* Trust good correction proposals */
+	/* Default values : 
+	- Trust good correction proposals : no
+	- DPI : 2400 dpi
+	- hot pixels : no (scan from film !)
+	*/
 	m_trust = false;
+	m_dpi = 2400;
+	m_hotPixels = false;
 	
 	/** Original image size */
 	originalSize = cvSize(0,0);
@@ -78,21 +84,22 @@ void TamanoirImgProc::init() {
 	originalImage = NULL;
 	origBlurredImage = NULL;
 	
+	// Working images : full size 
 	grayImage = NULL;
 	medianImage = NULL;
 	diffImage = NULL;
 	growImage = NULL;
 	
-	// Working images
+	// Working images : cropped
 	cropImage = NULL;
 	dilateImage = NULL;
 	correctImage = NULL;
 	tmpCropImage = NULL;
-
 	cropColorImage = NULL;
 	correctColorImage = NULL;
 	
 	// Display images
+	displayImage = NULL;
 	disp_cropColorImage =
 		disp_correctColorImage =
 		disp_dilateImage = 
@@ -101,8 +108,7 @@ void TamanoirImgProc::init() {
 	
 	
 	displaySize = cvSize(0,0);;
-	displayImage = NULL;
-	m_dpi = 2400;
+	
 	
 	memset(&m_correct, 0, sizeof(t_correction));
 	memset(&m_last_correction, 0, sizeof(t_correction));
@@ -344,7 +350,7 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
 	
-		// Test de sauvegarde
+		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayimage" IMG_EXTENSION, grayImage);
 	
 	
@@ -404,7 +410,7 @@ int TamanoirImgProc::preProcessImage() {
 			__func__, __LINE__);
 		break;
 	}
-		// Test de sauvegarde
+		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
 	
 	m_progress = 40;
@@ -503,13 +509,13 @@ int TamanoirImgProc::preProcessImage() {
 		}
 		break;
 	}
-		// Test de sauvegarde
+		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage" IMG_EXTENSION, diffImage);
 	m_progress = 70;
 	
 	// Do a close operation on diffImage
 	tmCloseImage(diffImage, medianImage, grayImage, 1);
-		// Test de sauvegarde
+		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
 	memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
 	
@@ -524,7 +530,6 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	// Difference 
-	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : create grow image...\n", 
 		__func__, __LINE__); fflush(stderr);
 	if(!growImage)
@@ -536,7 +541,8 @@ int TamanoirImgProc::preProcessImage() {
 		__func__, __LINE__); fflush(stderr);
 	
 	// Cropped image
-	processingSize = cvSize(tmmin(200, originalImage->width), tmmin(200, originalImage->height));
+	processingSize = cvSize( tmmin(200, originalImage->width), 
+							tmmin(200, originalImage->height));
 	
 	if(!cropImage) cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
@@ -1101,7 +1107,7 @@ int TamanoirImgProc::nextDust() {
 						}
 						// END OF DEBUG FUNCTIONS
 						
-						// Test de sauvegarde
+						// For debug, save image in temporary directory
 						//tmSaveImage(TMP_DIRECTORY "diffImageGrown.pgm", growImage);
 					} else {
 						if(g_debug_imgverbose > 1) {
@@ -1113,6 +1119,7 @@ int TamanoirImgProc::nextDust() {
 								crop_center_x, crop_center_y
 								);
 						}
+						
 						if(g_debug_imgoutput) {
 							tmMarkFailureRegion(originalImage, 
 								crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
