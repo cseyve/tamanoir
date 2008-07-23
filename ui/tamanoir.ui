@@ -22,9 +22,18 @@
    <string>Tamanoir</string>
   </property>
   <property name="windowIcon" >
-   <iconset>../icon/tamanoir32.png</iconset>
+   <iconset>
+    <normaloff>../icon/tamanoir32.png</normaloff>../icon/tamanoir32.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget" >
+   <property name="geometry" >
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>960</width>
+     <height>578</height>
+    </rect>
+   </property>
    <widget class="QFrame" name="frame_2" >
     <property name="geometry" >
      <rect>
@@ -327,9 +336,9 @@
    <widget class="QPushButton" name="autoButton" >
     <property name="geometry" >
      <rect>
-      <x>570</x>
+      <x>600</x>
       <y>480</y>
-      <width>91</width>
+      <width>61</width>
       <height>32</height>
      </rect>
     </property>
@@ -571,21 +580,46 @@
    <widget class="QPushButton" name="prevButton" >
     <property name="geometry" >
      <rect>
-      <x>520</x>
+      <x>560</x>
       <y>480</y>
-      <width>52</width>
+      <width>41</width>
       <height>32</height>
      </rect>
     </property>
     <property name="toolTip" >
-     <string>Skip the correction and go to next proposal</string>
+     <string>Go back to previous correction</string>
     </property>
     <property name="text" >
      <string>&lt;</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="rewindButton" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>480</y>
+      <width>41</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>Rewind to top-left of image for dust searching</string>
+    </property>
+    <property name="text" >
+     <string>|&lt;</string>
+    </property>
+   </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar" />
+  <widget class="QStatusBar" name="statusbar" >
+   <property name="geometry" >
+    <rect>
+     <x>0</x>
+     <y>578</y>
+     <width>960</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>

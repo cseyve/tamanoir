@@ -657,6 +657,7 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
 			__func__, __LINE__);
 		preProcessImage();
+		
 		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
 			__func__, __LINE__);
 		firstDust();
@@ -675,8 +676,10 @@ bool TamanoirImgProc::setTrustCorrection(bool on) {
 	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s trust on good correction proposals\n", __func__, __LINE__,
 		(on ? "ACTIVATE" : "DESACTIVATE" ) );
 	if(m_trust != on) { // We changed to trust mode, return to last correction
-		m_seed_x = m_last_correction.crop_x;
-		m_seed_y = m_last_correction.crop_y;
+		if(on) {
+			m_seed_x = m_last_correction.crop_x;
+			m_seed_y = m_last_correction.crop_y;
+		}
 	}
 	
 	m_trust = on;
@@ -1218,11 +1221,24 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		return;
 	}
 	// Allocate images
-	if(!disp_cropImage) disp_cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!disp_cropColorImage) disp_cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	if(!disp_correctColorImage) disp_correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	if(!disp_dilateImage) disp_dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!disp_cropColorImage) 
+		disp_cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	if(!disp_correctColorImage) 
+		disp_correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	
+	if(!disp_cropImage) 
+		disp_cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!disp_dilateImage) 
+	{
+		disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_16S, 1);
+		memset( disp_dilateImage->imageData, 0, 
+				disp_dilateImage->widthStep * disp_dilateImage->height);
+	}
+	
+	// Get Sobel
+	tmCropImage(grayImage, disp_cropImage, 
+				correction.crop_x, correction.crop_y);
+	cvSobel(disp_cropImage, disp_dilateImage, 1, 1);
 	
 // Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 

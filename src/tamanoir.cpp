@@ -65,16 +65,25 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	
 	connect(&refreshTimer, SIGNAL(timeout()), this, SLOT(on_refreshTimer_timeout()));
 
-	
+	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
 	
 }
 /** destructor */
-TamanoirApp::~TamanoirApp() {
-	if(m_pProcThread)
+TamanoirApp::~TamanoirApp() 
+{
+	purge();
+}
+
+void TamanoirApp::purge() {
+	if(m_pProcThread) {
 		delete m_pProcThread;
-	if(m_pImgProc)
-		delete m_pImgProc;
+		m_pProcThread = NULL;
+	}
+	if(m_pImgProc) {
+		delete m_pImgProc; 
+		m_pImgProc = NULL;
+	}
 }
 
 void TamanoirApp::on_refreshTimer_timeout() {
@@ -431,17 +440,29 @@ void TamanoirApp::saveOptions() {
 	fprintfOptions(foptions, &m_options);
 	fclose(foptions);
 }
+
 void TamanoirApp::on_prevButton_clicked() {
 	if(skipped_list.isEmpty())
 		return;
 	
-	current_dust = skipped_list.takeFirst();
+	current_dust = skipped_list.takeLast();
+	fprintf(stderr, "[TmApp]::%s:%d : back for one dust\n", __func__, __LINE__);
 	
-	
-	if(skipped_list.isEmpty())
+	if(skipped_list.isEmpty()) {
 		ui.prevButton->setEnabled(FALSE);
-	
+	}
 	updateDisplay();
+}
+void TamanoirApp::on_rewindButton_clicked() {
+	memset(&current_dust, 0, sizeof(t_correction));
+	if(m_pImgProc)
+		m_pImgProc->firstDust();
+	if(m_pProcThread) {
+		m_pProcThread->firstDust();
+	}
+	
+	ui.overAllProgressBar->setValue(0);
+	statusBar()->showMessage( tr("Rewind to first dust."));
 }
 
 void TamanoirApp::on_skipButton_clicked()
@@ -652,12 +673,12 @@ void TamanoirApp::on_cropPixmapLabel_customContextMenuRequested(QPoint p)
 
 QImage iplImageToQImage(IplImage * iplImage) {
 	int depth = iplImage->nChannels;
+	
 	bool rgb24_to_bgr32 = false;
 	if(depth == 3) {// RGB24 is obsolete on Qt => use 32bit instead
 		depth = 4;
 		rgb24_to_bgr32 = true;
 	}
-	
 	
 	int orig_width = iplImage->width;
 	if((orig_width % 2) == 1)
@@ -665,29 +686,104 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	QImage qImage(orig_width, iplImage->height, 8*depth);
 	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 	
-	if(!rgb24_to_bgr32) {
-		for(int r=0; r<iplImage->height; r++)
-			memcpy(qImage.bits() + r*orig_width, 
-				iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
-	}
-	else {
-		u8 * buffer3 = (u8 *)iplImage->imageData;
-		u8 * buffer4 = (u8 *)qImage.bits();
-		
-		for(int r=0; r<iplImage->height; r++)
-		{
-			int pos3 = r * iplImage->widthStep;
-			int pos4 = r * orig_width*4;
-			for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
+	switch(iplImage->depth) {
+	default:
+		break;
+	
+	case IPL_DEPTH_8U: {
+		if(!rgb24_to_bgr32) {
+			for(int r=0; r<iplImage->height; r++)
+				memcpy(qImage.bits() + r*orig_width, 
+					iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
+		}
+		else {
+			u8 * buffer3 = (u8 *)iplImage->imageData;
+			u8 * buffer4 = (u8 *)qImage.bits();
+			
+			for(int r=0; r<iplImage->height; r++)
 			{
-				//buffer4[pos4 + 2] = buffer3[pos3];
-				//buffer4[pos4 + 1] = buffer3[pos3+1];
-				//buffer4[pos4    ] = buffer3[pos3+2];
-				buffer4[pos4   ] = buffer3[pos3];
-				buffer4[pos4 + 1] = buffer3[pos3+1];
-				buffer4[pos4 + 2] = buffer3[pos3+2];
+				int pos3 = r * iplImage->widthStep;
+				int pos4 = r * orig_width*4;
+				for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
+				{
+					//buffer4[pos4 + 2] = buffer3[pos3];
+					//buffer4[pos4 + 1] = buffer3[pos3+1];
+					//buffer4[pos4    ] = buffer3[pos3+2];
+					buffer4[pos4   ] = buffer3[pos3];
+					buffer4[pos4 + 1] = buffer3[pos3+1];
+					buffer4[pos4 + 2] = buffer3[pos3+2];
+				}
 			}
 		}
+		}break;
+	case IPL_DEPTH_16S: {
+		if(!rgb24_to_bgr32) {
+			
+			u8 * buffer4 = (u8 *)qImage.bits();
+			short valmax = 0;
+			short * buffershort = (short *)(iplImage->imageData);
+			int pos;
+			for( pos=0; pos< iplImage->widthStep*iplImage->height; pos++)
+				if(buffershort[pos]>valmax)
+					valmax = buffershort[pos];celui si
+			fprintf(stderr, "[%s] %s:%d : valmax=%d (pos=%d)\n", 
+					__FILE__, __func__, __LINE__, valmax, pos);
+			
+			if(valmax>0)
+				for(int r=0; r<iplImage->height; r++)
+				{
+					short * buffer3 = (short *)(iplImage->imageData 
+										+ r * iplImage->widthStep);
+					int pos3 = 0;
+					int pos4 = r * orig_width;
+					for(int c=0; c<orig_width; c++, pos3++, pos4++)
+					{
+						int val = abs((int)buffer3[pos3]);// * 255 / valmax;
+						if(val > 255) val = 255;
+						buffer4[pos4] = (u8)val;
+					}
+				}
+		}
+		else {
+			u8 * buffer4 = (u8 *)qImage.bits();
+			if(depth == 3) {
+				
+				for(int r=0; r<iplImage->height; r++)
+				{
+					short * buffer3 = (short *)(iplImage->imageData + r * iplImage->widthStep);
+					int pos3 = 0;
+					int pos4 = r * orig_width*4;
+					for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
+					{
+						buffer4[pos4   ] = buffer3[pos3];
+						buffer4[pos4 + 1] = buffer3[pos3+1];
+						buffer4[pos4 + 2] = buffer3[pos3+2];
+					}
+				}
+			} else if(depth == 1) {
+				short valmax = 0;
+				short * buffershort = (short *)(iplImage->imageData);
+				for(int pos=0; pos< iplImage->widthStep*iplImage->height; pos++)
+					if(buffershort[pos]>valmax)
+						valmax = buffershort[pos];
+				
+				if(valmax>0)
+					for(int r=0; r<iplImage->height; r++)
+					{
+						short * buffer3 = (short *)(iplImage->imageData 
+											+ r * iplImage->widthStep);
+						int pos3 = 0;
+						int pos4 = r * orig_width;
+						for(int c=0; c<orig_width; c++, pos3++, pos4++)
+						{
+							int val = abs((int)buffer3[pos3]) * 255 / valmax;
+							if(val > 255) val = 255;
+							buffer4[pos4] = (u8)val;
+						}
+					}
+			}
+		}
+		}break;
 	}
 	
 	if(iplImage->nChannels == 1) {
@@ -975,7 +1071,21 @@ t_correction TamanoirThread::getCorrection() {
 	return current_dust;
 }
 
-
+int TamanoirThread::firstDust() {
+	if(!dust_list.isEmpty())
+		dust_list.clear();
+	if(!m_pImgProc) 
+		return -1;
+	
+	m_pImgProc->firstDust();
+	
+	mutex.lock();
+	req_command = PROTH_SEARCH;
+	waitCond.wakeAll();
+	mutex.unlock();
+	
+	return 1;
+}
 
 int TamanoirThread::nextDust() {
 	if(!m_pImgProc) 
@@ -1046,6 +1156,7 @@ void TamanoirThread::run() {
 			if(ret >= 0)
 				req_command = PROTH_SEARCH;
 			break;
+			
 		case PROTH_SEARCH:
 			if(g_debug_TmThread)
 				fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
@@ -1072,6 +1183,7 @@ void TamanoirThread::run() {
 		case PROTH_OPTIONS:
 			fprintf(stderr, "TmThread::%s:%d : process options changes\n", 
 				__func__, __LINE__);
+			
 			// Clear dust list
 			dust_list.clear();
 			
@@ -1079,7 +1191,7 @@ void TamanoirThread::run() {
 			m_pImgProc->setResolution(m_options.dpi);
 			m_pImgProc->setTrustCorrection(m_options.trust);
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
-
+			
 			no_more_dusts = false;
 			
 			break;

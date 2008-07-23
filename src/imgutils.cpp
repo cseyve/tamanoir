@@ -377,9 +377,64 @@ void tmCropImage(IplImage * origImage,
 	if(byte_depth != byte_depth2) {
 		
 		int copywidth = (xright - xleft)*byte_depth;
+		
 		if(cropImage->depth != IPL_DEPTH_8U) {
-			fprintf(stderr, "[%s] %s:%d : 16U to U8 unsupported depth %d for display image\n", 
-				__FILE__, __func__, __LINE__,byte_depth2);
+			fprintf(stderr, "[%s] %s:%d : unsupported conversion : depth %d=>%d for display image\n", 
+				__FILE__, __func__, __LINE__, byte_depth, byte_depth2);
+			fprintf(stderr, "[%s] %s:%d : origImage: %d x ", __FILE__, __func__, __LINE__, origImage->nChannels);
+			switch(origImage->depth) {
+			case IPL_DEPTH_8U: 
+				fprintf(stderr, "IPL_DEPTH_8U\n");
+				break;
+			case IPL_DEPTH_8S: 
+				fprintf(stderr, "IPL_DEPTH_8S\n");
+				break;
+			case IPL_DEPTH_16U: 
+				fprintf(stderr, "IPL_DEPTH_16U\n");
+				break;
+			case IPL_DEPTH_16S: 
+				fprintf(stderr, "IPL_DEPTH_16S\n");
+				break;
+			case IPL_DEPTH_32S: 
+				fprintf(stderr, "IPL_DEPTH_32S\n");
+				break;
+			case IPL_DEPTH_32F: 
+				fprintf(stderr, "IPL_DEPTH_32F\n");
+				break;
+			case IPL_DEPTH_64F: 
+				fprintf(stderr, "IPL_DEPTH_64F\n");
+				break;
+			default:
+				fprintf(stderr, "UNKNOWN\n");
+				break;
+			}
+			fprintf(stderr, "[%s] %s:%d :cropImage: %d x ", __FILE__, __func__, __LINE__, cropImage->nChannels);
+			switch(cropImage->depth) {
+			case IPL_DEPTH_8U: 
+				fprintf(stderr, "IPL_DEPTH_8U\n");
+				break;
+			case IPL_DEPTH_8S: 
+				fprintf(stderr, "IPL_DEPTH_8S\n");
+				break;
+			case IPL_DEPTH_16U: 
+				fprintf(stderr, "IPL_DEPTH_16U\n");
+				break;
+			case IPL_DEPTH_16S: 
+				fprintf(stderr, "IPL_DEPTH_16S\n");
+				break;
+			case IPL_DEPTH_32S: 
+				fprintf(stderr, "IPL_DEPTH_32S\n");
+				break;
+			case IPL_DEPTH_32F: 
+				fprintf(stderr, "IPL_DEPTH_32F\n");
+				break;
+			case IPL_DEPTH_64F: 
+				fprintf(stderr, "IPL_DEPTH_64F\n");
+				break;
+			default:
+				fprintf(stderr, "UNKNOWN\n");
+				break;
+			}
 			exit(0);
 		}
 		
