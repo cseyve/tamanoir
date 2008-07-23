@@ -162,14 +162,64 @@ void TamanoirApp::on_refreshTimer_timeout() {
 	}
 }
 
-
+void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
+	
+	
+	if(e && m_pImgProc) {
+		IplImage * displayImage = m_pImgProc->getGrayscale();
+		if(!displayImage)
+			return;
+		
+		IplImage * cropImage = m_pImgProc->getCrop();
+		if(!cropImage)
+			return;
+		
+		int scaled_width = ui.largViewFrame->width()-12;
+		int scaled_height = ui.largViewFrame->height()-12;
+		
+		float scale = (float)tmmax( displayImage->width, displayImage->height )
+			/ (float)tmmax(scaled_width, scaled_height);
+		
+		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
+				e->pos().x(), e->pos().y(), scale);
+		
+		// Create a fake dust in middle
+		current_dust.crop_x = e->pos().x() * scale - cropImage->width / 2;
+		current_dust.crop_y = e->pos().y() * scale - cropImage->height / 2;
+		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
+		current_dust.rel_src_y = current_dust.rel_dest_y = cropImage->height / 2;
+		current_dust.copy_width = current_dust.copy_height = 16;
+		current_dust.area = 1;
+		
+		m_pImgProc->setCopySrc(&current_dust,
+			cropImage->width / 2, cropImage->height / 2);
+		updateDisplay();
+	}
+}
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-	if(e && m_pProcThread) {
+	if(e && m_pProcThread && m_pImgProc) {
 		
+		// First check if click is closer to src or dest
+		int dist_src = tmmax( abs(e->pos().x() - current_dust.rel_src_x + (current_dust.copy_width+1)/2),
+					abs(e->pos().y() - current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+		int dist_dest = tmmax( abs(e->pos().x() - current_dust.rel_dest_x + (current_dust.copy_width+1)/2),
+					abs(e->pos().y() - current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+		
+		if(dist_src < dist_dest) {
+			current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
+			current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
+		} else {
+			current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
+			current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+		}
+		
+		
+		int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
+		int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
 		m_pImgProc->setCopySrc(&current_dust,
-			e->pos().x(), e->pos().y());
+			center_x, center_y);
 		updateDisplay();
 	}
 }
@@ -672,6 +722,10 @@ void TamanoirApp::on_cropPixmapLabel_customContextMenuRequested(QPoint p)
 
 
 QImage iplImageToQImage(IplImage * iplImage) {
+	if(!iplImage)
+		return QImage();
+	
+
 	int depth = iplImage->nChannels;
 	
 	bool rgb24_to_bgr32 = false;
@@ -721,24 +775,25 @@ QImage iplImageToQImage(IplImage * iplImage) {
 			
 			u8 * buffer4 = (u8 *)qImage.bits();
 			short valmax = 0;
-			short * buffershort = (short *)(iplImage->imageData);
-			int pos;
-			for( pos=0; pos< iplImage->widthStep*iplImage->height; pos++)
-				if(buffershort[pos]>valmax)
-					valmax = buffershort[pos];celui si
-			fprintf(stderr, "[%s] %s:%d : valmax=%d (pos=%d)\n", 
-					__FILE__, __func__, __LINE__, valmax, pos);
+			
+			for(int r=0; r<iplImage->height; r++)
+			{
+				short * buffershort = (short *)(iplImage->imageData + r*iplImage->widthStep);
+				for(int c=0; c<iplImage->width; c++)
+					if(buffershort[c]>valmax)
+						valmax = buffershort[c];
+			}
 			
 			if(valmax>0)
 				for(int r=0; r<iplImage->height; r++)
 				{
 					short * buffer3 = (short *)(iplImage->imageData 
-										+ r * iplImage->widthStep);
+									+ r * iplImage->widthStep);
 					int pos3 = 0;
 					int pos4 = r * orig_width;
 					for(int c=0; c<orig_width; c++, pos3++, pos4++)
 					{
-						int val = abs((int)buffer3[pos3]);// * 255 / valmax;
+						int val = abs((int)buffer3[pos3]) * 255 / valmax;
 						if(val > 255) val = 255;
 						buffer4[pos4] = (u8)val;
 					}

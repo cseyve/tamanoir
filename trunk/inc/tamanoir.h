@@ -172,6 +172,10 @@ private slots:
 	void on_rewindButton_clicked();
 	void on_correctButton_clicked();
 
+
+	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
+	
+
 	void on_cropPixmapLabel_customContextMenuRequested(QPoint p);
 	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
