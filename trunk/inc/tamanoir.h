@@ -78,6 +78,9 @@ public:
 	int getProgress();
 	
 	/** @brief Search for next dust */
+	int firstDust();
+	
+	/** @brief Search for next dust */
 	int nextDust();
 	
 	/** @brief Get last detected dust correction */
@@ -85,7 +88,6 @@ public:
 	
 	
 private:
-
 	
 	/** @brief Current running command */
 	int current_command;
@@ -127,14 +129,14 @@ public:
 	void loadFile(QString s);
 private:
 	Ui::Tamanoir ui;
-
+	
+	/** @brief Delete allocated structures */
+	void purge();
+	
 protected:
 	//virtual void showEvent( QShowEvent * );
 	virtual void resizeEvent ( QResizeEvent * );
 
-private slots:
-	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
-	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
 
 private:
 	/** Application options */
@@ -167,9 +169,12 @@ private slots:
 	void on_autoButton_clicked();
 	void on_skipButton_clicked();
 	void on_prevButton_clicked();
+	void on_rewindButton_clicked();
 	void on_correctButton_clicked();
 
 	void on_cropPixmapLabel_customContextMenuRequested(QPoint p);
+	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
+	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
 
 	void on_typeComboBox_currentIndexChanged(int);
 	void on_dpiComboBox_currentIndexChanged(QString );
