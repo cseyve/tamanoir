@@ -45,36 +45,36 @@ void QImageDisplay::mouseMoveEvent(QMouseEvent * e)
 		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
     emit signalMouseMoveEvent(e);
     if(e) {
-		if(e->state() == Qt::LeftButton)
-			emit signalMousePressEvent(e);
-	}
+	if(e->state() == Qt::LeftButton)
+            emit signalMousePressEvent(e);
+    }
 }
 
 void QImageDisplay::wheelEvent(QWheelEvent * e)
 {
-	if(e) {	
-		int numDegrees = e->delta() / 8;
-		int numSteps = numDegrees / 15;
+    if(e) {	
+	int numDegrees = e->delta() / 8;
+	int numSteps = numDegrees / 15;
 		
-		if(g_debug_QImageDisplay) {
-			fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n", 
-				__func__, __LINE__, e, e->delta());
-			fprintf(stderr, "\tDeplacement :\t%d steps = %d degrees\n",
-				numSteps, numDegrees );
-			fprintf(stderr, "\tOrientation :\t");
-			switch(e->orientation()) {
-			case Qt::Horizontal:
-				fprintf(stderr, "Qt::Horizontal\n");
-				break;
-			case Qt::Vertical:
-				fprintf(stderr, "Qt::Vertical\n");
-				break;
-			default:
-				fprintf(stderr, "Unknown\n");
-				break;
-			}
-		}
-	}
+	if(g_debug_QImageDisplay) {
+            fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n", 
+                            __func__, __LINE__, e, e->delta());
+            fprintf(stderr, "\tDeplacement :\t%d steps = %d degrees\n",
+                    numSteps, numDegrees );
+            fprintf(stderr, "\tOrientation :\t");
+            switch(e->orientation()) {
+            case Qt::Horizontal:
+                    fprintf(stderr, "Qt::Horizontal\n");
+                    break;
+            case Qt::Vertical:
+                    fprintf(stderr, "Qt::Vertical\n");
+                    break;
+            default:
+                    fprintf(stderr, "Unknown\n");
+                    break;
+            }
+        }
+    }
 	
     emit signalWheelEvent(e);
 }
