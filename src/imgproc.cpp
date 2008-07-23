@@ -62,6 +62,9 @@ void TamanoirImgProc::init() {
 
 	m_filename[0] = '\0';
 	
+	m_lock = false;
+	
+	
 	m_FilmType = FILM_UNDEFINED;
 	m_hotPixels = false;
 	
@@ -209,6 +212,18 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 
 int TamanoirImgProc::loadFile(const char * filename) {
+	
+	int retry = 0;
+	while(retry < 10 && m_lock) {
+		sleep(1); retry++;
+		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+	}
+	
+	if(m_lock)
+		return -1;
+	
+	m_lock = true;
+	
 	m_progress = 0;
 	
 	// Clear display and processing images
@@ -229,6 +244,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : cannot open file '%s' !!\n",
 					__func__, __LINE__, filename);
+		m_lock = false;
 		return -1;
 	}
 	
@@ -315,6 +331,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	if(displaySize.width > 0)
 		setDisplaySize(displaySize.width, displaySize.height);
 	
+	m_lock = false;
+	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
 		__func__, __LINE__);
 	preProcessImage();
@@ -323,7 +341,17 @@ int TamanoirImgProc::loadFile(const char * filename) {
 }
 
 
+
 int TamanoirImgProc::saveFile(const char * filename) {
+	int retry = 0;
+	while(retry < 10 && m_lock) {
+		sleep(1); retry++;
+		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+	}
+	if(m_lock)
+		return -1;
+	
+	m_lock = true;
 	fprintf(logfile, "TamanoirImgProc::%s:%d : saving '%s'...\n", 
 		__func__, __LINE__, filename);
 
@@ -335,13 +363,25 @@ int TamanoirImgProc::saveFile(const char * filename) {
 
 	if(originalImage) {
 		tmSaveImage(filename, originalImage);
+		m_lock = false;
 		return 0;
 	}
-	
+	m_lock = false;
 	return -1;
 }
 
 int TamanoirImgProc::preProcessImage() {
+	
+	int retry = 0;
+	while(retry < 10 && m_lock) {
+		sleep(1); retry++;
+		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+	}
+	if(m_lock)
+		return -1;
+	
+	m_lock = true;
+	
 	
 	memset(&m_last_correction, 0, sizeof(t_correction));
 	memset(&m_correct, 0, sizeof(t_correction));
@@ -582,6 +622,8 @@ int TamanoirImgProc::preProcessImage() {
 		correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
 
+	m_lock = false;
+
 	setResolution(m_dpi);
 	
 	m_progress = 100;
@@ -728,6 +770,17 @@ int TamanoirImgProc::nextDust() {
 	int pos;
 	if(!diffImage) return -1;
 	
+	int retry = 0;
+	while(retry < 10 && m_lock) {
+		sleep(1); retry++;
+		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+	}
+	if(m_lock)
+		return -1;
+	
+	m_lock = true;
+	
+	
 	int width = diffImage->width;
 	int height = diffImage->height;
 	
@@ -779,7 +832,7 @@ int TamanoirImgProc::nextDust() {
 								connect.rect.height);
 				}
 				
-								
+				
 				
 				
 				if(connect.area >= m_dust_area_min &&
@@ -1049,7 +1102,7 @@ int TamanoirImgProc::nextDust() {
 							if(return_now) {
 								
 								// Call cropping functions must b called by the GUI
-								
+								m_lock = false;
 								return 1;
 							}
 						} else {
@@ -1102,7 +1155,7 @@ int TamanoirImgProc::nextDust() {
 							
 							tmCropImage(originalImage, cropColorImage, 
 									crop_x, crop_y);
-							
+							m_lock = false;
 							return 1;
 						}
 						// END OF DEBUG FUNCTIONS
@@ -1133,10 +1186,10 @@ int TamanoirImgProc::nextDust() {
 		
 		m_seed_x = 0;
 		
-		// Update progress
-		m_progress = (int)(100 * y / grayImage->height);
+		
 	}
 	
+	m_lock = false;
 	return 0;
 }
 
@@ -1283,17 +1336,22 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 int TamanoirImgProc::skipCorrection(t_correction correction) {
 	if(correction.copy_width <= 0) return 0;
 	
+	// Update progress
+	int y = correction.crop_y + correction.rel_dest_y;
+	m_progress = (int)(100 * y / grayImage->height);
+	
 	memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	
 	// Mark skip action on displayImage
-	int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
-	int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
-	int disp_w = correction.copy_width * displayImage->width / grayImage->width;
-	int disp_h = correction.copy_height * displayImage->height / grayImage->height;
+	if(displayImage) {
+		int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
+		int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
+		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
+		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 	
-	tmMarkFailureRegion(displayImage, 
+		tmMarkFailureRegion(displayImage, 
 			disp_x, disp_y, disp_w, disp_h, COLORMARK_REFUSED);
-	
+	}	
 	return 0;
 }
 
@@ -1313,6 +1371,11 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
 	
+	
+	// Update progress
+	int y = correction.crop_y + correction.rel_dest_y;
+	m_progress = (int)(100 * y / grayImage->height);
+	
 	memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	
 	if(g_debug_imgverbose)
@@ -1326,20 +1389,20 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	}
 	
 	// Apply clone on original image
-	tmCloneRegion(originalImage, 
-					correction.orig_x, correction.orig_y,
-					correction.copy_x, correction.copy_y,
-					correction.copy_width, correction.copy_height);
+	tmCloneRegion(  originalImage, 
+			correction.orig_x, correction.orig_y,
+			correction.copy_x, correction.copy_y,
+			correction.copy_width, correction.copy_height);
 	
-	
-	// Mark failure on displayImage
-	int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
-	int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
-	int disp_w = correction.copy_width * displayImage->width / grayImage->width;
-	int disp_h = correction.copy_height * displayImage->height / grayImage->height;
-	tmMarkFailureRegion(displayImage, 
-			disp_x, disp_y, disp_w, disp_h, COLORMARK_CORRECTED);
-	
+	if(displayImage) {
+		// Mark failure on displayImage
+		int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
+		int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
+		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
+		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
+		tmMarkFailureRegion(displayImage, 
+				disp_x, disp_y, disp_w, disp_h, COLORMARK_CORRECTED);
+	}
 	
 	// And clear dust at destination position
 	// to make this area usable for future copy source

@@ -431,7 +431,18 @@ void TamanoirApp::saveOptions() {
 	fprintfOptions(foptions, &m_options);
 	fclose(foptions);
 }
-
+void TamanoirApp::on_prevButton_clicked() {
+	if(skipped_list.isEmpty())
+		return;
+	
+	current_dust = skipped_list.takeFirst();
+	
+	
+	if(skipped_list.isEmpty())
+		ui.prevButton->setEnabled(FALSE);
+	
+	updateDisplay();
+}
 
 void TamanoirApp::on_skipButton_clicked()
 {
@@ -439,7 +450,10 @@ void TamanoirApp::on_skipButton_clicked()
 		// Mark skip on image
 		if(m_pImgProc)
 			m_pImgProc->skipCorrection(current_dust);
+		if(skipped_list.isEmpty())
+			ui.prevButton->setEnabled(TRUE);
 		
+		skipped_list.append(current_dust);
 		
 		// First check if a new dust if available
 		current_dust = m_pProcThread->getCorrection();

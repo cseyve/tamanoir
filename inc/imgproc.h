@@ -179,6 +179,10 @@ public:
 private:
 	/** Initialize buffers */
 	void init();
+	
+	/** Lock flag for long tasks (such as load and save) */
+	bool m_lock;
+	
 	/** Purge buffers */
 	void purge();
 	

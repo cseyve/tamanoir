@@ -106,6 +106,7 @@ private:
 	
 	/** List of proposed corrections */
 	QList<t_correction> dust_list;
+	
 };
 
 
@@ -165,6 +166,7 @@ private slots:
 	
 	void on_autoButton_clicked();
 	void on_skipButton_clicked();
+	void on_prevButton_clicked();
 	void on_correctButton_clicked();
 
 	void on_cropPixmapLabel_customContextMenuRequested(QPoint p);
@@ -180,7 +182,7 @@ private slots:
 private:
 	TamanoirImgProc * m_pImgProc;
 	TamanoirThread * m_pProcThread;
-	
+	QList<t_correction> skipped_list;
 	QString m_currentFile;
 };
 
