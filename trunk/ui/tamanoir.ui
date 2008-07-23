@@ -327,9 +327,9 @@
    <widget class="QPushButton" name="autoButton" >
     <property name="geometry" >
      <rect>
-      <x>520</x>
+      <x>570</x>
       <y>480</y>
-      <width>141</width>
+      <width>91</width>
       <height>32</height>
      </rect>
     </property>
@@ -567,6 +567,22 @@
       <bool>false</bool>
      </property>
     </widget>
+   </widget>
+   <widget class="QPushButton" name="prevButton" >
+    <property name="geometry" >
+     <rect>
+      <x>520</x>
+      <y>480</y>
+      <width>52</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>Skip the correction and go to next proposal</string>
+    </property>
+    <property name="text" >
+     <string>&lt;</string>
+    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar" />
