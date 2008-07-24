@@ -798,7 +798,7 @@ int TamanoirImgProc::nextDust() {
 	
 	memset(&m_lastDustComp, 0, sizeof(CvConnectedComp));
 	
-	m_correct.orig_x = -1; // Clear stored correction
+	m_correct.dest_x = -1; // Clear stored correction
 	
 	
 	for(y = m_seed_y; y<height; y++) {
@@ -1047,8 +1047,8 @@ int TamanoirImgProc::nextDust() {
 							
 							
 							// Store correction in full image buffer
-							m_correct.orig_x = crop_x + copy_dest_x;
-							m_correct.orig_y = crop_y + copy_dest_y;
+							m_correct.dest_x = crop_x + copy_dest_x;
+							m_correct.dest_y = crop_y + copy_dest_y;
 							m_correct.copy_width = copy_width;
 							m_correct.copy_height = copy_height;
 							
@@ -1061,8 +1061,8 @@ int TamanoirImgProc::nextDust() {
 							m_correct.rel_dest_y = copy_dest_y;
 							
 							// Update dest
-							m_correct.copy_x = m_correct.crop_x + m_correct.rel_src_x;
-							m_correct.copy_y = m_correct.crop_y + m_correct.rel_src_y;
+							m_correct.src_x = m_correct.crop_x + m_correct.rel_src_x;
+							m_correct.src_y = m_correct.crop_y + m_correct.rel_src_y;
 							m_correct.area = connect_area;
 							
 							// Fill size statistics
@@ -1238,7 +1238,13 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	// Get Sobel
 	tmCropImage(grayImage, disp_cropImage, 
 				correction.crop_x, correction.crop_y);
-	cvSobel(disp_cropImage, disp_dilateImage, 1, 1);
+	
+	int dx = abs(correction.rel_src_x - correction.rel_dest_x);
+	int dy = abs(correction.rel_src_y - correction.rel_dest_y);
+	if(dx < dy) // Check if we are not copying while following a border
+		cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
+	else
+		cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
 	
 // Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
@@ -1263,10 +1269,11 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			correction.crop_x, correction.crop_y);
 	
 	// Clone image region 
-	tmCloneRegion(disp_correctColorImage, 
+	tmCloneRegion(disp_cropColorImage, 
 		correction.rel_dest_x, correction.rel_dest_y, // dest
 		correction.rel_src_x, correction.rel_src_y, // src
-		correction.copy_width, correction.copy_height
+		correction.copy_width, correction.copy_height,
+		disp_correctColorImage
 		);
 	
 	tmMarkCloneRegion(disp_cropColorImage, 
@@ -1321,7 +1328,7 @@ void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
 }
 
 void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_y) {
-	if(pcorrection->orig_x < 0) return;
+	if(pcorrection->crop_x <= 0) return;
 	if(!diffImage) return;
 	
 	if(g_debug_imgverbose)
@@ -1335,19 +1342,21 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 	
 	
 	// Store correction in full image buffer
-	pcorrection->orig_x = pcorrection->crop_x + x;
-	pcorrection->orig_y = pcorrection->crop_y + y;
-	
 	pcorrection->rel_src_x = x;
 	pcorrection->rel_src_y = y;
-	
-	// Update dest
-	pcorrection->copy_x = pcorrection->crop_x + pcorrection->rel_src_x;
-	pcorrection->copy_y = pcorrection->crop_y + pcorrection->rel_src_y;
+	pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
+	pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
+
+
+	// Update absolute dest if changed
+	pcorrection->dest_x = pcorrection->crop_x + pcorrection->rel_dest_x;
+	pcorrection->dest_y = pcorrection->crop_y + pcorrection->rel_dest_y;
 
 
 	// Update display must be requested by the GUI !
 }
+
+
 /* Apply a former correction */
 int TamanoirImgProc::skipCorrection(t_correction correction) {
 	if(correction.copy_width <= 0) return 0;
@@ -1360,8 +1369,8 @@ int TamanoirImgProc::skipCorrection(t_correction correction) {
 	
 	// Mark skip action on displayImage
 	if(displayImage) {
-		int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
-		int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
+		int disp_x = (correction.dest_x ) * displayImage->width / grayImage->width;
+		int disp_y = (correction.dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 	
@@ -1382,7 +1391,7 @@ int TamanoirImgProc::applyCorrection()
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction)
 {
-	if(correction.orig_x < 0)
+	if(correction.dest_x < 0)
 		return -1; // no available correction
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
@@ -1406,14 +1415,21 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	
 	// Apply clone on original image
 	tmCloneRegion(  originalImage, 
-			correction.orig_x, correction.orig_y,
-			correction.copy_x, correction.copy_y,
+			correction.dest_x, correction.dest_y,
+			correction.src_x, correction.src_y,
 			correction.copy_width, correction.copy_height);
+	
+	// Delete same region in diff image to never find it again, even if we
+	// use the rewind function
+	tmClearRegion(  diffImage, 
+			correction.dest_x, correction.dest_y,
+			correction.copy_width, correction.copy_height);
+	
 	
 	if(displayImage) {
 		// Mark failure on displayImage
-		int disp_x = (correction.orig_x ) * displayImage->width / grayImage->width;
-		int disp_y = (correction.orig_y ) * displayImage->height / grayImage->height;
+		int disp_x = (correction.dest_x ) * displayImage->width / grayImage->width;
+		int disp_y = (correction.dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 		tmMarkFailureRegion(displayImage, 
@@ -1425,14 +1441,14 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	if(g_debug_imgoutput) {
 
 		tmMarkCloneRegion(originalImage, 
-					correction.orig_x, correction.orig_y,
-					correction.copy_x, correction.copy_y,
+					correction.dest_x, correction.dest_y,
+					correction.src_x, correction.src_y,
 					correction.copy_width, correction.copy_height);
 	}
 	
 	
 	memset(&correction, 0, sizeof(t_correction));
-	correction.orig_x = -1;
+	correction.dest_x = -1;
 	return 0;
 }
 

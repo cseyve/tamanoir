@@ -52,7 +52,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	
 	m_pImgProc = NULL;
 	m_pProcThread = NULL;
-	
+	force_mode = false;
+
+
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
 		homeDirStr = QString(getenv("HOME"));
@@ -69,6 +71,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.loadingTextLabel->setText(QString(""));
 	
 }
+
+
 /** destructor */
 TamanoirApp::~TamanoirApp() 
 {
@@ -92,6 +96,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			m_pProcThread->getCommand() == PROTH_NOTHING) {
 			// Stop timer
 			refreshTimer.stop();
+			
+			lockTools(false);
 		}
 		
 		if(m_curCommand == PROTH_NOTHING && 
@@ -162,6 +168,14 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	
 	if(e && m_pImgProc) {
+		// Keep current dust in mind to get back to it when done
+		if(m_pProcThread && !force_mode)
+			m_pProcThread->insertCorrection(current_dust);
+		
+		// Indicate we are forcing the position of correction, and so
+		// we must not store in skipped dusts list
+		force_mode = true;
+		
 		IplImage * displayImage = m_pImgProc->getGrayscale();
 		if(!displayImage)
 			return;
@@ -176,8 +190,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		float scale = (float)tmmax( displayImage->width, displayImage->height )
 			/ (float)tmmax(scaled_width, scaled_height);
 		
-		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
-				e->pos().x(), e->pos().y(), scale);
+		//fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
+		//		e->pos().x(), e->pos().y(), scale);
 		
 		// Create a fake dust in middle
 		current_dust.crop_x = (int)roundf(e->pos().x() * scale) - (cropImage->width+1) / 2;
@@ -287,23 +301,7 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 	}
 }
 
-/****************************** Button slots ******************************/
-void TamanoirApp::on_loadButton_clicked() 	
-{
-	ui.loadingTextLabel->setText(tr(""));
-	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-	QString s = QFileDialog::getOpenFileName(this,
-                   	tr("open file dialog"),
-                   	m_options.currentDir,
-                    tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
-								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
-	if(s.isEmpty()) {
-		fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
-		return;
-	}
 
-	loadFile( s);
-}
 
 void TamanoirApp::loadFile(QString s) {
 	QFileInfo fi(s);
@@ -350,8 +348,36 @@ void TamanoirApp::loadFile(QString s) {
 		return;
 	}
 	
+	// Lock tool frame
+	lockTools(true);
+	
 	m_curCommand = m_pProcThread->getCommand();
-	refreshTimer.start(1000);
+	refreshTimer.start(500);
+}
+
+
+void TamanoirApp::lockTools(bool lock) {
+	ui.toolFrame->setDisabled(lock);
+	//ui.loadButton->setEnabled(lock);
+	//ui.saveButton->setEnabled(lock);
+}
+
+/****************************** Button slots ******************************/
+void TamanoirApp::on_loadButton_clicked() 	
+{
+	ui.loadingTextLabel->setText(tr(""));
+	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	QString s = QFileDialog::getOpenFileName(this,
+                   	tr("open file dialog"),
+                   	m_options.currentDir,
+                    tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
+								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
+	if(s.isEmpty()) {
+		fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
+		return;
+	}
+
+	loadFile( s);
 }
 
 
@@ -370,13 +396,15 @@ void TamanoirApp::on_saveButton_clicked()
 	if(m_pImgProc) {
 		QString msg = tr("Saving ") + m_currentFile;
 		
+		lockTools(true);
+		
 		// Save a copy 
 		QDir dir( fi.dirPath(TRUE) );
 		dir.rename(m_currentFile, copystr);
 		msg+= tr(" + backup as ") + copystr;
 		
 		// Save image
-		m_pProcThread->saveFile(m_currentFile.ascii());
+		m_curCommand = m_pProcThread->saveFile(m_currentFile.ascii());
 		
 		
 		statusBar()->showMessage( msg );
@@ -386,7 +414,8 @@ void TamanoirApp::on_saveButton_clicked()
 		processAndPrintStats(&stats);
 		
 		// Display in progress bar
-		
+		m_curCommand = m_pProcThread->getCommand();
+		refreshTimer.start(500);
 	}
 }
 
@@ -523,6 +552,7 @@ void TamanoirApp::on_rewindButton_clicked() {
 
 void TamanoirApp::on_skipButton_clicked()
 {
+	
 	if(m_pProcThread) {
 		// Mark skip on image
 		if(m_pImgProc)
@@ -530,7 +560,8 @@ void TamanoirApp::on_skipButton_clicked()
 		if(skipped_list.isEmpty())
 			ui.prevButton->setEnabled(TRUE);
 		
-		skipped_list.append(current_dust);
+		if(!force_mode)
+			skipped_list.append(current_dust);
 		
 		// First check if a new dust if available
 		current_dust = m_pProcThread->getCorrection();
@@ -561,6 +592,8 @@ void TamanoirApp::on_skipButton_clicked()
 		} else 
 			updateDisplay();
 	}
+	
+	force_mode = false;
 }
 
 
@@ -568,8 +601,9 @@ void TamanoirApp::on_skipButton_clicked()
 void TamanoirApp::on_correctButton_clicked()
 {
 	// Apply previous correction
-	if(m_pImgProc)
+	if(m_pImgProc) {
 		m_pImgProc->applyCorrection(current_dust);
+	}
 	
 	// Clear current dust
 	memset(&current_dust, 0, sizeof(t_correction));
@@ -1130,6 +1164,21 @@ t_correction TamanoirThread::getCorrection() {
 		current_dust.copy_width, current_dust.copy_height);
 	
 	return current_dust;
+}
+
+void TamanoirThread::insertCorrection(t_correction current_dust) {
+	if(current_dust.copy_width <= 0)
+		return;
+	
+	if(g_debug_TmThread)
+		fprintf(stderr, "TMThread::%s:%d : insert dust=%d,%d +%dx%d\n", 
+			__func__, __LINE__, 
+			current_dust.crop_x + current_dust.rel_dest_x,
+			current_dust.crop_y + current_dust.rel_dest_y,
+			current_dust.copy_width, current_dust.copy_height);
+	
+	dust_list.prepend(current_dust);
+	
 }
 
 int TamanoirThread::firstDust() {
