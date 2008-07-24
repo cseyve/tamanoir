@@ -93,13 +93,15 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Stop timer
 			refreshTimer.stop();
 		}
-		if(g_debug_TmThread)
-			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
-				m_curCommand, m_pProcThread->getCommand());
+		
 		if(m_curCommand == PROTH_NOTHING && 
 			m_pProcThread->getCommand() != PROTH_NOTHING)
 			m_curCommand = m_pProcThread->getCommand();
-			
+		
+		//if(g_debug_TmThread)
+			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
+				m_curCommand, m_pProcThread->getCommand());
+		
 		// If nothing changed, just update GUI
 		if( m_curCommand == m_pProcThread->getCommand()) {
 			// Update Progress bar
@@ -121,17 +123,12 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			
 			return;
 		}
-		// If we WERE loading a file and now it's done
-		if( m_curCommand == PROTH_SEARCH
-			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
-			on_skipButton_clicked(); //updateDisplay();
-		}
+		
 		
 		// If we WERE loading a file and now it's done
 		if( (m_curCommand == PROTH_LOAD_FILE 
 			|| m_curCommand == PROTH_OPTIONS)
 			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
-			refreshMainDisplay();
 			
 			QFileInfo fi(m_currentFile);
 			QString str;
@@ -148,16 +145,15 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			}
 			
 			ui.overAllProgressBar->setValue(0);
-			
-			
-			if(!g_debug_imgverbose) {
-				
-				m_pImgProc->firstDust();
+			fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED ! m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
+				m_curCommand, m_pProcThread->getCommand());
+			if(m_curCommand == PROTH_LOAD_FILE) {
+				on_skipButton_clicked();
 			}
 			
-			
+//			refreshMainDisplay();
 			// Update little frame displays
-			updateDisplay();
+//			updateDisplay();
 		}
 	}
 }
@@ -184,8 +180,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				e->pos().x(), e->pos().y(), scale);
 		
 		// Create a fake dust in middle
-		current_dust.crop_x = e->pos().x() * scale - cropImage->width / 2;
-		current_dust.crop_y = e->pos().y() * scale - cropImage->height / 2;
+		current_dust.crop_x = (int)roundf(e->pos().x() * scale) - (cropImage->width+1) / 2;
+		current_dust.crop_y = (int)roundf(e->pos().y() * scale) - (cropImage->height +1)/ 2;
 		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
 		current_dust.rel_src_y = current_dust.rel_dest_y = cropImage->height / 2;
 		current_dust.copy_width = current_dust.copy_height = 16;
@@ -202,15 +198,20 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	if(e && m_pProcThread && m_pImgProc) {
 		
 		// First check if click is closer to src or dest
-		int dist_src = tmmax( abs(e->pos().x() - current_dust.rel_src_x + (current_dust.copy_width+1)/2),
-					abs(e->pos().y() - current_dust.rel_src_y + (current_dust.copy_height+1)/2));
-		int dist_dest = tmmax( abs(e->pos().x() - current_dust.rel_dest_x + (current_dust.copy_width+1)/2),
-					abs(e->pos().y() - current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
+		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+		
+		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
+		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
 		
 		if(dist_src < dist_dest) {
+			// Move src
 			current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
 			current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
 		} else {
+			// Move dest
 			current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
 			current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
 		}
@@ -314,6 +315,11 @@ void TamanoirApp::loadFile(QString s) {
 	
 	strcpy(m_options.currentDir, fi.absolutePath().ascii());
 	saveOptions();
+	
+	// Clear known dusts list
+	memset(&current_dust, 0, sizeof(t_correction));
+	skipped_list.clear();
+	
 	
 	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
 	statusBar()->update();
