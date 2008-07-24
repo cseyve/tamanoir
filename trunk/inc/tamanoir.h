@@ -86,6 +86,13 @@ public:
 	/** @brief Get last detected dust correction */
 	t_correction getCorrection();
 	
+	/** @brief Insert a dust correction as first dust (the following to be read)
+	
+	Insert a correction as first item of dust_list, to save the dust cancelled
+	when we click on "previous" button
+	*/
+	void insertCorrection(t_correction);
+	
 	
 private:
 	
@@ -108,6 +115,8 @@ private:
 	
 	/** List of proposed corrections */
 	QList<t_correction> dust_list;
+	
+	
 	
 };
 
@@ -189,9 +198,14 @@ private slots:
 	void on_refreshTimer_timeout();
 
 private:
+	/** @brief lock tools while doing big tasks : loading/saving/settings */
+	void lockTools(bool lock);
+	
+	
 	TamanoirImgProc * m_pImgProc;
 	TamanoirThread * m_pProcThread;
 	QList<t_correction> skipped_list;
+	bool force_mode;
 	QString m_currentFile;
 };
 

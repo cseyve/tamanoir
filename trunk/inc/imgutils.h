@@ -104,10 +104,15 @@ int tmSearchBestCorrelation(
 
 /** @brief Copy a part of an image into itself ('clone tool') */
 void tmCloneRegion(IplImage * origImage, 
-	int orig_x, int orig_y, 
-	int copy_x, int copy_y,
+	int dest_x, int dest_y, 
+	int src_x, int src_y,
 	int copy_width, int copy_height,
 	IplImage * destImage = NULL);
+
+/** @brief Clear a part of an image ('erase tool') */
+void tmClearRegion(IplImage * origImage, 
+	int dest_x, int dest_y, 
+	int copy_width, int copy_height);
 
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
 void tmMarkCloneRegion(IplImage * origImage, 

@@ -63,8 +63,16 @@ void processAndPrintStats(dust_stats_t * dust_stats);
 
 /** @brief Local correction storage structure */
 typedef struct t_correction_ {
-	int orig_x;
-	int orig_y;
+	/// Destination of copy
+	int dest_x;
+	/// Destination of copy
+	int dest_y;
+	/// Source of copy
+	int src_x;
+	/// Source of copy
+	int src_y;
+	int copy_width;
+	int copy_height;
 	
 	/// top-left of Crop image
 	int crop_x;
@@ -80,10 +88,7 @@ typedef struct t_correction_ {
 	int rel_dest_x;
 	int rel_dest_y;
 	
-	int copy_x;
-	int copy_y;
-	int copy_width;
-	int copy_height;
+	
 	
 	// Dust size statistics
 	int area;

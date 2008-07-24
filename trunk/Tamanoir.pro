@@ -12,6 +12,8 @@ DEFINES += QT3_SUPPORT
 #icon
 RC_FILE = icon/Tamanoir.icns
 
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+
 # Input
 HEADERS += inc/imgproc.h \
 		inc/imgutils.h \
