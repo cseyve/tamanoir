@@ -529,7 +529,9 @@ void TamanoirApp::saveOptions() {
 void TamanoirApp::on_prevButton_clicked() {
 	if(skipped_list.isEmpty())
 		return;
-	
+	if(!force_mode && m_pProcThread)
+		m_pProcThread->insertCorrection(current_dust);
+		
 	current_dust = skipped_list.takeLast();
 	fprintf(stderr, "[TmApp]::%s:%d : back for one dust\n", __func__, __LINE__);
 	
@@ -1203,7 +1205,7 @@ int TamanoirThread::nextDust() {
 	
 	int ret = 1;
 	
-	if(dust_list.isEmpty())
+	if(dust_list.isEmpty() && no_more_dusts)
 		ret = 0;
 	
 	mutex.lock();

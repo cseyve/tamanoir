@@ -58,6 +58,11 @@ typedef unsigned short u16;
 #define IMGUTILS_NULL
 #endif
 
+
+#define DIFF_CONTOUR    92
+#define DIFF_NEUTRALIZE 192
+#define DIFF_THRESHVAL  250
+
 IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_NULL;
 
 /** @brief Return image layer depth in bytes (e.g. 8bit jpeg is 1 byte, 16bit:2bytes...) */
@@ -82,7 +87,8 @@ void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int c
 
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h,
-                int exclu_x, int exclu_y, int exclu_w, int exclu_h);
+                int exclu_x, int exclu_y, int exclu_w, int exclu_h,
+                u8 threshold = DIFF_THRESHVAL);
 
 /** @brief Add a border to image to reach a 4x size */
 IplImage * tmAddBorder4x(IplImage * originalImage);
@@ -110,9 +116,10 @@ void tmCloneRegion(IplImage * origImage,
 	IplImage * destImage = NULL);
 
 /** @brief Clear a part of an image ('erase tool') */
-void tmClearRegion(IplImage * origImage, 
+void tmFillRegion(IplImage * origImage, 
 	int dest_x, int dest_y, 
-	int copy_width, int copy_height);
+	int copy_width, int copy_height,
+        u8 fillValue);
 
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
 void tmMarkCloneRegion(IplImage * origImage, 

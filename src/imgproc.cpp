@@ -100,6 +100,7 @@ void TamanoirImgProc::init() {
 	tmpCropImage = NULL;
 	cropColorImage = NULL;
 	correctColorImage = NULL;
+	sobelImage = NULL;
 	
 	// Display images
 	displayImage = NULL;
@@ -143,6 +144,8 @@ void TamanoirImgProc::purge() {
 	if(dilateImage) 	cvReleaseImage(&dilateImage);  		dilateImage = NULL;
 	if(correctImage) 	cvReleaseImage(&correctImage);  	correctImage = NULL;
 	if(tmpCropImage) 	cvReleaseImage(&tmpCropImage);  	tmpCropImage = NULL;
+	if(sobelImage) 		cvReleaseImage(&sobelImage);  	sobelImage = NULL;
+	
 	
 	// Display images
 	if(disp_cropImage) cvReleaseImage(&disp_cropImage);  disp_cropImage = NULL;
@@ -525,7 +528,7 @@ int TamanoirImgProc::preProcessImage() {
 			u8 diff = (u8)diffImageBuffer[pos];
 		
 			if(diff >= m_threshold) 
-				diffImageBuffer[pos] = 127;
+				diffImageBuffer[pos] = DIFF_THRESHVAL;
 		}
 		break;
 	case FILM_NEGATIVE: 
@@ -536,7 +539,7 @@ int TamanoirImgProc::preProcessImage() {
 			if( (diff >= m_threshold && grayImageBuffer[pos]>164) 
 				|| 
 				grayImageBuffer[pos]>240) // Opaque pixels are white
-				diffImageBuffer[pos] = 127;
+				diffImageBuffer[pos] = DIFF_THRESHVAL;
 		}
 		break;
 	case FILM_POSITIVE: 
@@ -545,7 +548,10 @@ int TamanoirImgProc::preProcessImage() {
 			u8 diff = (u8)diffImageBuffer[pos];
 		
 			if(diff >= m_threshold) 
-				diffImageBuffer[pos] = 127;
+				diffImageBuffer[pos] = DIFF_THRESHVAL;
+			else
+				if(diff >= tmmax(3, m_threshold-2))
+					diffImageBuffer[pos] = DIFF_CONTOUR;
 		}
 		break;
 	}
@@ -587,6 +593,9 @@ int TamanoirImgProc::preProcessImage() {
 	if(!cropImage) cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!cropColorImage) cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	
+	if(!sobelImage) sobelImage = cvCreateImage(processingSize,IPL_DEPTH_16S, 1);
+	
 	
 	
 	
@@ -805,394 +814,480 @@ int TamanoirImgProc::nextDust() {
 		pos = y * diffImage->widthStep + m_seed_x;
 		for(x = m_seed_x; x<width-1; x++, pos++) {
 			
-			if(diffImageBuffer[pos] == 127 && !growImageBuffer[pos])
+			if(diffImageBuffer[pos] == DIFF_THRESHVAL && !growImageBuffer[pos])
 			// Grow region here if the region is big enough
-			if(diffImageBuffer[pos+1]==127 || m_hotPixels) 
-//			|| diffImageBuffer[pos+diffImage->widthStep]==127) 
+			if(diffImageBuffer[pos+1]==DIFF_THRESHVAL || m_hotPixels) 
+//			|| diffImageBuffer[pos+diffImage->widthStep]==DIFF_THRESHVAL) 
 			{
-				CvConnectedComp connect;
-				memset(&connect, 0, sizeof(CvConnectedComp));
-				
-				/*cvFloodFill( diffImage, cvPoint(x,y), cvScalar(255),
-					  cvScalarAll(0), cvScalarAll(0),
-					  &connect, CV_FLOODFILL_FIXED_RANGE, NULL );
-				*/
-				tmGrowRegion( diffImageBuffer, growImageBuffer, 
-					diffImage->widthStep, height, 
-					x, y, 
-					126,
-					255,
-					&connect );
-				
-				if(g_debug_imgverbose > 1) {
-					fprintf(logfile, "TamanoirImgProc::%s:%d : found seed at %d,%d surf=%d  %d >? %d <? %d...\n", 
-							__func__, __LINE__, x, y, (int)connect.area,
-							m_dust_area_min, (int)connect.area, m_dust_area_max);
-					fprintf(logfile, "TamanoirImgProc::%s:%d : => %d,%d+%dx%d...\n", 
-							__func__, __LINE__,
-							connect.rect.x,connect.rect.y,
-							connect.rect.width,
-								connect.rect.height);
+				int return_now = findDust(x,y);
+			
+				if(return_now > 0) {
+					m_lock = false;
+					return return_now;
 				}
-				
-				
-				
-				
-				if(connect.area >= m_dust_area_min &&
-				   connect.area < m_dust_area_max)
-				{
-					// There a seed here !!!
-					m_seed_x = x+1;
-					m_seed_y = y;
-					
-					int connect_area = (int)connect.area;
-					/** Update stats */
-					m_dust_stats.nb_grown++;
-					if(connect_area<STATS_MAX_SURF) {
-						m_dust_stats.grown_size[connect_area]++;
-					}
-
-					
-					int connect_width = connect.rect.width;
-					int connect_height = connect.rect.height;
-					
-					// Crop area geometry
-					int crop_width = cropImage->width;
-					int crop_height = cropImage->height;
-					
-					int crop_x = connect.rect.x+connect.rect.width/2 - crop_width/2;
-					if(crop_x < 0) 		crop_x = 0;
-					if(crop_x + crop_width >= originalImage->width) 		crop_x = originalImage->width - crop_width-1;
-					
-					int crop_y = connect.rect.y+connect.rect.height/2 - crop_height/2;
-					if(crop_y < 0) 		crop_y = 0;
-					if(crop_y + crop_height >= originalImage->height) 		crop_y = originalImage->height - crop_height-1;
-					
-					// Real position of dust in cropped image
-					int crop_center_x = x - crop_x;
-					int crop_center_y = y - crop_y;
-					
-					if(g_debug_imgverbose > 1)
-						fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d => %d,%d in cropped image...\n", 
-							__func__, __LINE__,
-							connect.rect.x,connect.rect.y,
-							connect.rect.width, connect.rect.height,
-							crop_center_x, crop_center_y
-							);
-
-
-					// ------- Cropped images are used to lower the memory needs / and for GUI display of correction proposals
-					// Re-greow region in cropped image
-					tmCropImage(diffImage, cropImage, 
-								crop_x, crop_y);
-					if(g_debug_savetmp) {
-						tmSaveImage(TMP_DIRECTORY "a-diffImage" IMG_EXTENSION, 
-									cropImage);
-					}
-					
-					// clear grow buffer
-					memset(correctImage->imageData, 0, 
-						correctImage->widthStep * correctImage->height);
-					
-					// Grow again region in cropped image
-					CvConnectedComp crop_connect;
-					tmGrowRegion(
-						(u8 *)cropImage->imageData, 
-						(u8 *)correctImage->imageData, 
-						cropImage->widthStep, cropImage->height, 
-						x - crop_x, y -crop_y, 
-						126,
-						255,
-						&crop_connect);
-					
-					
-					if(crop_connect.area >= m_dust_area_min &&
-					   crop_connect.area < m_dust_area_max)
-					{
-						/* LOW LEVEL DEBUG ONLY : WHEN NOT COMENTED, IT DESTROY THE INPUT IMAGE !! 
-						if(g_debug_savetmp)
-						{
-							cvRectangle(grayImage, 
-									cvPoint(connect.rect.x-connect.rect.width,
-										connect.rect.y-connect.rect.height), 
-									cvPoint(connect.rect.x+connect.rect.width,
-										connect.rect.y+connect.rect.height),
-									cvScalarAll(0), 1);
-							tmCropImage(grayImage, cropImage, 
-									connect.rect.x+connect.rect.width/2,
-									connect.rect.y+connect.rect.height/2);
-						
-							tmSaveImage(TMP_DIRECTORY "cropImage" IMG_EXTENSION, cropImage);
-						}*/
-						
-						
-						// Do a dilatation around the grown 
-						tmDilateImage(correctImage, dilateImage);
-						
-						// => this dilated image will be used as mask for correlation search
-						// but we have to fill the center of the dust 
-						//	A full circle will only give us a empty circle : O
-						unsigned char * dilateImageBuffer = (unsigned char *)dilateImage->imageData;
-						//unsigned char * tmpCropImageBuffer = (unsigned char *)tmpCropImage->imageData;
-						unsigned char * correctImageBuffer = (unsigned char *)correctImage->imageData;
-						tmCropImage(grayImage, 
-									correctImage, 
-									crop_x, crop_y);
-						tmCropImage(medianImage, 
-									tmpCropImage, 
-									crop_x, crop_y);
-						
-						int r,c, histoDiff[512];
-						memset(histoDiff, 0, 512*sizeof(int));
-						for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
-							int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
-							for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.height;
-									c++,crop_pos++) {
-								if(dilateImageBuffer[crop_pos]) {
-									// Difference between image and median
-									//int dif = (int)correctImageBuffer[crop_pos]-(int)tmpCropImageBuffer[crop_pos];
-									histoDiff[(int)correctImageBuffer[crop_pos]]++;
-								}
-							}
-						}
-						
-						int min_dif = 255;
-						int max_dif = -255;
-						for(int h=0; h<256; h++) 
-							if(histoDiff[h])
-							{
-								if(h<min_dif) min_dif=h;
-								if(h>max_dif) max_dif=h;
-							}
-						
-						//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
-						for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
-							int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
-							for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.height; c++,crop_pos++) {
-								if(correctImageBuffer[crop_pos]>=min_dif
-								&& correctImageBuffer[crop_pos]<=max_dif) {
-									dilateImageBuffer[crop_pos] = 255;
-								}
-							}
-						}
-						
-						
-						
-						// Process search around the dust in original image
-						// Use center x,y - width,height
-						connect_width = crop_connect.rect.width;
-						connect_height = crop_connect.rect.height;
-						int connect_center_x = crop_connect.rect.x + connect_width/2;
-						int connect_center_y = crop_connect.rect.y + connect_height/2;
-						
-						while(connect_width < 5 
-							&& (connect_center_x+connect_width)<crop_width-3) {
-							connect_width += 2;
-						}
-						while(connect_height < 5 
-							&& (connect_center_y+connect_height)<crop_height-3) {
-							connect_height += 2;
-						}
-						
-						int copy_dest_x, copy_dest_y,
-							copy_src_x, copy_src_y,
-							copy_width, copy_height;
-						int best_correl = 10000;
-						
-						
-						// Crop original image
-						switch(m_FilmType) {
-						default:
-						case FILM_POSITIVE:
-							tmCropImage(originalImage, 
-									correctColorImage, 
-									crop_x, crop_y);
-							break;
-						case FILM_UNDEFINED:
-						case FILM_NEGATIVE:
-							if(origBlurredImage) 
-								tmCropImage(origBlurredImage, 
-									correctColorImage, 
-									crop_x, crop_y);
-							else
-								tmCropImage(originalImage, 
-									correctColorImage, 
-									crop_x, crop_y);
-							break;
-						}
-						
-						// Find best proposal in originalImage
-						int ret = tmSearchBestCorrelation(
-							correctColorImage, dilateImage, 
-							connect_center_x, connect_center_y,
-							connect_width, connect_height, 
-							&copy_dest_x, &copy_dest_y,
-							&copy_src_x, &copy_src_y,
-							&copy_width, &copy_height,
-							&best_correl);
-						
-						if(ret>0) {
-							m_lastDustComp = connect; 
-							
-							
-							/** Update stats */
-							m_dust_stats.nb_grown_replaced++;
-							if(connect_area<STATS_MAX_SURF) {
-								m_dust_stats.grown_size_replaced[connect_area]++;
-							}
-							
-							
-							
-							u8 return_now = 1;
-							
-							
-							// Store correction in full image buffer
-							m_correct.dest_x = crop_x + copy_dest_x;
-							m_correct.dest_y = crop_y + copy_dest_y;
-							m_correct.copy_width = copy_width;
-							m_correct.copy_height = copy_height;
-							
-							// Relative storage
-							m_correct.crop_x = crop_x;
-							m_correct.crop_y = crop_y;
-							m_correct.rel_src_x = copy_src_x;
-							m_correct.rel_src_y = copy_src_y;
-							m_correct.rel_dest_x = copy_dest_x;
-							m_correct.rel_dest_y = copy_dest_y;
-							
-							// Update dest
-							m_correct.src_x = m_correct.crop_x + m_correct.rel_src_x;
-							m_correct.src_y = m_correct.crop_y + m_correct.rel_src_y;
-							m_correct.area = connect_area;
-							
-							// Fill size statistics
-							m_correct.area = (int)connect.area;
-							m_correct.width_mm = 25.4f * connect.rect.width / m_dpi;
-							m_correct.height_mm = 25.4f * connect.rect.height / m_dpi;
-							
-							
-							if(m_trust) {
-								// Check if correction area is in diff image
-								int left = tmmin(copy_src_x, copy_dest_x);
-								int right = tmmax(copy_src_x + copy_width, copy_dest_x + copy_width);
-								int top = tmmin(copy_src_y, copy_dest_y);
-								int bottom = tmmax(copy_src_y + copy_height, copy_dest_y + copy_height);
-								
-								float fill_failure = tmNonZeroRatio(diffImage,
-									crop_x + left, crop_y + top,
-									right - left, bottom - top,
-									crop_x + copy_dest_x, crop_y + copy_dest_y,
-									copy_width, copy_height
-									);
-								//	crop_x + left, crop_y + top,
-								//	right - left, bottom - top);
-								
-								//fprintf(stderr, "[imgproc] %s:%d : fill_failure=%g\n", 
-								//	__func__, __LINE__, fill_failure);
-								
-								// If we can trust the correction proposal, let's correct know !
-								if( best_correl < TRUST_CORREL_MAX
-									&& m_correct.area < TRUST_AREA_MAX
-									&& fill_failure == 0) {
-									
-									applyCorrection();
-									return_now = 0;
-								} 
-								
-							}
-							
-								
-							if(return_now) {
-								
-								// Call cropping functions must b called by the GUI
-								m_lock = false;
-								return 1;
-							}
-						} else {
-							
-							// DEBUG FUNCTIONS
-							if(g_debug_imgverbose > 1) {
-								fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
-									"=> %d,%d in cropped image => no replace candidate (best=%d)...\n", 
-									__func__, __LINE__,
-									connect.rect.x,connect.rect.y,
-									connect.rect.width, connect.rect.height,
-									crop_center_x, crop_center_y, best_correl
-									);
-								if(g_debug_savetmp)
-								{
-									tmSaveImage(TMP_DIRECTORY "failed-dilateImage" IMG_EXTENSION,  
-											dilateImage);
-								}
-							}
-							
-							// Mark failure on displayImage
-							if(g_debug_imgoutput && displayImage) {
-								int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
-								int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
-								int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
-								int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
-								tmMarkFailureRegion(displayImage, 
-										disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
-							}
-							
-							if(g_debug_imgoutput) {
-
-								tmMarkFailureRegion(originalImage, 
-									crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
-									crop_connect.rect.width, crop_connect.rect.height, 120);
-								tmMarkFailureRegion(diffImage, 
-									crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
-									crop_connect.rect.width, crop_connect.rect.height, 120);
-							}
-							// END OF DEBUG FUNCTIONS
-							
-						}
-						
-						// DEBUG FUNCTIONS
-						if(g_option_stopoguess || g_debug_correlation) {
-							// Diff image for display in GUI
-							tmCropImage(diffImage, 
-									cropImage, 
-									crop_x, crop_y);
-							
-							tmCropImage(originalImage, cropColorImage, 
-									crop_x, crop_y);
-							m_lock = false;
-							return 1;
-						}
-						// END OF DEBUG FUNCTIONS
-						
-						// For debug, save image in temporary directory
-						//tmSaveImage(TMP_DIRECTORY "diffImageGrown.pgm", growImage);
-					} else {
-						if(g_debug_imgverbose > 1) {
-							fprintf(logfile, "TamanoirImgProc::%s:%d : dust regrow=> %d,%d+%dx%d "
-								"=> %d,%d in cropped image => PROBLEM : NOT FOUND WITH SAME THRESHOLD...\n", 
-								__func__, __LINE__,
-								crop_connect.rect.x, crop_connect.rect.y,
-								crop_connect.rect.width, crop_connect.rect.height,
-								crop_center_x, crop_center_y
-								);
-						}
-						
-						if(g_debug_imgoutput) {
-							tmMarkFailureRegion(originalImage, 
-								crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
-								crop_connect.rect.width, crop_connect.rect.height, 32);
-						}
-					}
-				}
-			}			
+			}
+			
 		}
 		
 		
 		m_seed_x = 0;
-		
-		
 	}
 	
 	m_lock = false;
+	return 0;
+}
+
+
+	
+int TamanoirImgProc::findDust(int x, int y) {
+	CvConnectedComp connect;
+	memset(&connect, 0, sizeof(CvConnectedComp));
+	
+	int width = diffImage->width;
+	int height = diffImage->height;
+	
+	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
+	u8 * growImageBuffer = (u8 *)growImage->imageData;
+	
+	
+	// Process a region growing 
+	tmGrowRegion( diffImageBuffer, growImageBuffer, 
+		diffImage->widthStep, diffImage->height, 
+		x, y, 
+		DIFF_THRESHVAL,
+		255,
+		&connect );
+	
+	if(g_debug_imgverbose > 1) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : found seed at %d,%d surf=%d  %d >? %d <? %d...\n", 
+				__func__, __LINE__, x, y, (int)connect.area,
+				m_dust_area_min, (int)connect.area, m_dust_area_max);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : => %d,%d+%dx%d...\n", 
+				__func__, __LINE__,
+				connect.rect.x,connect.rect.y,
+				connect.rect.width,
+					connect.rect.height);
+	}
+	
+	
+	
+	
+	if(connect.area >= m_dust_area_min &&
+	   connect.area < m_dust_area_max)
+	{
+		// There a seed here !!!
+		m_seed_x = x+1;
+		m_seed_y = y;
+		
+		int connect_area = (int)connect.area;
+		
+		/** Update stats */
+		m_dust_stats.nb_grown++;
+		if(connect_area<STATS_MAX_SURF) {
+			m_dust_stats.grown_size[connect_area]++;
+		}
+
+		
+		int connect_width = connect.rect.width;
+		int connect_height = connect.rect.height;
+		
+		// Crop area geometry
+		int crop_width = cropImage->width;
+		int crop_height = cropImage->height;
+		
+		int crop_x = connect.rect.x+connect.rect.width/2 - crop_width/2;
+		if(crop_x < 0) 		crop_x = 0;
+		if(crop_x + crop_width >= originalImage->width)
+			crop_x = originalImage->width - crop_width-1;
+		
+		int crop_y = connect.rect.y+connect.rect.height/2 - crop_height/2;
+		if(crop_y < 0) 		crop_y = 0;
+		if(crop_y + crop_height >= originalImage->height)
+			crop_y = originalImage->height - crop_height-1;
+		
+		// Real position of dust in cropped image
+		int crop_center_x = x - crop_x;
+		int crop_center_y = y - crop_y;
+		
+		if(g_debug_imgverbose > 1)
+			fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d => %d,%d in cropped image...\n", 
+				__func__, __LINE__,
+				connect.rect.x,connect.rect.y,
+				connect.rect.width, connect.rect.height,
+				crop_center_x, crop_center_y
+				);
+
+
+		// ------- Cropped images are used to lower the memory needs / and for GUI display of correction proposals
+		// Re-greow region in cropped image
+		tmCropImage(diffImage, cropImage, 
+					crop_x, crop_y);
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "a-diffImage" IMG_EXTENSION, 
+						cropImage);
+		}
+		
+		// clear grow buffer
+		memset(correctImage->imageData, 0, 
+			correctImage->widthStep * correctImage->height);
+		
+		// Grow again region in cropped image
+		CvConnectedComp crop_connect;
+		tmGrowRegion(
+			(u8 *)cropImage->imageData, 
+			(u8 *)correctImage->imageData, 
+			cropImage->widthStep, cropImage->height, 
+			crop_center_x, crop_center_y, 
+			DIFF_THRESHVAL,
+			255,
+			&crop_connect);
+		
+		
+		if(crop_connect.area >= m_dust_area_min &&
+		   crop_connect.area < m_dust_area_max)
+		{
+			/* LOW LEVEL DEBUG ONLY : WHEN NOT COMENTED, IT DESTROY THE INPUT IMAGE !! 
+			if(g_debug_savetmp)
+			{
+				cvRectangle(grayImage, 
+						cvPoint(connect.rect.x-connect.rect.width,
+							connect.rect.y-connect.rect.height), 
+						cvPoint(connect.rect.x+connect.rect.width,
+							connect.rect.y+connect.rect.height),
+						cvScalarAll(0), 1);
+				tmCropImage(grayImage, cropImage, 
+						connect.rect.x+connect.rect.width/2,
+						connect.rect.y+connect.rect.height/2);
+			
+				tmSaveImage(TMP_DIRECTORY "cropImage" IMG_EXTENSION, cropImage);
+			}*/
+			
+			
+			
+			
+			// Check if copy is not along a contour
+			//int dx = abs(copy_src_x - copy_dest_x);
+			//int dy = abs(copy_src_y - copy_dest_y);
+			//if(dx < dy) // Check if we are not copying while following a border
+			//	cvSobel(correctImage, sobelImage, 1, 0, 5);
+			//else
+			//	cvSobel(correctImage, sobelImage, 0, 1, 5);
+			
+			tmCropImage(grayImage, 
+				cropImage, 
+				crop_x, crop_y);
+			
+			
+			/*
+			// Use absolute value of Sobel
+			cvSobel(cropImage, sobelImage, 1, 0, 5);
+			cvConvertScaleAbs(sobelImage, tmpCropImage, 0.25, 0);
+			cvSobel(cropImage, sobelImage, 0, 1, 5);
+			cvConvertScaleAbs(sobelImage, dilateImage, 0.25, 0);
+			
+			// Compare direction of contour at detected dust center
+			u8 val_horiz = *(u8 *)(tmpCropImage->imageData +
+					(int)(crop_connect.rect.y+crop_connect.rect.height/2) * tmpCropImage->widthStep
+					+ (int)(crop_connect.rect.x+crop_connect.rect.width/2));
+			u8 val_vert = *(u8 *)(dilateImage->imageData +
+					(int)(crop_connect.rect.y+crop_connect.rect.height/2) * dilateImage->widthStep
+					+ (int)(crop_connect.rect.x+crop_connect.rect.width/2));
+			
+			fprintf(stderr, "TmImgProc::%s:%d : %d,%d %dx%d => horiz=%d vert=%d\n",
+					__func__, __LINE__,
+					x,y,
+					(int)crop_connect.rect.width, (int)crop_connect.rect.height,
+					val_horiz, val_vert);
+			u8 * sobelImageBuffer = NULL;
+			if(val_vert > val_horiz)
+				sobelImageBuffer = (u8 *)dilateImage->imageData;
+			else
+				sobelImageBuffer = (u8 *)tmpCropImage->imageData;
+			*/
+			
+			
+			
+			// => this dilated image will be used as mask for correlation search
+			// but we have to fill the center of the dust 
+			//	A full circle will only give us a empty circle : O
+			unsigned char * dilateImageBuffer = (unsigned char *)dilateImage->imageData;
+			unsigned char * correctImageBuffer = (unsigned char *)correctImage->imageData;
+			
+			// Crop median image
+			tmCropImage(medianImage, 
+				tmpCropImage, 
+				crop_x, crop_y);
+			// Do a dilatation around the grown 
+			tmDilateImage(correctImage, dilateImage);
+			
+			
+			int r,c, histoDiff[512];
+			memset(histoDiff, 0, 512*sizeof(int));
+			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
+				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
+				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width;
+						c++,crop_pos++) {
+					if(dilateImageBuffer[crop_pos]) {
+						// Difference between image and median
+						//int dif = (int)correctImageBuffer[crop_pos]-(int)tmpCropImageBuffer[crop_pos];
+						histoDiff[ (int)correctImageBuffer[crop_pos] ]++;
+					}
+				}
+			}
+			
+			int min_dif = 255;
+			int max_dif = -255;
+			for(int h=0; h<256; h++) 
+				if(histoDiff[h])
+				{
+					if(h<min_dif) min_dif=h;
+					if(h>max_dif) max_dif=h;
+				}
+			
+			//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
+			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
+				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
+				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width; c++,crop_pos++) {
+					if(correctImageBuffer[crop_pos]>=min_dif
+						&& correctImageBuffer[crop_pos]<=max_dif) {
+						dilateImageBuffer[crop_pos] = 255;
+					}
+				}
+			}
+			
+			
+			
+			// Process search around the dust in original image
+			// Use center x,y - width,height
+			connect_width = crop_connect.rect.width;
+			connect_height = crop_connect.rect.height;
+			int connect_center_x = crop_connect.rect.x + connect_width/2;
+			int connect_center_y = crop_connect.rect.y + connect_height/2;
+			
+			while(connect_width < 5 
+				&& (connect_center_x+connect_width)<crop_width-3) {
+				connect_width += 2;
+			}
+			while(connect_height < 5 
+				&& (connect_center_y+connect_height)<crop_height-3) {
+				connect_height += 2;
+			}
+			
+			int copy_dest_x, copy_dest_y,
+				copy_src_x, copy_src_y,
+				copy_width, copy_height;
+			int best_correl = 10000;
+			
+			
+			// Crop original image
+			switch(m_FilmType) {
+			default:
+			case FILM_POSITIVE:
+				tmCropImage(originalImage, 
+						correctColorImage, 
+						crop_x, crop_y);
+				break;
+			case FILM_UNDEFINED:
+			case FILM_NEGATIVE:
+				if(origBlurredImage) 
+					tmCropImage(origBlurredImage, 
+						correctColorImage, 
+						crop_x, crop_y);
+				else
+					tmCropImage(originalImage, 
+						correctColorImage, 
+						crop_x, crop_y);
+				break;
+			}
+			
+			// Find best proposal in originalImage
+			int ret = tmSearchBestCorrelation(
+				correctColorImage, dilateImage, 
+				connect_center_x, connect_center_y,
+				connect_width, connect_height, 
+				&copy_dest_x, &copy_dest_y,
+				&copy_src_x, &copy_src_y,
+				&copy_width, &copy_height,
+				&best_correl);
+			
+			if(ret>0) {
+				m_lastDustComp = connect; 
+				u8 return_now = 1;
+				
+				/** Update stats */
+				m_dust_stats.nb_grown_replaced++;
+				if(connect_area<STATS_MAX_SURF) {
+					m_dust_stats.grown_size_replaced[connect_area]++;
+				}
+				
+				// If the source and the destination are in the same extended grown region,
+				
+				// Re-greow region in cropped image
+				tmCropImage(diffImage, cropImage, 
+							crop_x, crop_y);
+				// clear grow buffer
+				memset(correctImage->imageData, 0, 
+					correctImage->widthStep * correctImage->height);
+				
+				// Grow again region in cropped image
+				CvConnectedComp ext_connect;
+				tmGrowRegion(
+					(u8 *)cropImage->imageData, 
+					(u8 *)correctImage->imageData, 
+					cropImage->widthStep, cropImage->height, 
+					crop_center_x, crop_center_y, 
+					DIFF_CONTOUR,
+					42, // The answer of Life, God, and 
+					&ext_connect);
+				
+				float src_failure = tmNonZeroRatio(correctImage,
+						copy_src_x, copy_src_y,
+						copy_width, copy_height,
+						copy_width,copy_height,0,0,// Exclusion ROI
+						42);
+				if(src_failure) {
+					
+					//fprintf(stderr, "")
+					return_now = 0;
+				}
+				
+				// Store correction in full image buffer
+				m_correct.dest_x = crop_x + copy_dest_x;
+				m_correct.dest_y = crop_y + copy_dest_y;
+				m_correct.copy_width = copy_width;
+				m_correct.copy_height = copy_height;
+				
+				// Relative storage
+				m_correct.crop_x = crop_x;
+				m_correct.crop_y = crop_y;
+				m_correct.rel_src_x = copy_src_x;
+				m_correct.rel_src_y = copy_src_y;
+				m_correct.rel_dest_x = copy_dest_x;
+				m_correct.rel_dest_y = copy_dest_y;
+				
+				// Update dest
+				m_correct.src_x = m_correct.crop_x + m_correct.rel_src_x;
+				m_correct.src_y = m_correct.crop_y + m_correct.rel_src_y;
+				m_correct.area = connect_area;
+				
+				// Fill size statistics
+				m_correct.area = (int)connect.area;
+				m_correct.width_mm = 25.4f * connect.rect.width / m_dpi;
+				m_correct.height_mm = 25.4f * connect.rect.height / m_dpi;
+				
+				
+				if(m_trust && return_now) {
+					// Check if correction area is in diff image
+					int left = tmmin(copy_src_x, copy_dest_x);
+					int right = tmmax(copy_src_x + copy_width, copy_dest_x + copy_width);
+					int top = tmmin(copy_src_y, copy_dest_y);
+					int bottom = tmmax(copy_src_y + copy_height, copy_dest_y + copy_height);
+					
+					float fill_failure = tmNonZeroRatio(diffImage,
+						crop_x + left, crop_y + top,
+						right - left, bottom - top,
+						crop_x + copy_dest_x, crop_y + copy_dest_y,
+						copy_width, copy_height
+						);
+					//	crop_x + left, crop_y + top,
+					//	right - left, bottom - top);
+					
+					//fprintf(stderr, "[imgproc] %s:%d : fill_failure=%g\n", 
+					//	__func__, __LINE__, fill_failure);
+					
+					// If we can trust the correction proposal, let's correct know !
+					if( best_correl < TRUST_CORREL_MAX
+						&& m_correct.area < TRUST_AREA_MAX
+						&& fill_failure == 0) {
+						
+						applyCorrection();
+						return_now = 0;
+					} 
+					
+				}
+				
+					
+				if(return_now) {
+					
+					//fprintf(stderr, "[imgproc] %s:%d : return 1\n", __func__, __LINE__);
+					return 1;
+				}
+			} else {
+				
+				// DEBUG FUNCTIONS
+				if(g_debug_imgverbose > 1) {
+					fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
+						"=> %d,%d in cropped image => no replace candidate (best=%d)...\n", 
+						__func__, __LINE__,
+						connect.rect.x,connect.rect.y,
+						connect.rect.width, connect.rect.height,
+						crop_center_x, crop_center_y, best_correl
+						);
+					if(g_debug_savetmp)
+					{
+						tmSaveImage(TMP_DIRECTORY "failed-dilateImage" IMG_EXTENSION,  
+								dilateImage);
+					}
+				}
+				
+				// Mark failure on displayImage
+				if(g_debug_imgoutput && displayImage) {
+					int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
+					int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
+					int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
+					int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
+					tmMarkFailureRegion(displayImage, 
+							disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
+				}
+				
+				if(g_debug_imgoutput) {
+
+					tmMarkFailureRegion(originalImage, 
+						crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
+						crop_connect.rect.width, crop_connect.rect.height, 120);
+					tmMarkFailureRegion(diffImage, 
+						crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
+						crop_connect.rect.width, crop_connect.rect.height, 120);
+				}
+				// END OF DEBUG FUNCTIONS
+				
+			}
+			
+			// DEBUG FUNCTIONS
+			if(g_option_stopoguess || g_debug_correlation) {
+				// Diff image for display in GUI
+				tmCropImage(diffImage, 
+						cropImage, 
+						crop_x, crop_y);
+				
+				tmCropImage(originalImage, cropColorImage, 
+						crop_x, crop_y);
+				return 1;
+			}
+			// END OF DEBUG FUNCTIONS
+			
+			// For debug, save image in temporary directory
+			//tmSaveImage(TMP_DIRECTORY "diffImageGrown.pgm", growImage);
+		} else {
+			if(g_debug_imgverbose > 1) {
+				fprintf(logfile, "TamanoirImgProc::%s:%d : dust regrow=> %d,%d+%dx%d "
+					"=> %d,%d in cropped image => PROBLEM : NOT FOUND WITH SAME THRESHOLD...\n", 
+					__func__, __LINE__,
+					crop_connect.rect.x, crop_connect.rect.y,
+					crop_connect.rect.width, crop_connect.rect.height,
+					crop_center_x, crop_center_y
+					);
+			}
+			
+			if(g_debug_imgoutput) {
+				tmMarkFailureRegion(originalImage, 
+					crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
+					crop_connect.rect.width, crop_connect.rect.height, 32);
+			}
+		}
+	}
+	
+	
 	return 0;
 }
 
@@ -1421,9 +1516,10 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
-	tmClearRegion(  diffImage, 
+	tmFillRegion(  diffImage, 
 			correction.dest_x, correction.dest_y,
-			correction.copy_width, correction.copy_height);
+			correction.copy_width, correction.copy_height,
+			DIFF_NEUTRALIZE);
 	
 	
 	if(displayImage) {
