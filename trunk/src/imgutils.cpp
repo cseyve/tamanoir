@@ -182,7 +182,8 @@ void tmMarkFailureRegion(IplImage * origImage,
 
 /** Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
-                int exclu_x, int exclu_y, int exclu_w, int exclu_h) {
+                int exclu_x, int exclu_y, int exclu_w, int exclu_h,
+                u8 threshval) {
 	int nbpixnon0 = 0;
 	
 	int orig_width = origImage->width;
@@ -204,7 +205,7 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
 		for(int x=orig_x; x<orig_x+w; x++, pos++) {
                         if( (x<exclu_x || x >exclu_x+exclu_w)
                             && (y<exclu_y || y >exclu_y+exclu_h))
-                        	if( origBuffer[pos] == 127)
+                        	if( origBuffer[pos] >= threshval)
                         		nbpixnon0++;
 		}
 	}
@@ -212,12 +213,14 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
 	return (float)nbpixnon0 / ((float)(w*h));
 }
 
+
 /*
- * Clear copy rectangle -> orig rectangle
+ * Fill a rectangle with a given color -> orig rectangle
  */
-void tmClearRegion(IplImage * origImage, 
+void tmFillRegion(IplImage * origImage, 
 	int dest_x, int dest_y,
-	int copy_width, int copy_height)
+	int copy_width, int copy_height,
+        u8 fillValue)
 {
 
 	int orig_width = origImage->width;
@@ -255,7 +258,7 @@ void tmClearRegion(IplImage * origImage,
 	// Raw clear
         for(int y=0; y<copy_height; y++, dest_y++) {
                 memset(origImageBuffer + dest_y * pitch + dest_x*byte_depth, 
-                        255, 
+                        fillValue, 
                         copylength);
         }
 }
@@ -412,12 +415,16 @@ void tmCropImage(IplImage * origImage,
 	int crop_width = cropImage->width;
 	int crop_height = cropImage->height;
 
+	memset(cropImage->imageData, 0,  cropImage->widthStep * cropImage->height);
+
 	// FIXME : test size and depth
 	int xleft = tmmax(0, crop_x);
 	int ytop = tmmax(0, crop_y);
 	int xright = tmmin(orig_width, crop_x + crop_width);
 	int ybottom = tmmin(orig_height, crop_y + crop_height);
-	
+
+	if(xleft >= xright) return;
+	if(ytop >= ybottom) return;
 	
 	// Copy buffer
 	int byte_depth = tmByteDepth(origImage);
@@ -521,6 +528,7 @@ void tmCropImage(IplImage * origImage,
 		}
 	} else {
 		int copywidth = (xright - xleft)*byte_depth;
+		if(copywidth < 0) return;
 		int xmin_x_depth = xleft * byte_depth;
 		
 		u8 * cropImageBuffer = (u8 *)cropImage->imageData;
@@ -1049,7 +1057,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	int growYMin = r;
 	int growYMax = r;
 	
-	if(growIn[c+r * swidth]<=threshold)
+	if(growIn[c+r * swidth] < threshold)
 		return;
 	
 	while(pile_sp != -1)
@@ -1063,7 +1071,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 		if(x<=cmax) {
 			while( growOut[x+row]==0 && 
-				growIn[x+row]>threshold && x<cmax) {
+				growIn[x+row]>=threshold && x<cmax) {
 				x++;
 			}
 			xf = x-1;
@@ -1076,7 +1084,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 		if(x>cmin) {
 			while( growOut[x+row]==0 &&
-				growIn[x+row]>threshold && x>cmin) {
+				growIn[x+row]>=threshold && x>cmin) {
 				x--;
 			}
 			xi = x+1;
@@ -1109,9 +1117,9 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 			int row2 = row + swidth;
 
 			while(x>=xi-1) {
-				while( (growOut[x+row2]>0 || growIn[x+row2]<=threshold) 
+				while( (growOut[x+row2]>0 || growIn[x+row2]<threshold) 
 						&& (x>=xi-1)) 	x--; // 8-connexity
-				if( (x>=xi-1) && growOut[x+row2]==0 && growIn[x+row2]>threshold) {
+				if( (x>=xi-1) && growOut[x+row2]==0 && growIn[x+row2]>=threshold) {
 					if(pile_sp < spmax-1)
 					{
 						pile_sp++;
@@ -1119,7 +1127,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 						pile_y[pile_sp] = y+1;
 					}
 				}
-				while( growOut[x+row2]==0 && growIn[x+row2]>threshold && (x>=xi-1)) // 8-con
+				while( growOut[x+row2]==0 && growIn[x+row2]>=threshold && (x>=xi-1)) // 8-con
 					x--;
 			}
 		}
@@ -1134,9 +1142,9 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 			int row3 = row - swidth;
 		
 			while(x>xi) { // 8-con
-				while( (growOut[x+row3]>0 || growIn[x+row3]<=threshold) 
+				while( (growOut[x+row3]>0 || growIn[x+row3]<threshold) 
 						&& (x>=xi-1)) x--;
-				if( (x>=xi-1) && growOut[x+row3]==0 && (growIn[x+row3]>threshold)) {
+				if( (x>=xi-1) && growOut[x+row3]==0 && (growIn[x+row3]>=threshold)) {
 					if(pile_sp < spmax-1)
 					{
 						pile_sp++;
@@ -1145,7 +1153,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 					}
 				}
 
-				while( growOut[x+row3]==0 && (growIn[x+row3]>threshold) 
+				while( growOut[x+row3]==0 && (growIn[x+row3]>=threshold) 
 						&& (x>=xi-1)) // 8-con
 					x--;
 			}

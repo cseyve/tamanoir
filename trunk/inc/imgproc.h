@@ -243,6 +243,7 @@ private:
 	IplImage * cropImage;
 	IplImage * tmpCropImage;
 	IplImage * correctImage;
+	IplImage * sobelImage;
 
 	IplImage * cropColorImage;
 	IplImage * correctColorImage;
@@ -259,6 +260,13 @@ private:
 	
 	int m_seed_x;
 	int m_seed_y;
+	
+	/** @brief Find a dust from (x, y) seed
+		@return 1 if must return now
+	*/
+	int findDust(int x, int y);
+	
+	
 	u8 m_threshold;
 	int m_smooth_size; // For smoothed processed images
 	
