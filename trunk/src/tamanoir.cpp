@@ -198,6 +198,7 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		current_dust.crop_y = (int)roundf(e->pos().y() * scale) - (cropImage->height +1)/ 2;
 		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
 		current_dust.rel_src_y = current_dust.rel_dest_y = cropImage->height / 2;
+		current_dust.rel_dest_y += 20;
 		current_dust.copy_width = current_dust.copy_height = 16;
 		current_dust.area = 1;
 		
@@ -206,6 +207,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		updateDisplay();
 	}
 }
+
+
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
@@ -359,7 +362,7 @@ void TamanoirApp::loadFile(QString s) {
 void TamanoirApp::lockTools(bool lock) {
 	ui.toolFrame->setDisabled(lock);
 	//ui.loadButton->setEnabled(lock);
-	//ui.saveButton->setEnabled(lock);
+	ui.saveButton->setDisabled(lock);
 }
 
 /****************************** Button slots ******************************/
@@ -541,6 +544,18 @@ void TamanoirApp::on_prevButton_clicked() {
 	updateDisplay();
 }
 void TamanoirApp::on_rewindButton_clicked() {
+	
+	int ret = QMessageBox::warning(this, tr("Tamanoir"),
+			tr("Rewind to first dust will make the application ask you "
+			"another time to refuse the dusts you have already seen.\n"
+			"Do you want to rewind to first dust?"),
+			QMessageBox::Apply, 
+			QMessageBox::Cancel);
+
+	if(ret == QMessageBox::Cancel)
+		return;
+	
+	
 	memset(&current_dust, 0, sizeof(t_correction));
 	if(m_pImgProc)
 		m_pImgProc->firstDust();
@@ -590,6 +605,7 @@ void TamanoirApp::on_skipButton_clicked()
 				updateDisplay();
 			} else {
 				refreshTimer.start(250);
+				lockTools(true);
 			}
 		} else 
 			updateDisplay();
@@ -1057,7 +1073,7 @@ TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	m_pImgProc = p_pImgProc;
 	
 	req_command = current_command = PROTH_NOTHING;
-	
+	no_more_dusts = false;
 	m_run = m_running = false;
 	
 	start();
@@ -1092,7 +1108,7 @@ int TamanoirThread::setOptions(tm_options options) {
 
 int TamanoirThread::loadFile(QString s) {
 	m_filename = s;
-	
+	no_more_dusts = false;
 	if(!m_run) {
 		start();
 		// Wait for thread to start
@@ -1227,7 +1243,7 @@ void TamanoirThread::run() {
 	m_running = true;
 	m_run = true;
 	
-	bool no_more_dusts = false;
+	no_more_dusts = false;
 	while(m_run) {
 		mutex.lock();
 		waitCond.wait(&mutex, 100);

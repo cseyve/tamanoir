@@ -116,7 +116,7 @@ private:
 	/** List of proposed corrections */
 	QList<t_correction> dust_list;
 	
-	
+	bool no_more_dusts;
 	
 };
 
