@@ -57,7 +57,9 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Dust_and_correctio
 
 There are 3 kind of actions :
   * *Skip button:* make the process to go to next detected dust *without applying the correction* on original image. The user refuses the proposed correction.
-  * *Apply button:* applies the proposed correction then goes to next dust.
+  * *Apply button:* apply the proposed correction then goes to next dust.
+  * *Back button "<":* go back one dust which has been skipped. It's usefull when we skip many dusts very fast, and skip by error a good proposal.
+  * *Rewind button:* restart dust detection from top-left of image. You will have to refuse all the dusts you have already cancelled.   
   * *Auto button:* process all the image fast. It only correct trivial dust, like in _"Trust mode"_.
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Action_buttons.png
