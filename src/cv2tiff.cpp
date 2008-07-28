@@ -101,7 +101,9 @@ int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compressionarg)
 	uint32  rowsperstrip = (uint32) -1;
 	uint16	photometric = PHOTOMETRIC_MINISBLACK;
 	uint16	config = PLANARCONFIG_CONTIG;
-	uint16	fillorder = FILLORDER_LSB2MSB;
+	//uint16	fillorder = FILLORDER_LSB2MSB; => With this setting, problem when opening files in Adobe Lightroom
+							// Though other software don't mind (Xee, Apercu, GQView...)
+	uint16	fillorder = FILLORDER_MSB2LSB;
 	TIFF	*out;
 
 	uint32 row, col, band;

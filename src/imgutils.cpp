@@ -146,7 +146,7 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 	IplConvKernel *elt = createStructElt();
 
 	// perform open
-    cvMorphologyEx (src, dst, tmp, elt,
+        cvMorphologyEx (src, dst, tmp, elt,
 		CV_MOP_OPEN,
 		iterations);
 
@@ -158,7 +158,7 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 	IplConvKernel *elt = createStructElt();
 
 	// perform open
-    cvMorphologyEx (src, dst, tmp, elt,
+        cvMorphologyEx (src, dst, tmp, elt,
 		CV_MOP_CLOSE,
 		iterations);
 
@@ -230,13 +230,13 @@ void tmFillRegion(IplImage * origImage,
 	if(dest_y<0) { dest_y = 0; }
 	
 	// Clip destination
-        if(dest_x + copy_width > orig_width)
+        if(dest_x + copy_width >= orig_width)
                 copy_width = orig_width - dest_x;
         
 	if(copy_width <= 0)
 		return;
 	
-        if(dest_y + copy_height > orig_height)
+        if(dest_y + copy_height >= orig_height)
                 copy_height = orig_height - dest_y;
         
 	if(copy_height <= 0)
@@ -420,8 +420,8 @@ void tmCropImage(IplImage * origImage,
 	// FIXME : test size and depth
 	int xleft = tmmax(0, crop_x);
 	int ytop = tmmax(0, crop_y);
-	int xright = tmmin(orig_width, crop_x + crop_width);
-	int ybottom = tmmin(orig_height, crop_y + crop_height);
+	int xright = tmmin(orig_width, xleft + crop_width);
+	int ybottom = tmmin(orig_height, ytop + crop_height);
 
 	if(xleft >= xright) return;
 	if(ytop >= ybottom) return;
