@@ -9,6 +9,8 @@ INCLUDEPATH += . inc ui
 
 DEFINES += QT3_SUPPORT
 
+TRANSLATIONS = tamanoir_fr.ts
+
 #icon
 RC_FILE = icon/Tamanoir.icns
 
