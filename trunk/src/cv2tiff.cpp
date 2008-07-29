@@ -215,9 +215,9 @@ int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compressionarg)
        hdr_size = 0;
        
 	if (guessSize(img->imageData, img->widthStep * img->height,
-		dtype, hdr_size, nbands, swab, &width, &length) < 0)
+		dtype, hdr_size, nbands, swab, &width, &length) < 0) {
 		return 1;
-
+	}
 fprintf(stderr, "[%s] %s:%d :dtype=%d, hdr_size=%d, nbands=%d, swab=%d, width=%d, length=%d\n",
 	__FILE__, __func__, __LINE__, 
 	dtype, (int)hdr_size, nbands, swab, width, length);
@@ -377,7 +377,7 @@ swapBytesInScanline(void *buf, uint32 width, TIFFDataType dtype)
 
 static int
 guessSize(char * buffer, long buffer_size, 
-	TIFFDataType dtype, off_t hdr_size, uint32 nbands,
+	TIFFDataType dtype, off_t /*hdr_size*/, uint32 nbands,
 	  int swab, uint32 *width, uint32 *length)
 {
 	const float longt = 40.0;    /* maximum possible height/width ratio */

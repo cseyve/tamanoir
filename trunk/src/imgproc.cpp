@@ -843,9 +843,6 @@ int TamanoirImgProc::findDust(int x, int y) {
 	CvConnectedComp connect;
 	memset(&connect, 0, sizeof(CvConnectedComp));
 	
-	int width = diffImage->width;
-	int height = diffImage->height;
-	
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
 	

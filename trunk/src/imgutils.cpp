@@ -1159,7 +1159,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 			}
 		}
 	}
-
+	
 	// conclusion
 	areaOut->rect.x = growXMin;
 	areaOut->rect.y = growYMin;
@@ -1184,7 +1184,15 @@ void tmSaveImage(const char * filename, IplImage * src) {
 			//"lzw" //"packbits"
 			//"zip" //"lzw"
 							);
-		return;
+		if(ret != 0) {
+			fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
+				"file '%s' for writing !\n",
+				__func__, __LINE__, filename);
+		}
+		else {
+			// Ok, we can return now
+			return;
+		}
 	}
 #endif
 	
