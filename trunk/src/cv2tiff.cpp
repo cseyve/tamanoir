@@ -101,9 +101,12 @@ int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compressionarg)
 	uint32  rowsperstrip = (uint32) -1;
 	uint16	photometric = PHOTOMETRIC_MINISBLACK;
 	uint16	config = PLANARCONFIG_CONTIG;
-	//uint16	fillorder = FILLORDER_LSB2MSB; => With this setting, problem when opening files in Adobe Lightroom
+	uint16	fillorder = FILLORDER_LSB2MSB; // => With this setting, problem when opening files in Adobe Lightroom
 							// Though other software don't mind (Xee, Apercu, GQView...)
-	uint16	fillorder = FILLORDER_MSB2LSB;
+	
+	if(img->depth == IPL_DEPTH_16U)
+		fillorder = FILLORDER_MSB2LSB; // also bad : RGB -> BGR with lightroom
+
 	TIFF	*out;
 
 	uint32 row, col, band;
@@ -228,6 +231,7 @@ fprintf(stderr, "[%s] %s:%d :dtype=%d, hdr_size=%d, nbands=%d, swab=%d, width=%d
 			__FILE__, __func__, __LINE__, outfilename);
 		return (-1);
 	}
+	
 	TIFFSetField(out, TIFFTAG_IMAGEWIDTH, width);
 	TIFFSetField(out, TIFFTAG_IMAGELENGTH, length);
 	TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
@@ -334,6 +338,14 @@ fprintf(stderr, "[%s] %s:%d :rowsperstrip=%d, bufsize=%d, linebytes=%d, nbands=%
 			memcpy(buf1, buffer + row*img->widthStep, bufsize);
 			if (swab)		/* Swap bytes if needed */
 				swapBytesInScanline(buf1, width, dtype);
+			/* else if(img->nChannels == 3 ) {
+				unsigned short * ushortbuf = (unsigned short *)buf1;
+				for(int col=0; col<width; col++, ushortbuf+=3) {
+					unsigned short tmp = ushortbuf[0];
+					ushortbuf[0] = ushortbuf[2];
+					ushortbuf[2] = tmp;
+				}
+			}*/
 			break;
 		}
 				

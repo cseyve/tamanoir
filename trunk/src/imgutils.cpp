@@ -1177,23 +1177,24 @@ extern int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compress
 void tmSaveImage(const char * filename, IplImage * src) {
 #ifdef HAVE_LIBTIFF
 	// If image format if TIFF, save it with libtiff
-	if(strstr(filename, "tif") || strstr(filename, "TIF") ) {
-		int ret = saveIplImageAsTIFF(src, (char *)filename,
-			// compression in none, packbits,jpeg,lzw,zip
-						  "none" 
-			//"lzw" //"packbits"
-			//"zip" //"lzw"
-							);
-		if(ret != 0) {
-			fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
-				"file '%s' for writing !\n",
-				__func__, __LINE__, filename);
-		}
-		else {
-			// Ok, we can return now
-			return;
-		}
-	}
+        if(src->depth != IPL_DEPTH_8U)
+                if(strstr(filename, ".tif") || strstr(filename, ".TIF") ) {
+                        int ret = saveIplImageAsTIFF(src, (char *)filename,
+                                // compression in none, packbits,jpeg,lzw,zip
+                                                          "none" 
+                                //"lzw" //"packbits"
+                                //"zip" //"lzw"
+                                                                );
+        		if(ret != 0) {
+        			fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
+        				"file '%s' for writing !\n",
+        				__func__, __LINE__, filename);
+        		}
+        		else {
+        			// Ok, we can return now
+        			return;
+        		}
+        	}
 #endif
 	
 	// If image format if PNM, save it with our own source code, else use OpenCV>hugigui function
