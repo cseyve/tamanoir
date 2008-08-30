@@ -111,3 +111,12 @@ Then build :
 make
 ./Tamanoir
 }}}
+
+=Debian package=
+
+Tamanoir use the "native Debian packagin" model, where the debian/ foler and its control files are maintained in the upstream repository. Instructions to build a Debian package should work on any Debian-based distribution (Ubuntu for instance):
+{{{
+$ svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
+$ cd tamanoir
+$ dpkg-buildpackage -uc -us -rfakeroot
+}}}
