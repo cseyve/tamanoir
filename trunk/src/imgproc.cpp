@@ -296,7 +296,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	
 	
-	#ifdef CV_LOAD_IMAGE_GRAYSCALE
+	#ifdef TOTOCV_LOAD_IMAGE_GRAYSCALE
 	fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n", 
 		__func__, __LINE__);
 	if(originalImage->depth != IPL_DEPTH_8U) {
@@ -341,7 +341,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	float variance = 0.f, diff_mean = 0.f;
 	int uniform = findUniform(&diff_mean, &variance);
 	if(uniform >= 0) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection : %d => diff=%g, var=%g\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => diff=%g, var=%g\n",
 			__func__, __LINE__, diff_mean, variance);
 	}
 	
@@ -624,6 +624,7 @@ int TamanoirImgProc::preProcessImage() {
 	setResolution(m_dpi);
 	
 	m_progress = 100;
+	
 	return 0;
 }
 /*
