@@ -155,6 +155,9 @@ void TamanoirImgProc::purge() {
 	
 }
 
+
+
+
 void TamanoirImgProc::setDisplaySize(int w, int h) {
 	if(!medianImage) {
 		displaySize = cvSize(w, h);
@@ -179,7 +182,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	else
 		scaled_width = scaled_height * grayImage->width / grayImage->height;
 	
-
+	
 	// Use only size with 4xN dimensions
 	while(scaled_width % 4) { scaled_width--; }
 	while(scaled_height % 4) { scaled_height--; }
@@ -301,7 +304,6 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		m_progress = 20;
 		grayImage = tmAddBorder4x(grayImage);
 		m_progress = 25;
-
 	}
 	else
 	#endif
@@ -336,6 +338,13 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	m_lock = false;
 	
+	float variance = 0.f, diff_mean = 0.f;
+	int uniform = findUniform(&diff_mean, &variance);
+	if(uniform >= 0) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection : %d => diff=%g, var=%g\n",
+			__func__, __LINE__, diff_mean, variance);
+	}
+	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
 		__func__, __LINE__);
 	preProcessImage();
@@ -343,36 +352,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	return 0;
 }
 
-
-
-int TamanoirImgProc::saveFile(const char * filename) {
-	int retry = 0;
-	while(retry < 10 && m_lock) {
-		sleep(1); retry++;
-		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
-	}
-	if(m_lock)
-		return -1;
-	
-	m_lock = true;
-	fprintf(logfile, "TamanoirImgProc::%s:%d : saving '%s'...\n", 
-		__func__, __LINE__, filename);
-
-		// Save for debug
-		if(g_debug_savetmp) {
-			tmSaveImage(TMP_DIRECTORY "growImage_final" IMG_EXTENSION, growImage);
-			tmSaveImage(TMP_DIRECTORY "diffImage_final" IMG_EXTENSION, diffImage);
-		}
-
-	if(originalImage) {
-		tmSaveImage(filename, originalImage);
-		m_lock = false;
-		return 0;
-	}
-	m_lock = false;
-	return -1;
-}
-
+/*
+ * IMAGE PRE-PROCESSING => DUST DETECTION MAP
+ */
 int TamanoirImgProc::preProcessImage() {
 	
 	int retry = 0;
@@ -388,18 +370,13 @@ int TamanoirImgProc::preProcessImage() {
 	
 	memset(&m_last_correction, 0, sizeof(t_correction));
 	memset(&m_correct, 0, sizeof(t_correction));
-	m_seed_x = m_seed_y = 0;
+	m_seed_x = m_seed_y = 0; // Reset search position
 	
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
 	
-		// For debug, save image in temporary directory
-		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayimage" IMG_EXTENSION, grayImage);
-	
-	
-	
-	// Gaussian image
-	if(!medianImage)
+	// Blurred grayscaled image (Gaussian blur) 
+	if(!medianImage) 
 		medianImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	
@@ -434,21 +411,27 @@ int TamanoirImgProc::preProcessImage() {
 			origBlurredImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
 				originalImage->depth, originalImage->nChannels);
 			
+			int orig_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
+
 			// First, blur the color image
 			cvSmooth( originalImage, origBlurredImage,
 				CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-				9, 9); //int param1=3, int param2=0 );
+				orig_smooth_size, orig_smooth_size); //int param1=3, int param2=0 );
 					 // FIXME : adapt size to resolution
 		}
 		m_progress = 35;
 		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image...\n", 
+		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image (Open)...\n", 
 			__func__, __LINE__);
+		int open_iter = m_dpi / 2400;
+		if(open_iter < 1) open_iter = 1;
+		
 		tmOpenImage(
 			grayImage,  // => src 
 			medianImage, // => dest
 			diffImage, // => tmp
-			1);
+			open_iter);
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image OK\n", 
 			__func__, __LINE__);
 		break;
@@ -457,7 +440,10 @@ int TamanoirImgProc::preProcessImage() {
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
 	
 	m_progress = 40;
-		
+	
+	
+	
+	// ********* DIFFERENCE BETWEEN ORIGINAL AND BLURRED ****************
 	fprintf(logfile, "TamanoirImgProc::%s:%d : difference processing image...\n", 
 		__func__, __LINE__);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
@@ -485,24 +471,26 @@ int TamanoirImgProc::preProcessImage() {
 	}
 	if(cdgnb>0)
 		cdgH /= (double)cdgnb;
-
-	fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g\n",
-			__func__, __LINE__, cdgH);
-
 	m_threshold = (u8)roundf(cdgH * 2.0);
+	
+	fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g threshold=%d\n",
+			__func__, __LINE__, cdgH, (int)m_threshold);
+	
 	
 	m_progress = 45;
 	
-	// If image is really noisy, for example with B&W grain, pre-process a 3x3 blur filter
+	// If image is really noisy, for example with B&W grain (or High sensitivity films), pre-process a 3x3 blur filter
 	if( cdgH >= 3.0 ) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Process 3x3 blur filter on input image ...\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
 			__func__, __LINE__);
 		cvSmooth(grayImage, diffImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 			3, 3 );
 		m_progress = 50;
+
 		memcpy(grayImage->imageData, diffImage->imageData, 
 			diffImage->widthStep*diffImage->height);
+
 		unsigned long diffHisto2[256];
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
@@ -638,8 +626,113 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 100;
 	return 0;
 }
+/*
+ Epson 4990 :
+	N&B, 2400dpi, 400ISO: Tile 225,344 : diff_mean=2.24707 variance = 6.97754
+	Provia 100, 2400 dpi, Tile 284,186 : diff_mean=1.09766 variance = 2.06445
+	
+ 
+*/
 
+int TamanoirImgProc::findUniform(float  * p_diff_mean, float * p_variance) {
+	if(!grayImage) return -1;
+	
+	int tile_x, tile_y, tile_step = 32;
+	u8 * buffer = (u8 *)grayImage->imageData;
+	int pitch = grayImage->widthStep;
+	int width = grayImage->width;
+	int height = grayImage->height;
+	
+	for(tile_y = height/10; tile_y < height*9/10-tile_step*2; tile_y += tile_step ) {
+		
+		for(tile_x = width/10; tile_x < width*9/10-tile_step*2; tile_x += tile_step) {
+			int x, y;
+			int val_topleft = buffer[tile_y * pitch + tile_x];
+			long val_mean = 0;
+			bool resume = true;
+			// Get mean of pixel values
+			for(y=tile_y; y<tile_y+tile_step; y++) {
+				
+				for(x=tile_x; x<tile_x+tile_step; x++) {
+					int val = buffer[y * pitch + x];
+					if(abs(val - val_topleft) > 16) {
+						// Break
+						x = width;
+						y = height;
+						
+						resume = false;
+					}
+					
+					val_mean += val;
+				}
+			}
+			
+			// Get dispersion
+			if(resume) {
+				val_mean = (int)roundf((float)val_mean / (float)(tile_step * tile_step));
+				
+				long val_diff = 0;
+				long val_diff2 = 0;
+				// Get mean of pixel values
+				for(y=tile_y; y<tile_y+tile_step; y++) {
+					
+					for(x=tile_x; x<tile_x+tile_step; x++) {
+						int val = buffer[y * pitch + x];
+						
+						int diff = abs(val - val_mean);
+						val_diff += diff;
+						val_diff2 += diff * diff;
+					}
+				}
+				
+				float diff_mean = (float)val_diff / (float)(tile_step * tile_step);
+				float variance = (float)val_diff2 / (float)(tile_step * tile_step);
+				// If variance is low, choose this region
+				
+	//			fprintf(stderr, "Tile %d,%d : variance = %g", tile_x, tile_y, variance);
+				if(diff_mean < 4) {
+					fprintf(stderr, "Tile %d,%d : diff_mean=%g variance = %g\n", tile_x, tile_y, diff_mean, variance);
+					
+					if(diff_mean < 3) {
+						*p_diff_mean = diff_mean;
+						*p_variance = variance;
+						return 0;
+					}
+				}
+			}
+		}
+	}
+	
+	return -1;
+}
 
+int TamanoirImgProc::saveFile(const char * filename) {
+	int retry = 0;
+	while(retry < 10 && m_lock) {
+		sleep(1); retry++;
+		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+	}
+	if(m_lock)
+		return -1;
+	
+	m_lock = true;
+	fprintf(logfile, "TamanoirImgProc::%s:%d : saving '%s'...\n", 
+		__func__, __LINE__, filename);
+
+		// Save for debug
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "growImage_final" IMG_EXTENSION, growImage);
+			tmSaveImage(TMP_DIRECTORY "diffImage_final" IMG_EXTENSION, diffImage);
+		}
+
+	if(originalImage) {
+		tmSaveImage(filename, originalImage);
+		m_lock = false;
+		return 0;
+	}
+	m_lock = false;
+	return -1;
+}
 
 
 
@@ -975,7 +1068,7 @@ int TamanoirImgProc::findDust(int x, int y) {
 				crop_x, crop_y);
 			
 			
-			/*
+			/* TRY TO DETECT COPY FROM PATTERNS WITH CONTOUR DETECTION
 			// Use absolute value of Sobel
 			cvSobel(cropImage, sobelImage, 1, 0, 5);
 			cvConvertScaleAbs(sobelImage, tmpCropImage, 0.25, 0);

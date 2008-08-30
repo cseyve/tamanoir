@@ -211,6 +211,11 @@ private:
 	/** Last correct area size */
 	int m_correct_area;
 	
+	/** @brief Find an uniform place in image (x, y) to perform grain qualification
+		@return -1 if error, 0 if found
+	*/
+	int findUniform(float  * p_diff_mean, float * p_variance);
+	
 	
 	/** Perform image processing */
 	int processImage();

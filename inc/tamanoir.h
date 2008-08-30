@@ -168,6 +168,11 @@ private:
 	QTimer refreshTimer;
 	int m_curCommand;
 	t_correction current_dust;
+	
+	/** Dust src/dest deplacement tool button state */
+	bool is_src_selected;
+	Qt::MouseButton cropPixmapLabel_last_button;
+	
 signals:
 	
 private slots:
@@ -183,10 +188,12 @@ private slots:
 
 
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
-	
+	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 
 	void on_cropPixmapLabel_customContextMenuRequested(QPoint p);
 	void on_cropPixmapLabel_signalMousePressEvent(QMouseEvent *);
+	void on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent *);
+	void on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
 
 	void on_typeComboBox_currentIndexChanged(int);

@@ -35,14 +35,16 @@ public:
     QImageDisplay(QWidget * l_parent = NULL);
     
 private:
+    void mouseReleaseEvent(QMouseEvent * e);
     void mousePressEvent(QMouseEvent * e);
     void mouseMoveEvent(QMouseEvent * e);
-	void wheelEvent ( QWheelEvent * e );
+    void wheelEvent ( QWheelEvent * e );
 
 signals:
     void signalMousePressEvent(QMouseEvent * e);
+    void signalMouseReleaseEvent(QMouseEvent * e);
     void signalMouseMoveEvent(QMouseEvent * e);
-	void signalWheelEvent( QWheelEvent * e );
+    void signalWheelEvent( QWheelEvent * e );
 };
 
 #endif
