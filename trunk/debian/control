@@ -1,0 +1,17 @@
+Source: tamanoir
+Section: graphics
+Priority: extra
+Maintainer: Vincent Caron <vincent@zerodeux.net>
+Build-Depends: debhelper (>= 7), libpng-dev, libtiff-dev, libhighgui-dev, libqt4-dev
+Standards-Version: 3.7.3
+Homepage: http://code.google.com/p/tamanoir/
+
+Package: tamanoir
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: image processing tool to remove dust from picture scans
+ The aim of Tamanoir is to pre-process images with a simple and fast
+ user interface to remove most of the small dusts. It detects the
+ small objects on the picture, then tries to propose a correction by
+ cloning another part of image in the neighbour of the dust. The user
+ can skip or apply the correction.
