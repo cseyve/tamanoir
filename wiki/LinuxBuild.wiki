@@ -49,7 +49,7 @@ Compile and Install :
 
 Install a development version of OpenCV with your package manager, for example:
 {{{
-apt-get install highgui-dev
+apt-get install libhighgui-dev
 }}}
 
 === OpenCV *with* 16bit TIFF support ===
