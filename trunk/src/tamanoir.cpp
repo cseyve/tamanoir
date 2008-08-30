@@ -53,7 +53,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_pImgProc = NULL;
 	m_pProcThread = NULL;
 	force_mode = false;
-
+	cropPixmapLabel_last_button = Qt::NoButton;
+	is_src_selected = true;
 
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
@@ -104,7 +105,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			m_pProcThread->getCommand() != PROTH_NOTHING)
 			m_curCommand = m_pProcThread->getCommand();
 		
-		//if(g_debug_TmThread)
+		if(g_debug_TmThread)
 			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
 				m_curCommand, m_pProcThread->getCommand());
 		
@@ -164,6 +165,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 	}
 }
 
+void TamanoirApp::on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+	on_mainPixmapLabel_signalMousePressEvent(e);
+}
+
 void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	
@@ -208,37 +213,135 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	}
 }
 
+void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * e) {
+	
+	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	cropPixmapLabel_last_button = Qt::NoButton;
+}
 
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	
+	
 	if(e && m_pProcThread && m_pImgProc) {
 		
-		// First check if click is closer to src or dest
-		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
-		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
-		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
 		
-		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
-		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
-		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
-		
-		if(dist_src < dist_dest) {
-			// Move src
-			current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
-			current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
-		} else {
-			// Move dest
-			current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
-			current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+		switch(e->button()) {
+		case Qt::NoButton:
+			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
+			cropPixmapLabel_last_button = Qt::NoButton;
+			return;
+			break;
+		case Qt::LeftButton: {
+			// First check if click is closer to src or dest
+			int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
+			int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+			float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+			
+			int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
+			int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+			float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
+			if(tmmin(dist_src, dist_dest) < 50) {
+				if(dist_src < dist_dest) {
+					// Move src
+					is_src_selected = true;
+				} else {
+					// Move dest
+					is_src_selected = false;
+				}
+			}
+			cropPixmapLabel_last_button = e->button();
+			if(is_src_selected) {
+				// Move src
+				current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
+			} else {
+				// Move dest
+				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+			}
+			
+			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
+			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
+			m_pImgProc->setCopySrc(&current_dust,
+				center_x, center_y);
+			updateDisplay();
+			}
+			break;
+		case Qt::RightButton: { // Right is for destination
+			cropPixmapLabel_last_button = Qt::NoButton;
+			
+			// Check if the click is near the rectangle
+			int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
+					   abs(current_dust.rel_src_x - e->pos().x()));
+			int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
+					   abs(current_dust.rel_src_y - e->pos().y()));
+			if(dx<= 5 && dy <= 5) {
+				cropPixmapLabel_last_button = e->button();
+			}
+			} break;
+		default:
+			//fprintf(stderr, "TamanoirApp::%s:%d : Button = %d...\n", __func__, __LINE__,
+			//	(int)e->button());
+			
+			break;
 		}
+	}
+}
+
+
+void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+	
+	fprintf(stderr, "TamanoirApp::%s:%d : Button = %d / last=%d...\n", __func__, __LINE__,
+				(int)e->button(), (int)cropPixmapLabel_last_button);
+	if(e && m_pProcThread && m_pImgProc) {
 		
+		//if(e->button() == Qt::NoButton) return;
 		
-		int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
-		int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
-		m_pImgProc->setCopySrc(&current_dust,
-			center_x, center_y);
-		updateDisplay();
+		switch(cropPixmapLabel_last_button) {
+		default:
+		case Qt::NoButton:
+			break;
+		case Qt::LeftButton:
+			{
+			if(is_src_selected) {
+				// Move src
+				current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
+			} else {
+				// Move dest
+				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+			}
+			
+			
+			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
+			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
+			m_pImgProc->setCopySrc(&current_dust,
+				center_x, center_y);
+			updateDisplay();
+			}break;
+		case Qt::RightButton: { // Resize rectangle
+			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
+			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
+			
+			
+			int dest_x = current_dust.rel_dest_x + (current_dust.copy_width+1)/2;
+			int dest_y = current_dust.rel_dest_y + (current_dust.copy_height+1)/2;
+			
+			current_dust.copy_width = 2*abs(center_x - e->pos().x());
+			current_dust.copy_height = 2*abs(center_y - e->pos().y());
+			
+			current_dust.rel_dest_x = dest_x -  (current_dust.copy_width+1)/2;
+			current_dust.rel_dest_y = dest_y -  (current_dust.copy_height+1)/2;
+			
+			
+			m_pImgProc->setCopySrc(&current_dust,
+				center_x, center_y);
+			updateDisplay();
+			}break;
+		}
 	}
 }
 
@@ -368,7 +471,6 @@ void TamanoirApp::lockTools(bool lock) {
 /****************************** Button slots ******************************/
 void TamanoirApp::on_loadButton_clicked() 	
 {
-	ui.loadingTextLabel->setText(tr(""));
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
                    	tr("open file dialog"),
@@ -376,10 +478,12 @@ void TamanoirApp::on_loadButton_clicked()
                     tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 	if(s.isEmpty()) {
-		fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
+		//fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
 		return;
 	}
-
+	
+	ui.loadingTextLabel->setText(tr("Loading..."));
+	
 	loadFile( s);
 }
 
@@ -593,6 +697,8 @@ void TamanoirApp::on_skipButton_clicked()
 			{
 				ui.overAllProgressBar->setValue(100);
 				statusBar()->showMessage(tr("Finished"));
+				
+				updateDisplay(); // To show corrections
 				
 				return;
 			}

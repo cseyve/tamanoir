@@ -22,7 +22,8 @@
    <string>Tamanoir</string>
   </property>
   <property name="windowIcon" >
-   <iconset>../icon/tamanoir32.png</iconset>
+   <iconset>
+    <normaloff>../icon/tamanoir32.png</normaloff>../icon/tamanoir32.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget" >
    <widget class="QFrame" name="largViewFrame" >
@@ -50,7 +51,7 @@
       </rect>
      </property>
      <property name="toolTip" >
-      <string>Main display : current dust is marked in blue, corrected ones in green, ones with no proposal are red and not proposals not validated in yellow</string>
+      <string>Main display : current dust is marked in blue, corrected ones in green, ones with refused proposals in yellow</string>
      </property>
      <property name="pixmap" >
       <pixmap/>
@@ -420,7 +421,7 @@
        <enum>Qt::CustomContextMenu</enum>
       </property>
       <property name="toolTip" >
-       <string>Drag the green rectangle region to change correction origin</string>
+       <string>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</string>
       </property>
       <property name="pixmap" >
        <pixmap/>
