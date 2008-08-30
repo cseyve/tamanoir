@@ -445,7 +445,7 @@ void TamanoirApp::loadFile(QString s) {
 		m_pProcThread = new TamanoirThread(m_pImgProc);
 	}
 	
-	int ret = m_pProcThread->loadFile(s.ascii());
+	int ret = m_pProcThread->loadFile( s );
 	if(ret < 0) {
 		
 		QMessageBox::critical( 0, tr("Tamanoir"),
@@ -473,7 +473,7 @@ void TamanoirApp::on_loadButton_clicked()
 {
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
-                   	tr("open file dialog"),
+                   	tr("Open file dialog"),
                    	m_options.currentDir,
                     tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
@@ -511,7 +511,7 @@ void TamanoirApp::on_saveButton_clicked()
 		msg+= tr(" + backup as ") + copystr;
 		
 		// Save image
-		m_curCommand = m_pProcThread->saveFile(m_currentFile.ascii());
+		m_curCommand = m_pProcThread->saveFile( m_currentFile );
 		
 		
 		statusBar()->showMessage( msg );
