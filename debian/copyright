@@ -1,0 +1,34 @@
+This package was debianized by Vincent Caron <vincent@zerodeux.net> on
+Sat, 30 Aug 2008 16:55:17 +0200.
+
+It was downloaded from <url://http://code.google.com/p/tamanoir/>
+
+Upstream Author(s):
+
+    Christophe Seyve <cseyve@free.fr>
+
+Copyright:
+
+    Copyright (C) 2008 Christophe Seyve
+
+License:
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+  
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Library General Public License for more details.
+  
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+On Debian systems, the complete text of the GNU General
+Public License version 3 can be found in `/usr/share/common-licenses/GPL-3'.
+
+The Debian packaging is (C) 2008, Vincent Caron <vincent@zerodeux.net> and
+is licensed under the GPL, see above.

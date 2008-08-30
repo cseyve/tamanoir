@@ -1,0 +1,13 @@
+tamanoir (0.svn20080730-2) unstable; urgency=low
+
+  * Now sing a theme-independent icon.
+
+  * Fixed desktop entry attributes (ops).
+
+ -- Vincent Caron <vincent@zerodeux.net>  Sat, 30 Aug 2008 22:18:40 +0200
+
+tamanoir (0.svn20080730-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Vincent Caron <vincent@zerodeux.net>  Sat, 30 Aug 2008 16:55:17 +0200

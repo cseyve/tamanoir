@@ -1,0 +1,7 @@
+Tanamoir Debian notes
+
+  OpenCV can be built with 16bit TIFF support with a twist (see
+http://code.google.com/p/tamanoir/wiki/LinuxBuild), however Debian's
+libcv seems to be 8bit only AFAIK. That's maybe a bit a shame with
+high quality scans.
+
