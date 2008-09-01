@@ -296,7 +296,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	
 	
-	#ifdef TOTOCV_LOAD_IMAGE_GRAYSCALE
+	#ifdef CV_LOAD_IMAGE_GRAYSCALE
 	fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n", 
 		__func__, __LINE__);
 	if(originalImage->depth != IPL_DEPTH_8U) {
@@ -338,11 +338,11 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	m_lock = false;
 	
-	float variance = 0.f, diff_mean = 0.f;
-	int uniform = findUniform(&diff_mean, &variance);
+	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
+	int uniform = findUniform(&mean, &diff_mean, &variance);
 	if(uniform >= 0) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => diff=%g, var=%g\n",
-			__func__, __LINE__, diff_mean, variance);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => mean=%g, diff=%g, var=%g\n",
+			__func__, __LINE__, mean, diff_mean, variance);
 	}
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
@@ -635,7 +635,7 @@ int TamanoirImgProc::preProcessImage() {
  
 */
 
-int TamanoirImgProc::findUniform(float  * p_diff_mean, float * p_variance) {
+int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p_variance) {
 	if(!grayImage) return -1;
 	
 	int tile_x, tile_y, tile_step = 32;
@@ -671,33 +671,34 @@ int TamanoirImgProc::findUniform(float  * p_diff_mean, float * p_variance) {
 			// Get dispersion
 			if(resume) {
 				val_mean = (int)roundf((float)val_mean / (float)(tile_step * tile_step));
-				
-				long val_diff = 0;
-				long val_diff2 = 0;
-				// Get mean of pixel values
-				for(y=tile_y; y<tile_y+tile_step; y++) {
-					
-					for(x=tile_x; x<tile_x+tile_step; x++) {
-						int val = buffer[y * pitch + x];
+				if(val_mean > 64) { // Else we may be in noise
+					long val_diff = 0;
+					long val_diff2 = 0;
+					// Get mean of pixel values
+					for(y=tile_y; y<tile_y+tile_step; y++) {
 						
-						int diff = abs(val - val_mean);
-						val_diff += diff;
-						val_diff2 += diff * diff;
+						for(x=tile_x; x<tile_x+tile_step; x++) {
+							int val = buffer[y * pitch + x];
+							
+							int diff = abs(val - val_mean);
+							val_diff += diff;
+							val_diff2 += diff * diff;
+						}
 					}
-				}
-				
-				float diff_mean = (float)val_diff / (float)(tile_step * tile_step);
-				float variance = (float)val_diff2 / (float)(tile_step * tile_step);
-				// If variance is low, choose this region
-				
-	//			fprintf(stderr, "Tile %d,%d : variance = %g", tile_x, tile_y, variance);
-				if(diff_mean < 4) {
-					fprintf(stderr, "Tile %d,%d : diff_mean=%g variance = %g\n", tile_x, tile_y, diff_mean, variance);
 					
-					if(diff_mean < 3) {
-						*p_diff_mean = diff_mean;
-						*p_variance = variance;
-						return 0;
+					float diff_mean = (float)val_diff / (float)(tile_step * tile_step);
+					float variance = (float)val_diff2 / (float)(tile_step * tile_step);
+					// If variance is low, choose this region
+					
+		//			fprintf(stderr, "Tile %d,%d : variance = %g", tile_x, tile_y, variance);
+					if(diff_mean < 4) {
+						fprintf(stderr, "Tile %d,%d : diff_mean=%g variance = %g\n", tile_x, tile_y, diff_mean, variance);
+						
+						if(diff_mean < 3) {
+							*p_diff_mean = diff_mean;
+							*p_variance = variance;
+							return 0;
+						}
 					}
 				}
 			}
@@ -776,8 +777,11 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
  * Activate/desactivate trust on good corrections
  */
 bool TamanoirImgProc::setTrustCorrection(bool on) {
-	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s trust on good correction proposals\n", __func__, __LINE__,
-		(on ? "ACTIVATE" : "DESACTIVATE" ) );
+	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s trust on good correction proposals (last=%d,%d)\n",
+		__func__, __LINE__,
+		(on ? "ACTIVATE" : "DESACTIVATE" ),
+		m_last_correction.crop_x, m_last_correction.crop_y);
+	
 	if(m_trust != on) { // We changed to trust mode, return to last correction
 		if(on) {
 			m_seed_x = m_last_correction.crop_x;
@@ -1291,7 +1295,7 @@ int TamanoirImgProc::findDust(int x, int y) {
 						&& m_correct.area < TRUST_AREA_MAX
 						&& fill_failure == 0) {
 						
-						applyCorrection();
+						forceCorrection(m_correct, true);
 						return_now = 0;
 					} 
 					
@@ -1572,7 +1576,17 @@ int TamanoirImgProc::applyCorrection()
 	return applyCorrection(m_correct);
 }
 
-
+int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
+{
+	if(!force) {
+		// Update progress
+		int y = correction.crop_y + correction.rel_dest_y;
+		m_progress = (int)(100 * y / grayImage->height);
+		
+		memcpy(&m_last_correction, &correction, sizeof(t_correction));
+	}
+	return applyCorrection(correction);
+}	
 
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction)
@@ -1583,11 +1597,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 		return -1; // no available correction
 	
 	
-	// Update progress
-	int y = correction.crop_y + correction.rel_dest_y;
-	m_progress = (int)(100 * y / grayImage->height);
 	
-	memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	
 	if(g_debug_imgverbose)
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image.\n", 

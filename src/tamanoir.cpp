@@ -726,7 +726,7 @@ void TamanoirApp::on_correctButton_clicked()
 {
 	// Apply previous correction
 	if(m_pImgProc) {
-		m_pImgProc->applyCorrection(current_dust);
+		m_pImgProc->forceCorrection(current_dust, force_mode);
 	}
 	
 	// Clear current dust
@@ -1392,7 +1392,7 @@ void TamanoirThread::run() {
 			break;
 			
 		case PROTH_SEARCH:
-			if(g_debug_TmThread)
+			//if(g_debug_TmThread)
 				fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
 					__func__, __LINE__);
 			ret = m_pImgProc->nextDust();

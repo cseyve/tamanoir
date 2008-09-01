@@ -135,6 +135,9 @@ public:
 	/** @brief Apply proposed correction */
 	int applyCorrection();
 	
+	/** @brief Apply proposed correction  and specify if correction has been forced by user */
+	int forceCorrection(t_correction correction, bool force);
+
 	
 	/** @brief Apply a former correction */
 	int applyCorrection(t_correction correction);
@@ -214,7 +217,7 @@ private:
 	/** @brief Find an uniform place in image (x, y) to perform grain qualification
 		@return -1 if error, 0 if found
 	*/
-	int findUniform(float  * p_diff_mean, float * p_variance);
+	int findUniform(float * p_mean, float  * p_diff_mean, float * p_variance);
 	
 	
 	/** Perform image processing */
