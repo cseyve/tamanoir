@@ -120,3 +120,5 @@ $ svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
 $ cd tamanoir
 $ dpkg-buildpackage -uc -us -rfakeroot
 }}}
+
+Binary packages for Debian Lenny i386 are available, see http://zerodeux.net/debian/
