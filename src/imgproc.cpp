@@ -33,7 +33,7 @@
 #include "imgutils.h"
 
 extern FILE * logfile;
-u8 g_debug_imgverbose = 0;
+u8 g_debug_imgverbose = 1;
 u8 g_debug_imgoutput = 0;
 extern u8 g_debug_correlation;
 
@@ -427,11 +427,16 @@ int TamanoirImgProc::preProcessImage() {
 		int open_iter = m_dpi / 2400;
 		if(open_iter < 1) open_iter = 1;
 		
+		cvSmooth(grayImage, medianImage, 
+			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+			m_smooth_size, m_smooth_size );
+		/*
 		tmOpenImage(
 			grayImage,  // => src 
 			medianImage, // => dest
 			diffImage, // => tmp
 			open_iter);
+		*/
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image OK\n", 
 			__func__, __LINE__);
 		break;
@@ -524,9 +529,7 @@ int TamanoirImgProc::preProcessImage() {
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
 			
-			if( (diff >= m_threshold && grayImageBuffer[pos]>164) 
-				|| 
-				grayImageBuffer[pos]>240) // Opaque pixels are white
+			if( (diff >= m_threshold && grayImageBuffer[pos]>164) ) // Opaque pixels are white
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
 		}
 		break;
@@ -1418,23 +1421,40 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	
 	if(!disp_cropImage) 
 		disp_cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!disp_dilateImage) 
-	{
-		disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_16S, 1);
-		memset( disp_dilateImage->imageData, 0, 
-				disp_dilateImage->widthStep * disp_dilateImage->height);
+		
+	if(0) { // Sobel
+		if(!disp_dilateImage) 
+		{
+			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_16S, 1);
+			memset( disp_dilateImage->imageData, 0, 
+					disp_dilateImage->widthStep * disp_dilateImage->height * sizeof(short));
+		}
+		
+		// Get Sobel
+		tmCropImage(grayImage, disp_cropImage, 
+					correction.crop_x, correction.crop_y);
+		int dx = abs(correction.rel_src_x - correction.rel_dest_x);
+		int dy = abs(correction.rel_src_y - correction.rel_dest_y);
+		if(dx < dy) // Check if we are not copying while following a border
+			cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
+		else
+			cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
+	} else {
+		
+		if(!disp_dilateImage) 
+		{
+			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_8U, 1);
+			memset( disp_dilateImage->imageData, 0, 
+					disp_dilateImage->widthStep * disp_dilateImage->height );
+		}
+		
+		// Get Sobel
+		unsigned long diffH[256];
+		tmCropImage(diffImage, disp_dilateImage, 
+					correction.crop_x, correction.crop_y);
+		
 	}
 	
-	// Get Sobel
-	tmCropImage(grayImage, disp_cropImage, 
-				correction.crop_x, correction.crop_y);
-	
-	int dx = abs(correction.rel_src_x - correction.rel_dest_x);
-	int dy = abs(correction.rel_src_y - correction.rel_dest_y);
-	if(dx < dy) // Check if we are not copying while following a border
-		cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
-	else
-		cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
 	
 // Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
