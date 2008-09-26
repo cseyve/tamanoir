@@ -293,8 +293,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 	
-	fprintf(stderr, "TamanoirApp::%s:%d : Button = %d / last=%d...\n", __func__, __LINE__,
-				(int)e->button(), (int)cropPixmapLabel_last_button);
 	if(e && m_pProcThread && m_pImgProc) {
 		
 		//if(e->button() == Qt::NoButton) return;
@@ -1392,9 +1390,10 @@ void TamanoirThread::run() {
 			break;
 			
 		case PROTH_SEARCH:
-			//if(g_debug_TmThread)
+			if(g_debug_TmThread) {
 				fprintf(stderr, "TmThread::%s:%d : searching for next dust (while main frame is displaying)\n", 
 					__func__, __LINE__);
+			}
 			ret = m_pImgProc->nextDust();
 			if(ret > 0) {
 				// Add to list
