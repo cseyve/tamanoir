@@ -422,7 +422,7 @@ void tmCropImage(IplImage * origImage,
 	int ytop = tmmax(0, crop_y);
 	int xright = tmmin(orig_width, xleft + crop_width);
 	int ybottom = tmmin(orig_height, ytop + crop_height);
-
+	
 	if(xleft >= xright) return;
 	if(ytop >= ybottom) return;
 	
@@ -500,7 +500,7 @@ void tmCropImage(IplImage * origImage,
 			
 			copywidth = (xright - xleft);
 			
-                        int nchannels2 = cropImage->nChannels;
+            int nchannels2 = cropImage->nChannels;
 			int ly = 0;
 			int orig_pix_offset = xleft * byte_depth;
 			for(int y=ytop; y<ybottom; ly++, y++) {
@@ -510,15 +510,12 @@ void tmCropImage(IplImage * origImage,
 							+ y * origImage->widthStep);
 				int orig_pos = orig_pix_offset + (origImage->nChannels -  1)*2;
 				int crop_pix_offset = ly * cropImage->widthStep; // line offset
-				//		+ y * origImage->widthStep + xmin ; //* byte_depth;
 				for(int lx = 0; lx<copywidth; lx++, 
 					crop_pix_offset += nchannels2, 
 					orig_pos += byte_depth)  {// in pixels from left
 					for(int ld = 0; ld<nchannels2; ld++) {// in component per pixel : for RGB : 0,1,2
 						cropImageBuffer[ 
-							crop_pix_offset		/*ly * cropImage->widthStep // line offset
-									+ lx * nchannels2  // pixel offset 
-									*/
+							crop_pix_offset
 							+ ld // component offset
 							] = (unsigned char)(
 							origBuffer[ orig_pos - ld*2 ]);
