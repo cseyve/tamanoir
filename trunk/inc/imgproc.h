@@ -88,6 +88,9 @@ typedef struct t_correction_ {
 	int rel_dest_x;
 	int rel_dest_y;
 	
+	/// relative seed of region growing
+	int rel_seed_x;
+	int rel_seed_y;
 	
 	
 	// Dust size statistics

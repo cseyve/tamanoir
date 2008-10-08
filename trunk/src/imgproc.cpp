@@ -1263,6 +1263,9 @@ int TamanoirImgProc::findDust(int x, int y) {
 				m_correct.rel_dest_x = copy_dest_x;
 				m_correct.rel_dest_y = copy_dest_y;
 				
+				m_correct.rel_seed_x = crop_center_x;
+				m_correct.rel_seed_y = crop_center_y;
+				
 				// Update dest
 				m_correct.src_x = m_correct.crop_x + m_correct.rel_src_x;
 				m_correct.src_y = m_correct.crop_y + m_correct.rel_src_y;
@@ -1444,15 +1447,24 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		if(!disp_dilateImage) 
 		{
 			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_8U, 1);
-			memset( disp_dilateImage->imageData, 0, 
-					disp_dilateImage->widthStep * disp_dilateImage->height );
+			
 		}
-		
-		// Get Sobel
+		memset( disp_dilateImage->imageData, 0, 
+					disp_dilateImage->widthStep * disp_dilateImage->height );
+		// Get grown region
 		unsigned long diffH[256];
-		tmCropImage(diffImage, disp_dilateImage, 
+		tmCropImage(diffImage, disp_cropImage, 
 					correction.crop_x, correction.crop_y);
-		
+		CvConnectedComp ext_connect;
+		tmGrowRegion(
+					(u8 *)disp_cropImage->imageData, 
+					(u8 *)disp_dilateImage->imageData, 
+					cropImage->widthStep, cropImage->height, 
+					correction.rel_seed_x, correction.rel_seed_y, 
+					DIFF_THRESHVAL,
+					255,
+					&ext_connect);
+				
 	}
 	
 	

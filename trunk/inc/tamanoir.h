@@ -93,6 +93,8 @@ public:
 	*/
 	void insertCorrection(t_correction);
 	
+	/** @brief set auto mode flag */ 
+	void setModeAuto(bool on);
 	
 private:
 	
@@ -117,7 +119,7 @@ private:
 	QList<t_correction> dust_list;
 	
 	bool no_more_dusts;
-	
+	bool m_modeAuto;
 };
 
 
@@ -136,6 +138,8 @@ public:
 	
 	void setArgs(int argc, char **argv);
 	void loadFile(QString s);
+	
+	
 private:
 	Ui::Tamanoir ui;
 	
