@@ -514,11 +514,16 @@ void tmCropImage(IplImage * origImage,
 					crop_pix_offset += nchannels2, 
 					orig_pos += byte_depth)  {// in pixels from left
 					for(int ld = 0; ld<nchannels2; ld++) {// in component per pixel : for RGB : 0,1,2
+						
+						// Avoid 255 value for display
+						unsigned char val = (unsigned char)(
+							origBuffer[ orig_pos - ld*2 ]);
+						if(val == 255) val = 254;
+						
 						cropImageBuffer[ 
 							crop_pix_offset
 							+ ld // component offset
-							] = (unsigned char)(
-							origBuffer[ orig_pos - ld*2 ]);
+							] = val;
 					}
 				}
 			}
@@ -577,10 +582,11 @@ void tmMarkCloneRegion(IplImage * origImage,
 					CV_RGB(255,0,0),
 					1);
 	}
+	
 	cvRectangle(origImage, 
 				cvPoint(copy_x, copy_y+copy_height),
 				cvPoint(copy_x+copy_width, copy_y),
-				CV_RGB(0,255,0),
+				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
 				1);
 	// Copy vector
 	int copy_center_x = copy_x+copy_width/2;
@@ -590,17 +596,17 @@ void tmMarkCloneRegion(IplImage * origImage,
 	int copy_vector_x = copy_center_x - src_center_x;
 	int copy_vector_y = copy_center_y - src_center_y;
 	
-        float vector_len = sqrt(copy_vector_x*copy_vector_x+copy_vector_y*copy_vector_y);
-        if(vector_len > 10) {
-                float shorter_len = vector_len - 10.f;
-                copy_vector_x = (int)roundf((float)copy_vector_x * shorter_len / vector_len);
-                copy_vector_y = (int)roundf((float)copy_vector_y * shorter_len / vector_len);
-        }
-        
+	float vector_len = sqrt(copy_vector_x*copy_vector_x+copy_vector_y*copy_vector_y);
+	if(vector_len > 10) {
+			float shorter_len = vector_len - 10.f;
+			copy_vector_x = (int)roundf((float)copy_vector_x * shorter_len / vector_len);
+			copy_vector_y = (int)roundf((float)copy_vector_y * shorter_len / vector_len);
+	}
+    
 	cvLine(origImage, 
 		   cvPoint(copy_center_x, copy_center_y),
 		   cvPoint(copy_center_x - copy_vector_x, copy_center_y - copy_vector_y),
-		   CV_RGB(0,255,0),
+				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
 		   1);
 }
 

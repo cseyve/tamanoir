@@ -765,26 +765,11 @@ void TamanoirApp::on_autoButton_clicked()
 	g_debug_savetmp = 0;
         
 	// Apply previous correction
-	if(m_pImgProc) {
-		int ret = 1;
-                int progressDiv = 0;
-                
-		do {
-			m_pImgProc->applyCorrection();
-	
-			// Then go to next dust
-			ret = m_pImgProc->nextDust();
-			
-                        // Periodically refresh display
-                        int l_progress = m_pImgProc->getProgress();
-                        if((l_progress / 10) > progressDiv) {
-                                progressDiv = (l_progress / 10);
-                                updateDisplay();
-                        }
-            
-			ui.overAllProgressBar->setValue(l_progress);
-			
-		} while(ret == 1);
+	if(m_pProcThread) {
+		
+		
+		m_pProcThread->setModeAuto(true);
+		
 	}
 	fflush(logfile);
 	
@@ -1089,10 +1074,17 @@ void TamanoirApp::updateDisplay()
 			QLabel * pLabel = ui.cropPixmapLabel;
 			
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage);
+			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
+			if(curImage->nChannels == 1) {
+				grayQImage.setNumColors(256);
+				for(int c=0; c<255; c++) 
+					grayQImage.setColor(c, qRgb(c,c,c));
+				
+				grayQImage.setColor(255, qRgb(0,255,0));
+			}			
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
-				grayQImage.scaledToWidth(pLabel->width()),
+				grayQImage,
 					QPixmap::Color);
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
@@ -1120,10 +1112,18 @@ void TamanoirApp::updateDisplay()
 			QLabel * pLabel = ui.growPixmapLabel;
 			
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage);
+			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
+			if(curImage->nChannels == 1) {
+				grayQImage.setNumColors(256);
+				for(int c=0; c<255; c++) 
+					grayQImage.setColor(c, qRgb(c,c,c));
+				
+				grayQImage.setColor(255, qRgb(255,0,0));
+			}
+			
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
-				grayQImage.scaledToWidth(pLabel->width()),
+					grayQImage,
 					QPixmap::Color);
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
@@ -1190,7 +1190,24 @@ int TamanoirThread::getCommand() {
 	return current_command;
 }
 
-
+/* set auto mode flag */ 
+void TamanoirThread::setModeAuto(bool on) {
+	m_modeAuto = on;
+	if(on) {
+		if(!m_pImgProc) 
+			return;
+		if(!m_run)
+			start();
+		
+		req_command = PROTH_SEARCH;
+		m_options.trust = 1;
+		m_pImgProc->setTrustCorrection(m_options.trust);
+		// Unlock thread 
+		mutex.lock();
+		waitCond.wakeAll();
+		mutex.unlock();
+	}
+}
 
 int TamanoirThread::setOptions(tm_options options) {
 	m_options = options;
@@ -1399,7 +1416,14 @@ void TamanoirThread::run() {
 				// Add to list
 				t_correction l_dust = m_pImgProc->getCorrection();
 				no_more_dusts = false;
-				dust_list.append(l_dust);
+				if(!m_modeAuto) {
+					dust_list.append(l_dust);
+				} else {
+					m_pImgProc->applyCorrection(l_dust);
+					// Fasten next search
+					req_command = PROTH_SEARCH;
+				}
+				
 			} else {
 				if(ret == 0) {
 					no_more_dusts = true;
