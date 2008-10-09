@@ -205,4 +205,3 @@ message( "Configuration : ")
 message( "   defs : $$DEFINES ")
 message( "   libs : $$LIBS ")
 
-INCLUDEPATH	+= .

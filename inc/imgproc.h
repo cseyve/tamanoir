@@ -58,7 +58,7 @@ typedef struct dust_stats_t_ {
 } dust_stats_t;
 
 /** @brief Process then print statistics */
-void processAndPrintStats(dust_stats_t * dust_stats);
+void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 
 
 /** @brief Local correction storage structure */
