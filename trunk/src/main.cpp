@@ -42,7 +42,7 @@ bool maximized = false, full = false;
 extern u8 g_debug_imgverbose;
 extern u8 g_debug_imgoutput;
 extern u8 g_debug_correlation;
-
+extern u8 g_dataset_mode;
 
 
 void displayHelp() {
@@ -83,10 +83,13 @@ int main(int argc, char *argv[])
 				g_debug_imgverbose =
 					g_debug_imgoutput = 2;
 			}
-			if(strstr(argv[argcount], "output")	)	{
+			if(strstr(argv[argcount], "output")) {
 				g_debug_imgoutput = 2;
 			}
-			if(strstr(argv[argcount], "correl")	)	{
+			if(strstr(argv[argcount], "dataset")) {
+				g_dataset_mode = 1;
+			}
+			if(strstr(argv[argcount], "correl"))	{
 				g_debug_correlation = 1;
 			}
 			

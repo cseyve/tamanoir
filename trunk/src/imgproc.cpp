@@ -33,7 +33,7 @@
 #include "imgutils.h"
 
 extern FILE * logfile;
-u8 g_debug_imgverbose = 1;
+u8 g_debug_imgverbose = 0;
 u8 g_debug_imgoutput = 0;
 extern u8 g_debug_correlation;
 
@@ -50,6 +50,12 @@ extern u8 g_debug_correlation;
 
 /** global option : stop if a dust has no replace candidate */
 u8 g_option_stopoguess = 0;
+u8 g_dataset_mode = 0;
+
+/** @brief dataset file output */
+FILE * g_dataset_f = NULL;
+
+
 
 
 TamanoirImgProc::TamanoirImgProc() {
@@ -109,9 +115,7 @@ void TamanoirImgProc::init() {
 		disp_dilateImage = 
 		disp_cropImage = NULL;
 	
-	
-	
-	displaySize = cvSize(0,0);;
+	displaySize = cvSize(0,0);
 	
 	
 	memset(&m_correct, 0, sizeof(t_correction));
@@ -128,6 +132,16 @@ TamanoirImgProc::~TamanoirImgProc() {
 
 
 void TamanoirImgProc::purge() {
+	// Dataset output file
+	if(g_dataset_f) {
+		
+		fprintf(g_dataset_f, "\n[Stats]\n");
+		processAndPrintStats(&m_dust_stats, g_dataset_f);
+		fclose(g_dataset_f);
+		
+		g_dataset_f = NULL;
+	}
+
 	if(originalImage) cvReleaseImage(&originalImage);  originalImage = NULL;
 	if(displayImage) cvReleaseImage(&displayImage); displayImage = NULL;
 	
@@ -1628,7 +1642,33 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
 	
-	
+	if(g_dataset_mode) {
+		if(!g_dataset_f) {
+			char datafile[512];
+			sprintf(datafile, "%s.data", m_filename);
+			
+			g_dataset_f = fopen(datafile, "w");
+			// Write header
+			if(g_dataset_f) {
+				fprintf(g_dataset_f, "# Tamanoir dataset for file '%s'\n\n", 
+							m_filename);
+				fprintf(g_dataset_f, "Path\t%s\n", 
+							m_filename);
+				fprintf(g_dataset_f, "\n[Settings]\n");
+				fprintf(g_dataset_f, "FilmType\t%d\n", m_FilmType);
+				fprintf(g_dataset_f, "Dpi\t%d\n", m_dpi);
+				fprintf(g_dataset_f, "HotPixels\t%d\n", m_hotPixels?'T':'F');
+				fprintf(g_dataset_f, "Trust\t%d\n", m_trust?'T':'F');
+				fprintf(g_dataset_f, "\n[Dusts]\n");
+			}
+		}
+		
+		if(g_dataset_f) {
+			fprintf(g_dataset_f, "Dust\t%d,%d+%dx%d\n",
+						correction.dest_x, correction.dest_y, correction.dest_x, correction.copy_width, correction.copy_height);
+			fflush(g_dataset_f);
+		}
+	}
 	
 	
 	if(g_debug_imgverbose)
@@ -1684,8 +1724,11 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 
 
 /** Process then print statistics */
-void processAndPrintStats(dust_stats_t * dust_stats) {
-
+void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
+	if(f == NULL) {
+		f = logfile;
+	}
+	
 	if(dust_stats->nb_grown>0) {
 		dust_stats->ratio_replaced_grown = (float)dust_stats->nb_grown_replaced/dust_stats->nb_grown;
 		dust_stats->ratio_validated_grown = (float)dust_stats->nb_grown_validated/dust_stats->nb_grown;
@@ -1698,7 +1741,7 @@ void processAndPrintStats(dust_stats_t * dust_stats) {
 /*	unsigned long grown_size_replaced[STATS_MAX_SURF];		*! grown size histogram */
 /*	unsigned long grown_size_validated[STATS_MAX_SURF];		*! grown size histogram */
 	
-	if(g_debug_imgverbose) {
+	if(g_debug_imgverbose && f) {
 		int max_size = 0;
 		int max_size_replaced = 0;
 		int max_size_validated = 0;
@@ -1717,21 +1760,22 @@ void processAndPrintStats(dust_stats_t * dust_stats) {
 		}
 		
 		/* Statistics variables */
-		fprintf(logfile, "Statistics : \n");
-		fprintf(logfile, "\t nb_grown = %lu\n", dust_stats->nb_grown);
-		fprintf(logfile, "\t nb_grown_replaced = %lu\n", dust_stats->nb_grown_replaced);
-		fprintf(logfile, "\t nb_grown_validated = %lu\n", dust_stats->nb_grown_validated);
-		fprintf(logfile, "\n");
+		fprintf(f, "Statistics : \n");
+		fprintf(f, "\t nb_grown = %lu\n", dust_stats->nb_grown);
+		fprintf(f, "\t nb_grown_replaced = %lu\n", dust_stats->nb_grown_replaced);
+		fprintf(f, "\t nb_grown_validated = %lu\n", dust_stats->nb_grown_validated);
+		fprintf(f, "\n");
 	
-		fprintf(logfile, "\t ratio_replaced/grown = %g %%\n", 100.f*dust_stats->ratio_replaced_grown);
-		fprintf(logfile, "\t ratio_validated/grown = %g %%\n", 100.f*dust_stats->ratio_validated_grown);
-		fprintf(logfile, "\t ratio_validated/replaced = %g %%\n", 100.f*dust_stats->ratio_validated_replaced);
-		fprintf(logfile, "\n");
+		fprintf(f, "\t ratio_replaced/grown = %g %%\n", 100.f*dust_stats->ratio_replaced_grown);
+		fprintf(f, "\t ratio_validated/grown = %g %%\n", 100.f*dust_stats->ratio_validated_grown);
+		fprintf(f, "\t ratio_validated/replaced = %g %%\n", 100.f*dust_stats->ratio_validated_replaced);
+		fprintf(f, "\n");
 		
-		fprintf(logfile, "Max sizes :\n");
-		fprintf(logfile, "\tMax size: %d\n", max_size);
-		fprintf(logfile, "\tMax size replaced: %d\n", max_size_replaced);
-		fprintf(logfile, "\tMax size validated: %d\n", max_size_validated);
+		fprintf(f, "Max sizes :\n");
+		fprintf(f, "\tMax size: %d\n", max_size);
+		fprintf(f, "\tMax size replaced: %d\n", max_size_replaced);
+		fprintf(f, "\tMax size validated: %d\n", max_size_validated);
+		fflush(f);
 	}
 }
 
