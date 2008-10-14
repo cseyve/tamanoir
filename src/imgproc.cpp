@@ -51,10 +51,16 @@ extern u8 g_debug_correlation;
 /** global option : stop if a dust has no replace candidate */
 u8 g_option_stopoguess = 0;
 u8 g_dataset_mode = 0;
+u8 g_evaluate_mode = 1;
 
 /** @brief dataset file output */
 FILE * g_dataset_f = NULL;
 
+int found_score = 0;
+t_known_dust * known_dusts = NULL;
+int nb_known_dusts = 0;
+int max_known_dusts = 0;
+double orig_width=0, orig_height=0;
 
 
 
@@ -134,9 +140,10 @@ TamanoirImgProc::~TamanoirImgProc() {
 void TamanoirImgProc::purge() {
 	// Dataset output file
 	if(g_dataset_f) {
-		
-		fprintf(g_dataset_f, "\n[Stats]\n");
-		processAndPrintStats(&m_dust_stats, g_dataset_f);
+		if(g_dataset_mode) {
+			fprintf(g_dataset_f, "\n[Stats]\n");
+			processAndPrintStats(&m_dust_stats, g_dataset_f);
+		}
 		fclose(g_dataset_f);
 		
 		g_dataset_f = NULL;
@@ -254,7 +261,6 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	*/
 	fprintf(logfile, "TamanoirImgProc::%s:%d : loading '%s'...\n", 
 		__func__, __LINE__, filename);
-	strcpy(m_filename, filename);
 	
 	originalImage = cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
@@ -265,7 +271,67 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : cannot open file '%s' !!\n",
 					__func__, __LINE__, filename);
 		m_lock = false;
+		m_filename[0] = '\0';
 		return -1;
+	}
+	strcpy(m_filename, filename);
+	
+	
+	if(g_dataset_mode || g_evaluate_mode) {
+		if(g_dataset_f) {
+			fclose(g_dataset_f);
+			g_dataset_f = NULL;
+		}
+		
+		if(!g_dataset_f) {
+			char datafile[512];
+			sprintf(datafile, "%s.data", m_filename);
+			
+			if(g_evaluate_mode) {
+				g_dataset_f = fopen(datafile, "r");
+				
+				// Reset evaluation
+				found_score = 0;
+				if(known_dusts) delete [] known_dusts;
+				known_dusts = NULL;
+				nb_known_dusts = 0;
+				max_known_dusts = 0;
+				orig_width = orig_height = 0.;
+			} else {
+				g_dataset_f = fopen(datafile, "w");
+			}
+			
+			if(!g_dataset_f) {
+				fprintf(stderr, "[imgproc]::%s:%d : cannot open file %s\n", __func__, __LINE__,
+					datafile);
+			}
+			else {
+				fprintf(stderr, "[imgproc]::%s:%d : DATASET: open file %s\n", __func__, __LINE__,
+					datafile);
+			}
+
+			// Write header
+			if(g_dataset_f && g_dataset_mode) {
+				
+				fprintf(g_dataset_f, "# Tamanoir dataset for file '%s'\n\n", 
+							m_filename);
+				fprintf(g_dataset_f, "Path\t%s\n", 
+							m_filename);
+				fprintf(g_dataset_f, "Size\t%dx%d\n", originalImage->width, originalImage->height);
+				fprintf(g_dataset_f, "Channels\t%d\n", originalImage->nChannels);
+				fprintf(g_dataset_f, "Depth\t%d\n", tmByteDepth(originalImage) );
+				
+				
+				fprintf(g_dataset_f, "\n[Settings]\n");
+				fprintf(g_dataset_f, "FilmType\t%d\n", m_FilmType);
+				fprintf(g_dataset_f, "Dpi\t%d\n", m_dpi);
+				fprintf(g_dataset_f, "HotPixels\t%d\n", m_hotPixels?'T':'F');
+				fprintf(g_dataset_f, "Trust\t%d\n", m_trust?'T':'F');
+				fprintf(g_dataset_f, "\n[Dusts]\n");
+				fprintf(g_dataset_f, "#Dust\tPosition\tSeed\tForced\n");
+				fflush(g_dataset_f);
+			}
+		}
 	}
 	
 	switch(originalImage->depth) {
@@ -1324,6 +1390,21 @@ int TamanoirImgProc::findDust(int x, int y) {
 					
 				if(return_now) {
 					
+					if(g_evaluate_mode) {
+						// Evaluate if dust is already known
+						bool known = testKnownDust(m_correct, originalImage->width, originalImage->height);
+						fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
+							"=> %d,%d in cropped image => no replace candidate (best=%d)...\n", 
+							__func__, __LINE__,
+							connect.rect.x,connect.rect.y,
+								connect.rect.width, connect.rect.height,
+							crop_center_x, crop_center_y, best_correl
+						);
+					
+						fprintf(stderr, "[imgproc] %s:%d : known = %c\n", __func__, __LINE__,
+							known ? 'T':'F');
+					}
+					
 					//fprintf(stderr, "[imgproc] %s:%d : return 1\n", __func__, __LINE__);
 					return 1;
 				}
@@ -1456,12 +1537,10 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
 		else
 			cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
-	} else {
+	} else { // Grown region
 		
-		if(!disp_dilateImage) 
-		{
+		if(!disp_dilateImage) {
 			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_8U, 1);
-			
 		}
 		memset( disp_dilateImage->imageData, 0, 
 					disp_dilateImage->widthStep * disp_dilateImage->height );
@@ -1631,11 +1710,12 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 		
 		memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	}
-	return applyCorrection(correction);
+	
+	return applyCorrection(correction, force);
 }	
 
 /* Apply a former correction */
-int TamanoirImgProc::applyCorrection(t_correction correction)
+int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 {
 	if(correction.dest_x < 0)
 		return -1; // no available correction
@@ -1643,37 +1723,24 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 		return -1; // no available correction
 	
 	if(g_dataset_mode) {
-		if(!g_dataset_f) {
-			char datafile[512];
-			sprintf(datafile, "%s.data", m_filename);
-			
-			g_dataset_f = fopen(datafile, "w");
-			// Write header
-			if(g_dataset_f) {
-				fprintf(g_dataset_f, "# Tamanoir dataset for file '%s'\n\n", 
-							m_filename);
-				fprintf(g_dataset_f, "Path\t%s\n", 
-							m_filename);
-				fprintf(g_dataset_f, "\n[Settings]\n");
-				fprintf(g_dataset_f, "FilmType\t%d\n", m_FilmType);
-				fprintf(g_dataset_f, "Dpi\t%d\n", m_dpi);
-				fprintf(g_dataset_f, "HotPixels\t%d\n", m_hotPixels?'T':'F');
-				fprintf(g_dataset_f, "Trust\t%d\n", m_trust?'T':'F');
-				fprintf(g_dataset_f, "\n[Dusts]\n");
-			}
-		}
 		
 		if(g_dataset_f) {
-			fprintf(g_dataset_f, "Dust\t%d,%d+%dx%d\n",
-						correction.dest_x, correction.dest_y, correction.dest_x, correction.copy_width, correction.copy_height);
+			fprintf(g_dataset_f, "Dust\t%d,%d+%dx%d"
+						"\t%d,%d"
+						"\t%c\n",
+						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
+						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
+						(force?'T':'F') );
 			fflush(g_dataset_f);
 		}
 	}
 	
 	
-	if(g_debug_imgverbose)
+	if(g_debug_imgverbose) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image.\n", 
 			__func__, __LINE__);
+	}
+	
 	
 	/** Update stats */
 	m_dust_stats.nb_grown_validated++;
@@ -1721,6 +1788,13 @@ int TamanoirImgProc::applyCorrection(t_correction correction)
 	return 0;
 }
 
+/*******************************************************************************
+
+							DATASET
+
+*******************************************************************************/
+
+
 
 
 /** Process then print statistics */
@@ -1748,7 +1822,7 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 		for(int size=0; size<STATS_MAX_SURF; size++) {
 			if(dust_stats->grown_size[size]>1)
 				max_size = size;
-			if(dust_stats->grown_size_replaced[size]>1)
+		file://localhost/Users/tof/Sources/Tamanoir-svn/tamanoir/src/main.cpp	if(dust_stats->grown_size_replaced[size]>1)
 				max_size_replaced = size;
 			if(dust_stats->grown_size_validated[size]>1)
 				max_size_validated = size;
@@ -1780,314 +1854,147 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 }
 
 
-
-
-
-
-
-
-
-#ifdef PIAF_PLUGIN
-void median_proc(unsigned char * imageIn, int buffer_size) 
-{
-	if((!median_buf || oldmedian != median) && median > 0) {
-		if(median_buf) {
-			for(int i=0; i<oldmedian; i++)
-				delete [] median_buf[i];
-			delete []  median_buf;
+/* Test if dust is already knwon */
+bool testKnownDust(t_correction correction, int img_w, int img_h) {
+	if(!known_dusts)  { // Read dataset file to fill known dusts tab 
+	
+		if(!g_dataset_f) { // Cannot read file
+			fprintf(stderr, "%s:%d : File unknown\n", __func__,__LINE__);
+			return false;
 		}
-		median_buf = new unsigned char * [median];
-		for (int b=0; b<median; b++) {
-			median_buf[b] = new unsigned char [buffer_size];
+		
+		// Allocate array
+		max_known_dusts = 2000;
+		known_dusts = new t_known_dust [ max_known_dusts ];
+		memset(known_dusts, 0, sizeof(t_known_dust) * max_known_dusts);
+		nb_known_dusts = 0;
+		
+		// Read file
+		
+		rewind(g_dataset_f);
+		
+		char line[512];
+		char * ret;
+		do {
+			// Parse file
+			ret = fgets(line, 511, g_dataset_f);
 			
-			memcpy(median_buf[b], imageIn, buffer_size);
-		}
-		pos = 0;
-		oldmedian = median;
-	}
-	else {
-		memcpy(median_buf[pos], imageIn, buffer_size);
-		pos++;
-		if(pos == (int)median) pos = 0;
-	}
-}
-
-void median_proc_mask(unsigned char * imageIn, unsigned char * imageMask, int buffer_size) 
-{
-	if((!median_buf || oldmedian != median) && median > 0) {
-		if(median_buf) {
-			for(int i=0; i<oldmedian; i++)
-				delete [] median_buf[i];
-			delete []  median_buf;
-		}
-		median_buf = new unsigned char * [median];
-		for (int b=0; b<median; b++) {
-			median_buf[b] = new unsigned char [buffer_size];
-			
-			memcpy(median_buf[b], imageIn, buffer_size);
-		}
-		pos = 0;
-		oldmedian = median;
-	}
-	else {
-		for(long pix=0; pix<buffer_size; pix++) {
-			if(imageMask[pix])
-				median_buf[pos][pix] = imageIn[pix];
-			else {
-				unsigned short total = 0;
-				for(int i=0; i<(int)median; i++)
-					total += (unsigned short)median_buf[i][pix];
+			if(ret) {
+				// Strip EOL
+				if(strlen(line)>0) {
+					if(line[strlen(line)-1]=='\n') { line[strlen(line)-1]='\0'; }
+				}
+				if(strlen(line)>0) {
+					if(line[strlen(line)-1]=='\r') { line[strlen(line)-1]='\0'; }
+				}
 				
-				unsigned char val = (unsigned char)(total / median);
-				
-				median_buf[pos][pix] = (unsigned char)(((unsigned short)total + 
-					(unsigned short)imageIn[pix])/ (median+1));
+				// Then process
+				if(strlen(line)>0) {
+					char * cmd = line;
+					char * next = strstr(line, "\t");
+					if(next) {
+						*next = '\0';
+						next++;
+						
+						if(strcasestr(cmd, "Size")) { // Read image size
+							int l_w, l_h;char c;
+							int val = sscanf(next, "%d%c%d", &l_w, &c, &l_h);
+							if(val==3) {
+								fprintf(stderr, "[imgproc] %s:%d : read size %d x %d "
+									"in '%s'\n", __func__,__LINE__,
+									l_w, l_h, next);
+								orig_width = (double)l_w;
+								orig_height = (double)l_h;
+							}
+						}
+						if(strcasestr(cmd, "Resolution")) { // Read image resolution
+							int l_dpi;
+							int val = sscanf(next, "%d", &l_dpi);
+							if(val==1) {
+								fprintf(stderr, "[imgproc] %s:%d : read resolution %d dpi"
+									"in '%s'\n", __func__,__LINE__,
+									l_dpi, next);
+							}
+						}
+						
+						if(strcasestr(cmd, "Dust")) { // Read dust
+							int l_x, l_y, l_w, l_h, l_seed_x, l_seed_y;
+							char c, flag[5]="";
+							int val = sscanf(next, "%d%c%d%c%d%c%d%d%c%d%s", &l_x, &c, &l_y, &c, &l_w, &c, &l_h,
+								&l_seed_x, &c, &l_seed_y, flag
+								);
+							if(val==11) {
+								fprintf(stderr, "[imgproc] %s:%d : read dust %d, %d + %d x %d seed=%d, %d flag=%s "
+									"in '%s'\n", __func__,__LINE__,
+									l_x, l_y, l_w, l_h, 
+									l_seed_x, l_seed_y, flag, 
+									next);
+								t_known_dust * pdust = known_dusts + nb_known_dusts;
+								nb_known_dusts++;
+								if(orig_width > 0.) {
+									pdust->dest_x = (double)l_x/orig_width;
+									pdust->dest_y = (double)l_y/orig_height;
+									pdust->dest_width = (double)l_w/orig_width;
+									pdust->dest_height = (double)l_h/orig_height;
+									
+									pdust->seed_x = (double)l_seed_x/orig_width;
+									pdust->seed_y = (double)l_seed_y/orig_height;
+									
+								} else { // Use absolute values
+									pdust->dest_x = (double)l_x;
+									pdust->dest_y = (double)l_y;
+									pdust->dest_width = (double)l_w;
+									pdust->dest_height = (double)l_h;
+									
+									pdust->seed_x = (double)l_seed_x;
+									pdust->seed_y = (double)l_seed_y;
+								}
+							}
+						}
+					}
+				}
 			}
-		}
-		//memcpy(median_buf[pos], imageIn, buffer_size);
-		pos++;
-		if(pos == (int)median) pos = 0;
-	}
-}
-
-
-void median_func()
-{
-	unsigned char * imageIn  = (unsigned char *)imIn->buffer;
-	unsigned char * imageOut = (unsigned char *)imOut->buffer;
-
-	// Append in median loop
-	median_proc(imageIn, imIn->buffer_size);
-	
-	// Generate output
-	for(unsigned long r = 0; r < imIn->buffer_size; r++)
-	{
-		unsigned short total = 0;
-		for(int i=0; i<(int)median; i++)
-			total += (unsigned short)median_buf[i][r];
-		
-		unsigned char pix = (unsigned char)(total / median);
-		imageOut[r] = pix;
-		
-	}
-}
-
-unsigned char * imageInCopy  = NULL;
-unsigned char * imageInMask = NULL;
-
-void median_enhance() 
-{
-	swImageStruct * imIn = ((swImageStruct *)plugin.data_in);
-	swImageStruct * imOut = ((swImageStruct *)plugin.data_out);
-	unsigned char * imageIn  = (unsigned char *)imIn->buffer;
-	unsigned char * imageOut = (unsigned char *)imOut->buffer;
-
-	if(!imageInCopy)
-		imageInCopy = new unsigned char [imIn->buffer_size];
-	if(!imageInMask)
-		imageInMask = new unsigned char [imIn->buffer_size];
-	
-	memcpy(imageInCopy, imageIn, imIn->buffer_size);
-	memset(imageInMask, 255, imIn->buffer_size);
-	
-	// Generate output
-	if(median_buf)
-	for(unsigned long r = 0; r < imIn->buffer_size; r++)
-	{
-		unsigned short total = 0;
-		for(int i=0; i<(int)median; i++)
-			total += (unsigned short)median_buf[i][r];
-		
-		unsigned char pix = (unsigned char)(total / median);
-		if(abs((long)imageIn[r] - (long)pix)<15) {
-			imageOut[r] = pix;
-		}
-		else {
-			imageOut[r] = pix; //imageIn[r];
-			imageInMask[r] = 0;
-		}
-	}
-	
-	// Append in median loop
-	median_proc_mask(imageInCopy, imageInMask, imIn->buffer_size);
-}
-
-
-
-float * low_update_buf = NULL;
-void low_update() {
-	swImageStruct * imIn = ((swImageStruct *)plugin.data_in);
-	swImageStruct * imOut = ((swImageStruct *)plugin.data_out);
-	unsigned char * imageIn  = (unsigned char *)imIn->buffer;
-	unsigned char * imageOut = (unsigned char *)imOut->buffer;
-	unsigned long r;
-	
-	if(!low_update_buf) {
-		low_update_buf = new float [ imIn->buffer_size ];
-		for(r = 0; r < imIn->buffer_size; r++)
-			low_update_buf[r] = (float)imageIn[r];
-	}
-	
-	float rest = 1.f - low_update_rate;
-	for(r = 0; r < imIn->buffer_size; r++)
-	{
-		low_update_buf[r] = low_update_rate * (float)imageIn[r] + rest * low_update_buf[r];
-		imageOut[r] = (unsigned char)low_update_buf[r];
-	}
-}
-
-
-IplImage * cvImIn = NULL;
-IplImage * cvGray = NULL;
-IplImage * cvBlurred = NULL;
-
-IplImage * cvDiff = NULL;
-
-void allocateImage(IplImage ** img, int w, int h) {
-	// Only in grayscale
-	*img = cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);
-	memset((*img)->imageData, 0, w*h);
-}
-
-
-
-
-void dust_remove() {
-	swImageStruct * imIn = ((swImageStruct *)plugin.data_in);
-	swImageStruct * imOut = ((swImageStruct *)plugin.data_out);
-	unsigned char * imageIn  = (unsigned char *)imIn->buffer;
-	unsigned char * imageOut = (unsigned char *)imOut->buffer;
-	
-	int width = imIn->width;
-	int height = imIn->height;
-	int depth = imIn->depth;
-	
-	if(!cvBlurred) 
-		allocateImage(&cvBlurred, width, height);
-	// Allocate cvGray
-	if(!cvGray) {
-		if(imIn->depth == 1) {
-			cvGray = cvCreateImageHeader(cvSize(width,height), IPL_DEPTH_8U, 1);
-		}
-		else
-			cvGray = cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 1);
-	}
-	
-	if(imIn->depth == 1)
-		cvGray->imageData = (char *)imageIn;
-	else {
-		if(!cvImIn)
-			cvImIn = cvCreateImageHeader(cvSize(width,height), IPL_DEPTH_8U, imIn->depth);
-		
-		cvImIn->imageData = (char *)imageIn;
-		cvCvtColor(cvImIn, cvGray, CV_BGRA2GRAY);
-	}
-	
-	// Now we have a grayscaled image
-	
-	
-	// First, blur the grayscaled image
-	cvSmooth( cvGray, cvBlurred, 
-               CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-               9, 9); //int param1=3, int param2=0 );
-	
-	// Difference to blurred
-	if(!cvDiff) 
-		allocateImage(&cvDiff, width, height);
-	
-	static unsigned long  * u32_palette = NULL;
-	if(!u32_palette) {
-		u32_palette = new unsigned long [257];
-		for(int i=0; i<257; i++) {
 			
-			unsigned long r = Rthermic(i);
-			unsigned long g = Gthermic(i);
-			unsigned long b = Bthermic(i);
+			// Test if there's enough place, if not enough, realloc array
+			if(nb_known_dusts >= max_known_dusts) {
+				int new_nb = max_known_dusts + 200;
+				t_known_dust * new_tab = new t_known_dust [ new_nb ];
+				memcpy(new_tab, known_dusts, sizeof(t_known_dust) * max_known_dusts);
+				
+				delete [] known_dusts;
+				known_dusts = new_tab;
+				max_known_dusts = new_nb;
+			}
+		} while(ret>0 && !feof(g_dataset_f));
+	}
+	
+	
+	// Then evaluate if dust is known
+	double dust_x = (double)(correction.crop_x + correction.rel_seed_x);
+	double dust_y = (double)(correction.crop_y + correction.rel_seed_y);
+	if(img_w > 0) {
+		dust_x /= img_w;
+		dust_y /= img_h;
+	}
+	
+	// Test if dust is known
+	for(int i=0; i<nb_known_dusts; i++) {
+		t_known_dust * pdust = known_dusts + i;
+		if(fabs(dust_x - pdust->dest_x) < pdust->dest_width*0.5
+			&& fabs(dust_y - pdust->dest_y) < pdust->dest_height*0.5) {
 			
-			u32_palette[i] = (b << 24 ) | (r << 16) | (g << 8) | (b);
+			found_score++;
+			
+			float glob_score = (float)found_score / (float)nb_known_dusts;
+			fprintf(stderr, "%s:%d : score: %g %%\n", __func__, __LINE__, 100.f * glob_score);
+			return true;
 		}
 	}
 	
-	unsigned char * grayImage = (unsigned char *)cvGray->imageData;
-	unsigned char * blurImage = (unsigned char *)cvBlurred->imageData;
-	unsigned char * diffImage = (unsigned char *)cvDiff->imageData;
-	
-	unsigned long * imageOut32 = (unsigned long *)imageOut;
-	for(int pos=0; pos<width*height; pos++) 
-	{
-		diffImage[pos] = abs((long)grayImage[pos] - (long)blurImage[pos]);
-	}
-	
-	
-	if(depth == 4) {
-		for(int pos=0; pos<width*height; pos++)
-			if(diffImage[pos] > 10)
-				imageOut32[pos] = 0xffffffff;
-			else
-				imageOut32[pos] = u32_palette[ (int)diffImage[pos] ];
-	} else {
-
-		for(int pos=0; pos<width*height; pos++)
-			if(diffImage[pos] > 10)
-				imageOut[pos] = 0xff;
-			//else
-			//	imageOut[pos] = blurImage[pos];
-	}
-	
-	
-	
-	// GROW REGIONS
-	for(int i=0; i<min(width, height); i++) {
-		
-	}
-	
-}
-
-void hot_pixels() {
-	swImageStruct * imIn = ((swImageStruct *)plugin.data_in);
-	swImageStruct * imOut = ((swImageStruct *)plugin.data_out);
-	unsigned char * imageIn  = (unsigned char *)imIn->buffer;
-	unsigned char * imageOut = (unsigned char *)imOut->buffer;
-	
-	dust_remove();
-}
-
-
-/*****************************************************************************/
-// DO NOT MODIFY MAIN PROC
-void signalhandler(int sig)
-{
-	fprintf(logfile, "================== RECEIVED SIGNAL %d = '%s' From process %d ==============\n", sig, sys_siglist[sig], getpid());
-	signal(sig, signalhandler);
-	
-	if(sig != SIGUSR1)
-		exit(0);
-}
-
-
-int main(int argc, char *argv[])
-{
-	// SwPluginCore load
-	for(int i=0; i<NSIG; i++)
-		signal(i, signalhandler);
-		
-	fprintf(logfile, "registerCategory...\n");
-	plugin.registerCategory(CATEGORY, SUBCATEGORY);
-	
-	// register functions 
-	fprintf(logfile, "registerFunctions...\n");
-	plugin.registerFunctions(functions, nb_functions );
-
-	// process loop
-	fprintf(logfile, "loop...\n");
-	plugin.loop();
-
-	fprintf(logfile, "exit(EXIT_SUCCESS). Bye.\n");
-  	return EXIT_SUCCESS;
+	return false;
 }
 
 
 
 
 
-#endif // PIAF_PLUGIN

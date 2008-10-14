@@ -43,6 +43,7 @@ extern u8 g_debug_imgverbose;
 extern u8 g_debug_imgoutput;
 extern u8 g_debug_correlation;
 extern u8 g_dataset_mode;
+extern u8 g_evaluate_mode;
 
 
 void displayHelp() {
@@ -88,7 +89,16 @@ int main(int argc, char *argv[])
 			}
 			if(strstr(argv[argcount], "dataset")) {
 				g_dataset_mode = 1;
+			} 
+			
+			if(strstr(argv[argcount], "eval")) {
+				g_evaluate_mode = 1;
+			
+				// Force turning of dataset creation mode
+				g_dataset_mode = 0;
 			}
+			
+			
 			if(strstr(argv[argcount], "correl"))	{
 				g_debug_correlation = 1;
 			}
