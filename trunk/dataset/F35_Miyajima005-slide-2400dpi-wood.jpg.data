@@ -1,0 +1,28 @@
+# Tamanoir dataset for file '/Users/tof/Sources/Tamanoir-svn/tamanoir/dataset/F35_Miyajima005-slide-2400dpi-wood.jpg'
+
+Path	/Users/tof/Sources/Tamanoir-svn/tamanoir/dataset/F35_Miyajima005-slide-2400dpi-wood.jpg
+Size	3318x2251
+Channels	3
+Depth	3
+
+[Settings]
+FilmType	2
+Dpi	2400
+HotPixels	70
+Trust	70
+
+[Dusts]
+#Dust	Position	Seed	Forced
+Dust	1917,421+10x12	1921,426	F
+Dust	2024,352+16x16	2035,353	T
+Dust	2068,1404+12x10	2073,1408	F
+Dust	2804,1625+12x10	2808,1629	F
+Dust	2295,1851+10x10	2299,1855	F
+Dust	109,1856+10x10	113,1860	F
+Dust	508,1881+10x12	512,1886	F
+Dust	837,1923+12x10	842,1927	F
+Dust	1020,1956+16x10	1028,1959	F
+Dust	2077,2012+12x10	2082,2016	F
+Dust	962,2223+10x12	966,2227	F
+
+[Stats]
