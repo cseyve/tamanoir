@@ -100,6 +100,24 @@ typedef struct t_correction_ {
 	
 } t_correction;
 
+
+/** @brief Already known dust for evaluation mode */
+typedef struct _known_dust {
+	double dest_x;		/*! Dust position in relative coordinate [0..1[ */
+	double dest_y;		/*! Dust position in relative coordinate [0..1[ */
+	double dest_width;	/*! Dust size in relative coordinate [0..1[ */
+	double dest_height;	/*! Dust size in relative coordinate [0..1[ */
+
+	
+	double seed_x;	/*! Dust seed point in relative coordinate [0..1[ */
+	double seed_y;	/*! Dust seed point in relative coordinate [0..1[ */
+	
+} t_known_dust;
+
+/** @brief Test if dust is already knwon */
+bool testKnownDust(t_correction, int img_w, int img_h); 
+
+
 /** \brief main image processing class
 
 
@@ -140,10 +158,9 @@ public:
 	
 	/** @brief Apply proposed correction  and specify if correction has been forced by user */
 	int forceCorrection(t_correction correction, bool force);
-
 	
-	/** @brief Apply a former correction */
-	int applyCorrection(t_correction correction);
+	/** @brief Apply a former correction and specify if correction has been forced by user */
+	int applyCorrection(t_correction correction, bool force = false);
 
 	/** @brief Mark a former correction proposal as refused by user*/
 	int skipCorrection(t_correction correction);
