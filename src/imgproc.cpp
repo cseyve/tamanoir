@@ -1856,6 +1856,8 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 
 /* Test if dust is already knwon */
 bool testKnownDust(t_correction correction, int img_w, int img_h) {
+	if(g_dataset_mode) return false;
+	
 	if(!known_dusts)  { // Read dataset file to fill known dusts tab 
 	
 		if(!g_dataset_f) { // Cannot read file

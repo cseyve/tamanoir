@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 			}
 			if(strstr(argv[argcount], "dataset")) {
 				g_dataset_mode = 1;
+				g_evaluate_mode = 0;
 			} 
 			
 			if(strstr(argv[argcount], "eval")) {
