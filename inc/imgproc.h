@@ -57,8 +57,6 @@ typedef struct dust_stats_t_ {
 	
 } dust_stats_t;
 
-/** @brief Process then print statistics */
-void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 
 
 /** @brief Local correction storage structure */
@@ -114,13 +112,29 @@ typedef struct _known_dust {
 	
 } t_known_dust;
 
+
+/** @brief Detection performance stats */
+typedef struct _perf_stats {
+	int true_positive;
+	int no_proposal;
+	
+	int false_positive;
+	int false_negative;
+} t_perf_stats;
+
+
+/** @brief Process then print statistics */
+void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
+
 /** @brief Test if dust is already knwon */
 bool testKnownDust(t_correction, int img_w, int img_h); 
 
 
-/** \brief main image processing class
 
 
+/** @brief main image processing class
+
+	This classe is used to load image, detect dust then search for correction proposal
 */
 class TamanoirImgProc {
 public:
@@ -239,6 +253,8 @@ private:
 	*/
 	int findUniform(float * p_mean, float  * p_diff_mean, float * p_variance);
 	
+	/** @brief Performance statistics */
+	t_perf_stats m_perf_stats;
 	
 	/** Perform image processing */
 	int processImage();
