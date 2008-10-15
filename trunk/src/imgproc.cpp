@@ -59,6 +59,7 @@ FILE * g_dataset_f = NULL;
 int found_score = 0;
 t_known_dust * known_dusts = NULL;
 int nb_known_dusts = 0;
+int nb_known_dusts_forced = 0;
 int max_known_dusts = 0;
 double orig_width=0, orig_height=0;
 
@@ -144,6 +145,22 @@ void TamanoirImgProc::purge() {
 			fprintf(g_dataset_f, "\n[Stats]\n");
 			processAndPrintStats(&m_dust_stats, g_dataset_f);
 		}
+		else if(g_evaluate_mode) {
+			// Print performance statistics
+			m_perf_stats.false_negative = nb_known_dusts  // ground truth
+					- m_perf_stats.true_positive;
+			
+			fprintf(stderr, "[ImgProc]::%s:%d : PERFORMANCES / Ground Truth\n"
+					"\tGround truth : %d dusts / %d forced\n"
+					"\tTrue positive : %d / GT:%d = %g %%\n"
+					"\tFalse positive : %d / GT:%d = %g %%\n"
+					, __func__, __LINE__,
+					nb_known_dusts, nb_known_dusts_forced,
+					m_perf_stats.true_positive, nb_known_dusts, 100.f*(float)m_perf_stats.true_positive/(float)nb_known_dusts,
+					m_perf_stats.false_positive, nb_known_dusts, 100.f*(float)m_perf_stats.false_positive/(float)nb_known_dusts
+					);
+		}
+		
 		fclose(g_dataset_f);
 		
 		g_dataset_f = NULL;
@@ -276,6 +293,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	}
 	strcpy(m_filename, filename);
 	
+	// Reset evaluation
+	memset(&m_perf_stats, 0, sizeof(t_perf_stats));
 	
 	if(g_dataset_mode || g_evaluate_mode) {
 		if(g_dataset_f) {
@@ -291,10 +310,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 				g_dataset_f = fopen(datafile, "r");
 				
 				// Reset evaluation
-				found_score = 0;
 				if(known_dusts) delete [] known_dusts;
 				known_dusts = NULL;
-				nb_known_dusts = 0;
+				nb_known_dusts = nb_known_dusts_forced = 0;
 				max_known_dusts = 0;
 				orig_width = orig_height = 0.;
 			} else {
@@ -1288,7 +1306,9 @@ int TamanoirImgProc::findDust(int x, int y) {
 				&copy_width, &copy_height,
 				&best_correl);
 			
-			if(ret>0) {
+			if(ret<=0) {
+				m_perf_stats.no_proposal++;
+			} else {
 				m_lastDustComp = connect; 
 				u8 return_now = 1;
 				
@@ -1394,15 +1414,19 @@ int TamanoirImgProc::findDust(int x, int y) {
 						// Evaluate if dust is already known
 						bool known = testKnownDust(m_correct, originalImage->width, originalImage->height);
 						fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
-							"=> %d,%d in cropped image => no replace candidate (best=%d)...\n", 
+							"=> %d,%d in cropped image => known = %c...\n", 
 							__func__, __LINE__,
 							connect.rect.x,connect.rect.y,
 								connect.rect.width, connect.rect.height,
-							crop_center_x, crop_center_y, best_correl
-						);
-					
-						fprintf(stderr, "[imgproc] %s:%d : known = %c\n", __func__, __LINE__,
-							known ? 'T':'F');
+							crop_center_x, crop_center_y, 
+							(known ? 'T':'F')
+							);
+						
+						if(known) {
+							m_perf_stats.true_positive++;
+						} else {
+							m_perf_stats.false_positive++;
+						}
 					}
 					
 					//fprintf(stderr, "[imgproc] %s:%d : return 1\n", __func__, __LINE__);
@@ -1676,6 +1700,7 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 int TamanoirImgProc::skipCorrection(t_correction correction) {
 	if(correction.copy_width <= 0) return 0;
 	
+	
 	// Update progress
 	int y = correction.crop_y + correction.rel_dest_y;
 	m_progress = (int)(100 * y / grayImage->height);
@@ -1722,6 +1747,13 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
 	
+	/* Update stats */
+	m_dust_stats.nb_grown_validated++;
+	if(correction.area<STATS_MAX_SURF) {
+		m_dust_stats.grown_size_validated[correction.area]++;
+	}
+	
+	/* Update groundg truth */
 	if(g_dataset_mode) {
 		
 		if(g_dataset_f) {
@@ -1747,6 +1779,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	if(correction.area<STATS_MAX_SURF) {
 		m_dust_stats.grown_size_validated[correction.area]++;
 	}
+	
 	
 	// Apply clone on original image
 	tmCloneRegion(  originalImage, 
@@ -1815,19 +1848,19 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 /*	unsigned long grown_size_replaced[STATS_MAX_SURF];		*! grown size histogram */
 /*	unsigned long grown_size_validated[STATS_MAX_SURF];		*! grown size histogram */
 	
-	if(g_debug_imgverbose && f) {
+	if(f) {
 		int max_size = 0;
 		int max_size_replaced = 0;
 		int max_size_validated = 0;
 		for(int size=0; size<STATS_MAX_SURF; size++) {
 			if(dust_stats->grown_size[size]>1)
 				max_size = size;
-		file://localhost/Users/tof/Sources/Tamanoir-svn/tamanoir/src/main.cpp	if(dust_stats->grown_size_replaced[size]>1)
+			if(dust_stats->grown_size_replaced[size]>1)
 				max_size_replaced = size;
 			if(dust_stats->grown_size_validated[size]>1)
 				max_size_validated = size;
 			if(dust_stats->grown_size[size]>0)
-				fprintf(logfile, "[%d] : %lu / %lu / %lu\n", size, 
+				fprintf(f, "[%d] : %lu / %lu / %lu\n", size, 
 					dust_stats->grown_size[size], 
 					dust_stats->grown_size_replaced[size], 
 					dust_stats->grown_size_validated[size]);
@@ -1933,6 +1966,11 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 									next);
 								t_known_dust * pdust = known_dusts + nb_known_dusts;
 								nb_known_dusts++;
+								if(flag[0]=='T') {
+									nb_known_dusts_forced++;
+								} else {
+									
+								}
 								if(orig_width > 0.) {
 									pdust->dest_x = (double)l_x/orig_width;
 									pdust->dest_y = (double)l_y/orig_height;
