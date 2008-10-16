@@ -1306,9 +1306,8 @@ int TamanoirImgProc::findDust(int x, int y) {
 				&copy_width, &copy_height,
 				&best_correl);
 			
-			if(ret<=0) {
-				m_perf_stats.no_proposal++;
-			} else {
+			if(ret>0) {
+				
 				m_lastDustComp = connect; 
 				u8 return_now = 1;
 				
@@ -1433,7 +1432,7 @@ int TamanoirImgProc::findDust(int x, int y) {
 					return 1;
 				}
 			} else {
-				
+				m_perf_stats.no_proposal++;
 				// DEBUG FUNCTIONS
 				if(g_debug_imgverbose > 1) {
 					fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "

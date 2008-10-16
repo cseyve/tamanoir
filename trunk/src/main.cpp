@@ -44,6 +44,7 @@ extern u8 g_debug_imgoutput;
 extern u8 g_debug_correlation;
 extern u8 g_dataset_mode;
 extern u8 g_evaluate_mode;
+extern u8 g_debug_savetmp;
 
 
 void displayHelp() {
@@ -81,10 +82,11 @@ int main(int argc, char *argv[])
 				full = true;
 			}
 			if(strstr(argv[argcount], "debug")) {
-				g_debug_imgverbose =
-					g_debug_imgoutput = 2;
+				g_debug_imgverbose = 1;
+				g_debug_imgoutput = 1;
 			}
 			if(strstr(argv[argcount], "output")) {
+				g_debug_savetmp = 2;
 				g_debug_imgoutput = 2;
 			}
 			if(strstr(argv[argcount], "dataset")) {
@@ -113,8 +115,7 @@ int main(int argc, char *argv[])
 	QApplication a(argc, argv);
 	//a.setFont(QFont("helvetica", 12));
   
-  /*
-	QTranslator tor( 0 );
+ 	QTranslator tor( 0 );
   	// set the location where your .qm files are in load() below as the last parameter instead of "."
   	// for development, use "/" to use the english original as
   	// .qm files are stored in the base project directory.
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
 		"." );
 
  	a.installTranslator( &tor );
-*/
+
 	/* --- Create application ---*/
 	TamanoirApp sA;
 	sA.setArgs(argc, argv);
