@@ -182,6 +182,9 @@ public:
 	/** @brief Get progress in %age */
 	int getProgress();
 	
+	/** @brief Get performance statistics */
+	t_perf_stats getPerfs() { return m_perf_stats; };
+	
 	/** @brief original version of input image */
 	IplImage * getOriginal() { return originalImage; };
 	

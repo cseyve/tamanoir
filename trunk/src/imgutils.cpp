@@ -230,17 +230,20 @@ void tmFillRegion(IplImage * origImage,
 	if(dest_y<0) { dest_y = 0; }
 	
 	// Clip destination
-        if(dest_x + copy_width >= orig_width)
-                copy_width = orig_width - dest_x;
+	if(dest_x + copy_width >= orig_width)
+		copy_width = orig_width - dest_x;
         
-	if(copy_width <= 0)
-		return;
-	
-        if(dest_y + copy_height >= orig_height)
-                copy_height = orig_height - dest_y;
+	if(dest_y + copy_height >= orig_height)
+		copy_height = orig_height - dest_y;
         
-	if(copy_height <= 0)
+	if(copy_width <= 0 || copy_height <= 0) {
+		fprintf(logfile, "imgutils : %s:%d : INVALID clear %dx%d +%d,%d\n", 
+			__func__, __LINE__, 
+			copy_width, copy_height,
+			dest_x, dest_y);
+
 		return;
+	}
 	
 	if(g_debug_imgverbose)
 		fprintf(logfile, "imgutils : %s:%d : clear %dx%d +%d,%d\n", 
@@ -256,11 +259,11 @@ void tmFillRegion(IplImage * origImage,
 	u8 * origImageBuffer = (u8 *)origImage->imageData;
 	
 	// Raw clear
-        for(int y=0; y<copy_height; y++, dest_y++) {
-                memset(origImageBuffer + dest_y * pitch + dest_x*byte_depth, 
+	for(int y=0; y<copy_height; y++, dest_y++) {
+		memset(origImageBuffer + dest_y * pitch + dest_x*byte_depth, 
                         fillValue, 
                         copylength);
-        }
+	}
 }
  
 /*
@@ -284,7 +287,7 @@ void tmCloneRegion(IplImage * origImage,
 	if(src_x<0) { src_x = 0; }
 	if(src_y<0) { src_y = 0; }
 	
-	// Clip copy
+	// Clip copy or destination
 	if( dest_y > src_y) {
 		if(dest_y + copy_height > orig_height)
 			copy_height = orig_height - dest_y;
@@ -292,7 +295,6 @@ void tmCloneRegion(IplImage * origImage,
 		if(src_y + copy_height > orig_height)
 			copy_height = orig_height - src_y;
 	}
-	// Clip destination
 	if( dest_x > src_x) {
 		if(dest_x + copy_width > orig_width)
 			copy_width = orig_width - dest_x;
@@ -300,9 +302,13 @@ void tmCloneRegion(IplImage * origImage,
 		if(src_x + copy_width > orig_width)
 			copy_width = orig_width - src_x;
 	}
-	if(copy_width < 0)
+	if(copy_width <= 0 || copy_height<=0) {
+		fprintf(logfile, "imgutils : %s:%d : INVALID clone src=%d,%d+%dx%d => dest=%d,%d\n", 
+			__func__, __LINE__, 
+			src_x, src_y, copy_width, copy_height,
+			dest_x, dest_y);
 		return;
-	
+	}
 	if(g_debug_imgverbose)
 		fprintf(logfile, "imgutils : %s:%d : clone %d,%d+%dx%d => %d,%d\n", 
 			__func__, __LINE__, 
