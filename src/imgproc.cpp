@@ -1307,7 +1307,6 @@ int TamanoirImgProc::findDust(int x, int y) {
 				&best_correl);
 			
 			if(ret>0) {
-				
 				m_lastDustComp = connect; 
 				u8 return_now = 1;
 				
@@ -1767,9 +1766,16 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-	if(g_debug_imgverbose) {
+	if(g_debug_imgverbose || force) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image.\n", 
 			__func__, __LINE__);
+			
+		fprintf(logfile, "Dust\t%d,%d+%dx%d"
+						"\t%d,%d"
+						"\t%c\n",
+						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
+						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
+						(force?'T':'F') );
 	}
 	
 	
