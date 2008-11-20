@@ -39,6 +39,7 @@ extern FILE * logfile;
 extern u8 g_debug_imgverbose;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_correlation;
+extern u8 g_evaluate_mode;
 
 u8 g_debug_TmThread = 0; 
 
@@ -213,7 +214,7 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	}
 }
 
-void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * e) {
+void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	cropPixmapLabel_last_button = Qt::NoButton;
@@ -492,9 +493,7 @@ void TamanoirApp::on_saveButton_clicked()
 	
 	QFileInfo fi(m_currentFile);
 	QString ext = fi.extension(FALSE);
-	QString base = fi.baseName( TRUE ); 
-       
-	
+	QString base = fi.baseName( TRUE );
 	
     // Save a copy before saving output image
 	QString copystr = base + tr("-copy.") + ext;
@@ -697,6 +696,44 @@ void TamanoirApp::on_skipButton_clicked()
 				statusBar()->showMessage(tr("Finished"));
 				
 				updateDisplay(); // To show corrections
+				
+				/* DISPLAY PERFORMANCES */
+				if(g_evaluate_mode) {
+					QString msg, s;
+					msg = tr("NONE");
+					
+					t_perf_stats stats = m_pImgProc->getPerfs();
+					int sum = stats.true_positive+stats.no_proposal
+						+ stats.false_positive + stats.false_negative;
+					
+					if(sum>0) {
+						msg += tr("After background processing => ");
+						
+						msg += tr("True positive:");
+						s.sprintf("%d / %d = %g %%\n", stats.true_positive, sum, 
+								  100.f * (float)stats.true_positive / sum);
+						msg += s;
+
+						msg += tr("No proposal:");
+						s.sprintf("%d / %d = %g %%\n", stats.no_proposal, sum, 
+								  100.f * (float)stats.no_proposal / sum);
+						msg += s;
+						
+						msg += tr("False positive:");
+						s.sprintf("%d / %d = %g %%\n", stats.false_positive, sum, 
+								  100.f * (float)stats.false_positive / sum);
+						msg += s;
+						
+						msg += tr("False negative:");
+						s.sprintf("%d / %d = %g %%\n", stats.false_negative, sum, 
+								  100.f * (float)stats.false_negative / sum);
+						msg += s;
+						
+						
+						QMessageBox::information( 0, tr("Performances"),
+											 tr(" ") + msg + QString("."));
+					}	
+				}
 				
 				return;
 			}
