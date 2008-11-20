@@ -51,7 +51,7 @@ extern u8 g_debug_correlation;
 /** global option : stop if a dust has no replace candidate */
 u8 g_option_stopoguess = 0;
 u8 g_dataset_mode = 0;
-u8 g_evaluate_mode = 1;
+u8 g_evaluate_mode = 0;
 
 /** @brief dataset file output */
 FILE * g_dataset_f = NULL;
@@ -1411,7 +1411,8 @@ int TamanoirImgProc::findDust(int x, int y) {
 					if(g_evaluate_mode) {
 						// Evaluate if dust is already known
 						bool known = testKnownDust(m_correct, originalImage->width, originalImage->height);
-						fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
+						
+						fprintf(logfile, "TamanoirImgProc::%s:%d : Evaluate : dust at %d,%d+%dx%d "
 							"=> %d,%d in cropped image => known = %c...\n", 
 							__func__, __LINE__,
 							connect.rect.x,connect.rect.y,
@@ -1570,6 +1571,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		unsigned long diffH[256];
 		tmCropImage(diffImage, disp_cropImage, 
 					correction.crop_x, correction.crop_y);
+		
 		CvConnectedComp ext_connect;
 		tmGrowRegion(
 					(u8 *)disp_cropImage->imageData, 

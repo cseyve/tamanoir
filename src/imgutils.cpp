@@ -979,7 +979,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
 	switch(l_FilmType) {
 	default:
 	case FILM_UNDEFINED: /* dust can be darker or brighter => absolute value */
-		fprintf(logfile, "DustHooverImgProc::%s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n", 
+		fprintf(logfile, "[imgutils] %s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n", 
 			__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++) 
 		{
@@ -989,7 +989,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
 		}
 		break;
 	case FILM_NEGATIVE: /* dust must be brighter => gray - median */
-		fprintf(logfile, "DustHooverImgProc::%s:%d : NEGATIVE film type : looking for diffImage = Grayscaled-Blurred ...\n", 
+		fprintf(logfile, "[imgutils] %s:%d : NEGATIVE film type : looking for diffImage = Grayscaled-Blurred ...\n", 
 			__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++) 
 		{
@@ -1001,7 +1001,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
 		}
 		break;
 	case FILM_POSITIVE: /* dust must be darker => median - gray */
-		fprintf(logfile, "DustHooverImgProc::%s:%d : POSITIVE film type : looking for diffImage = Blurred-Grayscaled ...\n", 
+		fprintf(logfile, "[imgutils] %s:%d : POSITIVE film type : looking for diffImage = Blurred-Grayscaled ...\n", 
 			__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++) 
 		{
