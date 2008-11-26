@@ -885,8 +885,8 @@ bool TamanoirImgProc::setTrustCorrection(bool on) {
 	
 	if(m_trust != on) { // We changed to trust mode, return to last correction
 		if(on) {
-			m_seed_x = m_last_correction.crop_x;
-			m_seed_y = m_last_correction.crop_y;
+			m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
+			m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
 		}
 	}
 	

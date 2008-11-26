@@ -1397,6 +1397,10 @@ int TamanoirThread::getProgress() {
 	return m_pImgProc->getProgress(); 
 }
 
+
+/*
+ * Background processing thread 
+ */
 void TamanoirThread::run() {
 	m_running = true;
 	m_run = true;
@@ -1404,7 +1408,7 @@ void TamanoirThread::run() {
 	no_more_dusts = false;
 	while(m_run) {
 		mutex.lock();
-		waitCond.wait(&mutex, 100);
+		waitCond.wait(&mutex, 20);
 		mutex.unlock();
 		
 		if(req_command != PROTH_NOTHING && g_debug_TmThread)
