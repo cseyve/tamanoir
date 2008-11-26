@@ -190,6 +190,7 @@ private slots:
 	void on_rewindButton_clicked();
 	void on_correctButton_clicked();
 
+	void on_linearButton_toggled(bool state);
 
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
