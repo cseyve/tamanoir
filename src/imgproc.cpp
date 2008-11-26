@@ -228,7 +228,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	displaySize = cvSize(scaled_width, scaled_height);
 	
 	// Resize
-	displayImage = cvCreateImage(displaySize, IPL_DEPTH_8U, 1);
+	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
 	fprintf(logfile, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
 		grayImage->width, grayImage->height,
@@ -302,6 +302,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			g_dataset_f = NULL;
 		}
 		
+
 		if(!g_dataset_f) {
 			char datafile[512];
 			sprintf(datafile, "%s.data", m_filename);
@@ -409,7 +410,13 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	m_progress = 20;
 	
 	// convert full image to grayscale
-	grayImage = cvCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+	grayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+	fprintf(logfile, "TamanoirImgProc::%s:%d : created grayscaled "
+			"=> w=%d x h=%d x channels=%d => %d bytes per pixel\n", 
+			__func__, __LINE__, 
+			grayImage->width, grayImage->height, grayImage->nChannels,
+			tmByteDepth(originalImage));
+	
 	switch(originalImage->nChannels) {
 	default:
 	case 1:
@@ -418,12 +425,12 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		memcpy(grayImage->imageData, originalImage->imageData, originalImage->widthStep * originalImage->height);
 		break;
 	case 3:
-		fprintf(logfile, "TamanoirImgProc::%s:%d : convert to Grayscaled image...\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : convert RGB24 to Grayscaled image...\n", 
 			__func__, __LINE__);
 		cvCvtColor(originalImage, grayImage, CV_RGB2GRAY);
 		break;
 	case 4:
-		fprintf(logfile, "TamanoirImgProc::%s:%d : convert to Grayscaled image...\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : convert BGRA to Grayscaled image...\n", 
 			__func__, __LINE__);
 		cvCvtColor(originalImage, grayImage, CV_BGRA2GRAY);
 		break;
@@ -475,12 +482,12 @@ int TamanoirImgProc::preProcessImage() {
 	
 	// Blurred grayscaled image (Gaussian blur) 
 	if(!medianImage) 
-		medianImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
+		medianImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	
 	// Difference (allocated here because it may be used for Open filter 
 	if(!diffImage)
-		diffImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
+		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	
 	m_progress = 30;
@@ -506,7 +513,7 @@ int TamanoirImgProc::preProcessImage() {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n", 
 			__func__, __LINE__);
 		if(!origBlurredImage) {
-			origBlurredImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
+			origBlurredImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 				originalImage->depth, originalImage->nChannels);
 			
 			int orig_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
@@ -668,7 +675,7 @@ int TamanoirImgProc::preProcessImage() {
 	fprintf(logfile, "TamanoirImgProc::%s:%d : create grow image...\n", 
 		__func__, __LINE__); fflush(stderr);
 	if(!growImage)
-		growImage = cvCreateImage(cvSize(originalImage->width, originalImage->height),
+		growImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	memset(growImage->imageData, 0, growImage->widthStep * originalImage->height);
 	
@@ -679,11 +686,11 @@ int TamanoirImgProc::preProcessImage() {
 	processingSize = cvSize( tmmin(200, originalImage->width), 
 							tmmin(200, originalImage->height));
 	
-	if(!cropImage) cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!tmpCropImage) tmpCropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!cropColorImage) cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	
-	if(!sobelImage) sobelImage = cvCreateImage(processingSize,IPL_DEPTH_16S, 1);
+	if(!sobelImage) sobelImage = tmCreateImage(processingSize,IPL_DEPTH_16S, 1);
 	
 	
 	
@@ -709,15 +716,15 @@ int TamanoirImgProc::preProcessImage() {
 	}
 	
 	
-	if(!dilateImage) dilateImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!correctImage) correctImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
 	if(originalImage->nChannels == 1)
 		correctColorImage = correctImage;
 	else {
 		if(correctColorImage != correctImage && correctColorImage)
 			cvReleaseImage(&correctColorImage);
-		correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
 
 	m_lock = false;
@@ -1535,18 +1542,21 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		return;
 	}
 	// Allocate images
-	if(!disp_cropColorImage) 
-		disp_cropColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	if(!disp_correctColorImage) 
-		disp_correctColorImage = cvCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	if(!disp_cropColorImage) {
+		disp_cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	}
+	if(!disp_correctColorImage) {
+		disp_correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	}
 	
-	if(!disp_cropImage) 
-		disp_cropImage = cvCreateImage(processingSize,IPL_DEPTH_8U, 1);
-		
-	if(0) { // Sobel
+	if(!disp_cropImage) {
+		disp_cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	}
+	
+	if(0) { // Sobel : OBSOLETE DISPLAY
 		if(!disp_dilateImage) 
 		{
-			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_16S, 1);
+			disp_dilateImage = tmCreateImage(processingSize, IPL_DEPTH_16S, 1);
 			memset( disp_dilateImage->imageData, 0, 
 					disp_dilateImage->widthStep * disp_dilateImage->height * sizeof(short));
 		}
@@ -1563,10 +1573,11 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	} else { // Grown region
 		
 		if(!disp_dilateImage) {
-			disp_dilateImage = cvCreateImage(processingSize, IPL_DEPTH_8U, 1);
-		}
-		memset( disp_dilateImage->imageData, 0, 
+			disp_dilateImage = tmCreateImage(processingSize, IPL_DEPTH_8U, 1);
+		} else {
+			memset( disp_dilateImage->imageData, 0, 
 					disp_dilateImage->widthStep * disp_dilateImage->height );
+		}	
 		// Get grown region
 		unsigned long diffH[256];
 		tmCropImage(diffImage, disp_cropImage, 
@@ -1585,7 +1596,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	}
 	
 	
-// Top-left on GUI : Original image for display in GUI
+	// Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
 				correction.crop_x, correction.crop_y);
 	
@@ -1601,7 +1612,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	
 	
 	
-// Bottom-Left
+	
+	// Bottom-Left
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
 	tmCropImage(originalImage, disp_correctColorImage, 
@@ -1628,14 +1640,14 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_correctColorImage);
 	}
 	
-// Top-right = dilatation image of dust
+	// Top-right = dilatation image of dust
 	if(g_debug_savetmp)
 	{
 		tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
 			disp_dilateImage);
 	}
 	
-// Bottom-right: Diff image for display in GUI
+	// Bottom-right: Diff image for display in GUI
 	tmCropImage(diffImage, 
 			disp_cropImage, 
 			correction.crop_x, correction.crop_y);
@@ -1643,7 +1655,6 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	{
 		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
 			disp_cropImage);
-		
 	}
 
 	

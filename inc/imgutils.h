@@ -67,6 +67,8 @@ IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_NULL;
 
 /** @brief Return image layer depth in bytes (e.g. 8bit jpeg is 1 byte, 16bit:2bytes...) */
 int tmByteDepth(IplImage * iplImage);
+/** @brief Create an IplImage width OpenCV's cvCreateImage and clear buffer */
+IplImage * tmCreateImage(CvSize size, int depth, int channels);
 
 /** @brief Process a dilatation */
 void tmDilateImage(IplImage * src, IplImage * dst);
