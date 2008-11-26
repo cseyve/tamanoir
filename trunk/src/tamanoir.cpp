@@ -72,6 +72,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
 	
+	ui.linearButton->setToggleButton(TRUE);
+	
 }
 
 
@@ -214,6 +216,10 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	}
 }
 
+void TamanoirApp::on_linearButton_toggled(bool state) {
+	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	
+}
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
