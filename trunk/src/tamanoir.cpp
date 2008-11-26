@@ -74,6 +74,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	
 	ui.linearButton->setToggleButton(TRUE);
 	
+	m_draw_on = false;
 }
 
 
@@ -217,7 +218,18 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 }
 
 void TamanoirApp::on_linearButton_toggled(bool state) {
+	
+	
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	if(m_draw_on != state) {
+		m_draw_on = state;
+		if(m_draw_on) {
+			ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
+		} else {
+			ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
+		}
+	}
+	
 	
 }
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
@@ -238,6 +250,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		case Qt::NoButton:
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
 			cropPixmapLabel_last_button = Qt::NoButton;
+			ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
 			return;
 			break;
 		case Qt::LeftButton: {
@@ -276,7 +289,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			updateDisplay();
 			}
 			break;
-		case Qt::RightButton: { // Right is for destination
+		case Qt::RightButton: { // Right is for moving border
 			cropPixmapLabel_last_button = Qt::NoButton;
 			
 			// Check if the click is near the rectangle
@@ -286,6 +299,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 					   abs(current_dust.rel_src_y - e->pos().y()));
 			if(dx<= 5 && dy <= 5) {
 				cropPixmapLabel_last_button = e->button();
+				ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 			}
 			} break;
 		default:

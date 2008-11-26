@@ -75,6 +75,29 @@ int tmByteDepth(IplImage * iplImage) {
 	return byte_depth;
 }
 
+/* Create an IplImage width OpenCV's cvCreateImage and clear buffer */
+IplImage * tmCreateImage(CvSize size, int depth, int channels) {
+	fprintf(stderr, "[utils] %s:%d : creating IplImage : %dx%d x depth=%d x channels=%d\n",
+			__func__, __LINE__, 
+			size.width, size.height, depth, channels);
+	
+	IplImage * img = cvCreateImage(size, depth, channels);
+	if(img) {
+		memset(img->imageData, 0, sizeof(char) * img->widthStep * img->height);
+		return img;
+	} else {
+		fprintf(stderr, "[utils] %s:%d : ERROR : creating IplImage => %dx%d x depth=%d x channels=%d\n",
+			__func__, __LINE__, 
+			img->width, img->height, img->depth, img->nChannels);
+	}
+	
+	if(img->width==0 || img->height==0 || img->imageData==0) {
+		fprintf(stderr, "[utils] %s:%d : ERROR : creating IplImage => %dx%d x depth=%d x channels=%d\n",
+			__func__, __LINE__, 
+			img->width, img->height, img->depth, img->nChannels);
+	}
+	return img;
+}
 
 /** process a dilatation around the dust */
 void tmDilateImage(IplImage * src, IplImage * dst) {
@@ -116,7 +139,6 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 		
 		
 		originalImage = copyImage;
-		
 		
 		return originalImage;
 	}
@@ -876,7 +898,7 @@ int tmSearchBestCorrelation(
 	best_dist *= depth_coef;
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
-		
+	
 	int difftolerance = (int)best_dist;
 	
 	for(int dy = -search_height; dy < search_height; dy++) {

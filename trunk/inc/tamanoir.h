@@ -218,6 +218,7 @@ private:
 	TamanoirThread * m_pProcThread;
 	QList<t_correction> skipped_list;
 	bool force_mode;
+	bool m_draw_on;
 	QString m_currentFile;
 };
 
