@@ -124,11 +124,10 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 		
 		fprintf(logfile, "TamanoirImgProc::%s:%d : => resize to %d x %d \n",
 				__func__, __LINE__, new_width, new_height);
-		IplImage * copyImage = cvCreateImage(
+		IplImage * copyImage = tmCreateImage(
 				cvSize( new_width, new_height),
 				originalImage->depth,
 				originalImage->nChannels);
-		memset(copyImage->imageData, 0, copyImage->widthStep * copyImage->height);
 		for(int r = 0; r < originalImage->height; r++) {
 			memcpy( copyImage->imageData + r * copyImage->widthStep,
 			      originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
@@ -1202,7 +1201,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 
 
-extern int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compressionarg);
+extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);
 
 
 void tmSaveImage(const char * filename, IplImage * src) {
@@ -1212,7 +1211,7 @@ void tmSaveImage(const char * filename, IplImage * src) {
                 if(strstr(filename, ".tif") || strstr(filename, ".TIF") ) {
                         int ret = saveIplImageAsTIFF(src, (char *)filename,
                                 // compression in none, packbits,jpeg,lzw,zip
-                                                          "none" 
+                                "none" 
                                 //"lzw" //"packbits"
                                 //"zip" //"lzw"
                                                                 );

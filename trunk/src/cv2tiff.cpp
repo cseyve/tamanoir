@@ -89,7 +89,7 @@ static void usage(void);
 static	int processCompressOptions(char*);
 
 //int main(int argc, char* argv[])
-int saveIplImageAsTIFF(IplImage* img, char * outfilename, char * compressionarg)
+int saveIplImageAsTIFF(IplImage* img, const char * outfilename, char * compressionarg)
 {
 	uint32	width = 0, length = 0, linebytes, bufsize;
 	uint32	nbands = 1;		    /* number of bands in input image*/
