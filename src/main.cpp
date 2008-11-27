@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
   	// .qm files are stored in the base project directory.
   	tor.load( QString("tamanoir_") + QTextCodec::locale() + QString(".qm"), 
 		"." );
-
+	
  	a.installTranslator( &tor );
 
 	/* --- Create application ---*/

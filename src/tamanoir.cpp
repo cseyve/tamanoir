@@ -73,6 +73,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.loadingTextLabel->setText(QString(""));
 	ui.linearButton->setToggleButton(true);
 	m_draw_on = m_resize_rect = false;
+	
+	
 }
 
 
@@ -1212,7 +1214,9 @@ QImage iplImageToQImage(IplImage * iplImage) {
 
 
 void TamanoirApp::refreshMainDisplay() {
-	if(!m_pImgProc) return;
+	if(!m_pImgProc) {
+		return;
+	}
 	
 	int scaled_width = ui.largViewFrame->width()-12;
 	int scaled_height = ui.largViewFrame->height()-12;
@@ -1228,8 +1232,14 @@ void TamanoirApp::updateDisplay()
 	if(m_pImgProc) {
 		// After pre-processing, we can get the grayscale version of input image
 		IplImage * displayImage = m_pImgProc->getDisplayImage();
+		
+		
+		if(!displayImage) {
+			refreshMainDisplay ();
+			displayImage = m_pImgProc->getDisplayImage();
+		}
+		
 		if(displayImage) {
-			
 			// Display in main frame
 			int gray_width = displayImage->widthStep;
 			int scaled_width = displayImage->widthStep;
@@ -1354,7 +1364,7 @@ void TamanoirApp::updateDisplay()
 			current_dust.area,
 			width_mm, height_mm);
 		QString str = tr("Dust: ") + QString(strinfo);
-		ui.growTextLabel->setText(str);
+		ui.dustGroupBox->setTitle(str);
 		
 		// Bottom-right : Display diff image (neighbouring)
 		curImage = m_pImgProc->getDiffCrop();
