@@ -678,7 +678,8 @@ int TamanoirImgProc::preProcessImage() {
 	if(!growImage)
 		growImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
-	memset(growImage->imageData, 0, growImage->widthStep * originalImage->height);
+	
+	
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : create crop images....\n", 
 		__func__, __LINE__); fflush(stderr);
@@ -690,33 +691,7 @@ int TamanoirImgProc::preProcessImage() {
 	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	
 	if(!sobelImage) sobelImage = tmCreateImage(processingSize,IPL_DEPTH_16S, 1);
-	
-	
-	
-	
-	
-	// Insert difference histogram in cropColorImage
-	fprintf(logfile, "TamanoirImgProc::%s:%d :Insert difference histogram in cropColorImage...\n", 
-		__func__, __LINE__); fflush(stderr);
-	u8 * colorCropImageBuffer = (u8 *)cropColorImage->imageData;
-	int pitch = cropColorImage->widthStep;
-	int depth = cropColorImage->nChannels;
-	memset(colorCropImageBuffer, 0, pitch*processingSize.height);
-	m_progress = 90;
-	for( int h=0; h<tmmin(256, processingSize.width); h++) {
-		if(diffHisto[h]>1) {
-			// Use log histogram
-			int LogH = (int)(log(diffHisto[h])/log(maxHisto) * processingSize.height);
-			// Insert in image
-			u8 color = (u8)(h == cdgH ? 127 : (h == hThresh ? 0 : 255)); 
-			for(int r=0; r<LogH; r++) 
-				colorCropImageBuffer[ (cropColorImage->height-1-r)*pitch + h*depth ] = color;
-		}
-	}
-	
-	
 	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	
