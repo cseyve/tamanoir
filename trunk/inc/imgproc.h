@@ -212,7 +212,7 @@ public:
 	bool setHotPixelsFilter(bool on);
 	/** @brief Activate/desactivate trust on good corrections */
 	bool setTrustCorrection(bool on);
-	/** S@brief et the scan resolution to use the statistics on dust sizes */
+	/** @brief set the scan resolution to use the statistics on dust sizes */
 	int setResolution(int dpi);
 	
 	/** @brief return correction proposal */
@@ -220,6 +220,11 @@ public:
 	
 	/** @brief Crop images for detailled view arround a previous correction */
 	void cropCorrectionImages(t_correction correction);
+	
+	/** @brief Find a dust from (x, y) seed
+		@return 1 if must return now
+	*/
+	int findDust(int x, int y, t_correction * pcorrection);
 	
 private:
 	/** Initialize buffers */
@@ -301,6 +306,10 @@ private:
 	IplImage * disp_dilateImage; 
 	IplImage * disp_cropImage;
 	
+	/** @brief Find a dust from (x, y) seed
+		@return 1 if must return now
+	*/
+	int findDust(int x, int y);
 	
 	/** @brief Crop images to create cropped views for GUI */
 	void cropViewImages();
@@ -308,10 +317,6 @@ private:
 	int m_seed_x;
 	int m_seed_y;
 	
-	/** @brief Find a dust from (x, y) seed
-		@return 1 if must return now
-	*/
-	int findDust(int x, int y);
 	
 	
 	u8 m_threshold;

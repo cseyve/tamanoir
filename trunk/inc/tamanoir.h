@@ -219,6 +219,7 @@ private:
 	QList<t_correction> skipped_list;
 	bool force_mode;
 	bool m_draw_on;
+	bool m_resize_rect;
 	QString m_currentFile;
 };
 
