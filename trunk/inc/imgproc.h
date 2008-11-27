@@ -31,10 +31,7 @@
 #include "imgutils.h"
 
 
-#define COLORMARK_FAILED	252
-#define COLORMARK_REFUSED	253
-#define COLORMARK_CORRECTED	254
-#define COLORMARK_CURRENT	255
+
 
 
 #define STATS_MAX_SURF	1000

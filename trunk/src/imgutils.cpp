@@ -77,10 +77,12 @@ int tmByteDepth(IplImage * iplImage) {
 
 /* Create an IplImage width OpenCV's cvCreateImage and clear buffer */
 IplImage * tmCreateImage(CvSize size, int depth, int channels) {
+	
+	/*
 	fprintf(stderr, "[utils] %s:%d : creating IplImage : %dx%d x depth=%d x channels=%d\n",
 			__func__, __LINE__, 
 			size.width, size.height, depth, channels);
-	
+	*/
 	IplImage * img = cvCreateImage(size, depth, channels);
 	if(img) {
 		memset(img->imageData, 0, sizeof(char) * img->widthStep * img->height);
@@ -189,16 +191,56 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 void tmMarkFailureRegion(IplImage * origImage, 
 	int x, int y, int w, int h, unsigned char color) {
 	
+	
 	if(origImage->nChannels == 1)
+	{
 		cvRectangle(origImage, 
 			cvPoint(x - 1, y-1),
 			cvPoint(x +w + 1, y+h+1),
 			cvScalar(color), 1);
-	else
-		cvRectangle(origImage, 
-			cvPoint(x - 1, y-1),
-			cvPoint(x +w + 1, y+h+1),
-			CV_RGB(color,color,color), 1);
+	} else {
+		switch(color) {
+		//grayQImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
+		case COLORMARK_CORRECTED:
+			cvRectangle(origImage, 
+				cvPoint(x - 1, y-1),
+				cvPoint(x +w + 1, y+h+1),
+				CV_RGB(0,255,0), 1);
+			break;
+		//grayQImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
+		case COLORMARK_REFUSED:
+			cvRectangle(origImage, 
+				cvPoint(x - 1, y-1),
+				cvPoint(x +w + 1, y+h+1),
+				//CV_RGB(255,255,0)
+				CV_RGB(0,255,255)
+				, 1);
+			break;
+		//grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
+		case COLORMARK_FAILED:
+			cvRectangle(origImage, 
+				cvPoint(x - 1, y-1),
+				cvPoint(x +w + 1, y+h+1),
+				//CV_RGB(255,0,0)
+				CV_RGB(0,0,255)
+				, 1);
+			break;
+		//grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
+		case COLORMARK_CURRENT:
+			cvRectangle(origImage, 
+				cvPoint(x - 1, y-1),
+				cvPoint(x +w + 1, y+h+1),
+			CV_RGB(255,0,0)	//CV_RGB(0,0,255)
+				, 1);
+			break;
+		default:
+			cvRectangle(origImage, 
+				cvPoint(x - 1, y-1),
+				cvPoint(x +w + 1, y+h+1),
+				CV_RGB(color,color,color), 1);
+			break;
+		}
+	}
 }
 
 /** Return the ratio of pixels non 0 in an IplImage in a region */
@@ -535,7 +577,7 @@ void tmCropImage(IplImage * origImage,
 					(unsigned char *)(origImage->imageData 
 							+ 1 // To get the most significant byte MSB
 							+ y * origImage->widthStep);
-				int orig_pos = orig_pix_offset + (origImage->nChannels -  1)*2;
+				int orig_pos = orig_pix_offset; // + (origImage->nChannels -  1)*2;
 				int crop_pix_offset = ly * cropImage->widthStep; // line offset
 				for(int lx = 0; lx<copywidth; lx++, 
 					crop_pix_offset += nchannels2, 
@@ -544,7 +586,7 @@ void tmCropImage(IplImage * origImage,
 						
 						// Avoid 255 value for display
 						unsigned char val = (unsigned char)(
-							origBuffer[ orig_pos - ld*2 ]);
+							origBuffer[ orig_pos + ld*2 ]);
 						if(val == 255) val = 254;
 						
 						cropImageBuffer[ 

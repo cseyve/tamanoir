@@ -74,7 +74,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.linearButton->setToggleButton(true);
 	m_draw_on = m_resize_rect = false;
 	
-	
+	m_main_display_rect = ui.mainPixmapLabel->rect();
 }
 
 
@@ -185,29 +185,37 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		// we must not store in skipped dusts list
 		force_mode = true;
 		
-		IplImage * displayImage = m_pImgProc->getGrayscale();
-		if(!displayImage)
+		IplImage * origImage = m_pImgProc->getGrayscale();
+		if(!origImage)
 			return;
+		IplImage * displayImage = m_pImgProc->getDisplayImage();
 		
 		IplImage * cropImage = m_pImgProc->getCrop();
 		if(!cropImage)
 			return;
 		
-		int scaled_width = ui.largViewFrame->width()-12;
-		int scaled_height = ui.largViewFrame->height()-12;
-		scaled_width = ui.mainPixmapLabel->width()-12;
-		scaled_height = ui.mainPixmapLabel->height()-12;
+		//int scaled_width = m_main_display_rect.width()-12;
+		//int scaled_height = m_main_display_rect.height()-12;
+		int scaled_width = ui.mainPixmapLabel->width()-2;
+		int scaled_height = ui.mainPixmapLabel->height()-2;
 		
+		
+		
+		//float scale = (float)tmmax( displayImage->width, displayImage->height )
+		//	/ (float)tmmax(scaled_width, scaled_height);
 		float scale = (float)tmmax( displayImage->width, displayImage->height )
 			/ (float)tmmax(scaled_width, scaled_height);
+		
+		float scale_x = (float)origImage->width / (float)scaled_width;
+		float scale_y = (float)origImage->height / (float)scaled_height;
 		
 		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
 				e->pos().x(), e->pos().y(), scale);
 		
 		// Create a fake dust in middle
 		memset(&current_dust, 0, sizeof(t_correction));
-		current_dust.crop_x = (int)roundf(e->pos().x() * scale) - (cropImage->width+1) / 2;
-		current_dust.crop_y = (int)roundf(e->pos().y() * scale) - (cropImage->height +1)/ 2;
+		current_dust.crop_x = (int)roundf(e->pos().x() * scale_x) - (cropImage->width+1) / 2;
+		current_dust.crop_y = (int)roundf(e->pos().y() * scale_y) - (cropImage->height +1)/ 2;
 		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
 		current_dust.rel_src_y = current_dust.rel_dest_y = cropImage->height / 2;
 		current_dust.rel_dest_y += 20;
@@ -1125,12 +1133,12 @@ QImage iplImageToQImage(IplImage * iplImage) {
 				int pos4 = r * orig_width*4;
 				for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
 				{
-					//buffer4[pos4 + 2] = buffer3[pos3];
-					//buffer4[pos4 + 1] = buffer3[pos3+1];
-					//buffer4[pos4    ] = buffer3[pos3+2];
-					buffer4[pos4   ] = buffer3[pos3];
+					buffer4[pos4 + 2] = buffer3[pos3];
 					buffer4[pos4 + 1] = buffer3[pos3+1];
-					buffer4[pos4 + 2] = buffer3[pos3+2];
+					buffer4[pos4    ] = buffer3[pos3+2];
+					//buffer4[pos4   ] = buffer3[pos3];
+					//buffer4[pos4 + 1] = buffer3[pos3+1];
+					//buffer4[pos4 + 2] = buffer3[pos3+2];
 				}
 			}
 		}
@@ -1220,8 +1228,8 @@ void TamanoirApp::refreshMainDisplay() {
 		return;
 	}
 	
-	int scaled_width = ui.largViewFrame->width()-12;
-	int scaled_height = ui.largViewFrame->height()-12;
+	int scaled_width = m_main_display_rect.width()-2;
+	int scaled_height = m_main_display_rect.height()-2;
 	
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
@@ -1242,23 +1250,26 @@ void TamanoirApp::updateDisplay()
 		}
 		
 		if(displayImage) {
+			
 			// Display in main frame
-			int gray_width = displayImage->widthStep;
-			int scaled_width = displayImage->widthStep;
+			int gray_width = displayImage->width;
+			int scaled_width = displayImage->width;
 			int scaled_height = displayImage->height;
+			QImage grayQImage(gray_width, displayImage->height, 8*displayImage->nChannels);
+			if(displayImage->nChannels == 1) {
+				memcpy(grayQImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
+				grayQImage.setNumColors(256);
+				for(int c=0; c<256; c++) 
+					grayQImage.setColor(c, qRgb(c,c,c));
 			
-			QImage grayQImage(gray_width, displayImage->height, 8);
-			memcpy(grayQImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
-			
-			grayQImage.setNumColors(256);
-			for(int c=0; c<256; c++) 
-				grayQImage.setColor(c, qRgb(c,c,c));
-			
-			grayQImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
-			grayQImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
-			grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
-			grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
-			
+				grayQImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
+				grayQImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
+				grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
+				grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
+			}
+			else
+				grayQImage = iplImageToQImage(displayImage);
+				
 			QPixmap pixmap;
 			
 			/*
@@ -1268,11 +1279,14 @@ void TamanoirApp::updateDisplay()
 			*/
 			pixmap.convertFromImage( grayQImage ); //, QImage::ScaleMin);
 			
-			/*
+			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : %d,%d+%dx%d\n", 
+									__func__, __LINE__,
+									m_main_display_rect.x(), m_main_display_rect.y(),
+									m_main_display_rect.width(),m_main_display_rect.height() );
 			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__, 
 									pixmap.width(), pixmap.height(),
 									scaled_width, scaled_height);
-			*/
+			
 			
 			//mainPixmapLabel->setFixedSize(scaled_width,scaled_height);
 			/*
@@ -1280,9 +1294,12 @@ void TamanoirApp::updateDisplay()
 																	 largViewFrame->y() + (largViewFrame->height()-scaled_height)/2,
 																	 scaled_width, scaled_height);
 			*/
-			ui.mainPixmapLabel->setGeometry((ui.largViewFrame->width()-scaled_width+1)/2,
-										(ui.largViewFrame->height()-scaled_height+1)/2,
+			
+			ui.mainPixmapLabel->setGeometry(
+										m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
+								30 +	m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
 										scaled_width+2, scaled_height+2);
+			
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
 		
