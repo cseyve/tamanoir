@@ -861,7 +861,7 @@ bool TamanoirImgProc::setHotPixelsFilter(bool on) {
  * Activate/desactivate trust on good corrections
  */
 bool TamanoirImgProc::setTrustCorrection(bool on) {
-	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s trust on good correction proposals (last=%d,%d)\n",
+	fprintf(logfile, "TamanoirImgProc::%s:%d : %s trust on good correction proposals (last=%d,%d)\n",
 		__func__, __LINE__,
 		(on ? "ACTIVATE" : "DESACTIVATE" ),
 		m_last_correction.crop_x, m_last_correction.crop_y);
@@ -872,6 +872,9 @@ bool TamanoirImgProc::setTrustCorrection(bool on) {
 			m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
 		}
 	}
+	
+	// Then search for next
+	nextDust ();
 	
 	m_trust = on;
 	

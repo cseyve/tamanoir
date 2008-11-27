@@ -195,12 +195,14 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		
 		int scaled_width = ui.largViewFrame->width()-12;
 		int scaled_height = ui.largViewFrame->height()-12;
+		scaled_width = ui.mainPixmapLabel->width()-12;
+		scaled_height = ui.mainPixmapLabel->height()-12;
 		
 		float scale = (float)tmmax( displayImage->width, displayImage->height )
 			/ (float)tmmax(scaled_width, scaled_height);
 		
-		//fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
-		//		e->pos().x(), e->pos().y(), scale);
+		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
+				e->pos().x(), e->pos().y(), scale);
 		
 		// Create a fake dust in middle
 		memset(&current_dust, 0, sizeof(t_correction));
@@ -1401,7 +1403,7 @@ TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	
 	req_command = current_command = PROTH_NOTHING;
 	no_more_dusts = false;
-	m_run = m_running = false;
+	m_modeAuto = m_run = m_running = false;
 	
 	start();
 }
@@ -1646,6 +1648,8 @@ void TamanoirThread::run() {
 				if(!m_modeAuto) {
 					dust_list.append(l_dust);
 				} else {
+					fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n", 
+						__func__, __LINE__);
 					m_pImgProc->applyCorrection(l_dust);
 					// Fasten next search
 					req_command = PROTH_SEARCH;
@@ -1677,6 +1681,9 @@ void TamanoirThread::run() {
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
 			
 			no_more_dusts = false;
+			
+			// Search for next dust 
+			req_command = PROTH_SEARCH;
 			
 			break;
 		}
