@@ -204,7 +204,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	if(displayImage) 
 		return; // Already displayed
 	
-	
+			
 	// Get best fit w/h for display in main frame
 	int gray_width = grayImage->width;
 	while((gray_width % 4) > 0)
@@ -220,6 +220,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	else
 		scaled_width = scaled_height * grayImage->width / grayImage->height;
 	
+	fprintf(stderr, "TamanoirImgProc::%s:%d : => scaled size %dx%d\n", __func__, __LINE__, scaled_width, scaled_height);
 	
 	// Use only size with 4xN dimensions
 	while(scaled_width % 4) { scaled_width--; }
@@ -229,7 +230,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	
 	// Resize
 	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
-	fprintf(logfile, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
+	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
 		grayImage->width, grayImage->height,
 		displayImage->width, displayImage->height
@@ -852,7 +853,7 @@ int TamanoirImgProc::saveFile(const char * filename) {
 bool TamanoirImgProc::setHotPixelsFilter(bool on) {
 	if(m_hotPixels == on) return on;
 	
-	fprintf(logfile, "[TamanoirImgProc] %s:%d : %s hot pixels filtering\n", __func__, __LINE__,
+	fprintf(logfile, "TamanoirImgProc::%s:%d : %s hot pixels filtering\n", __func__, __LINE__,
 		(on ? "ACTIVATE" : "DESACTIVATE" ) );
 	m_hotPixels = on ;
 	
@@ -1510,7 +1511,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					if( best_correl < TRUST_CORREL_MAX
 						&& pcorrection->area < TRUST_AREA_MAX
 						&& fill_failure == 0) {
-						
+						fprintf(stderr, "[imgproc] %s:%d : m_trust=%c & fill_failure=%g\n", 
+								__func__, __LINE__, 
+								m_trust?'T':'F', fill_failure);
 						forceCorrection(*pcorrection, true);
 						return_now = 0;
 					} 
@@ -1884,9 +1887,9 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-	if(g_debug_imgverbose || force) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image.\n", 
-			__func__, __LINE__);
+//	if(g_debug_imgverbose || force) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
+				__func__, __LINE__, force?"TRUE":"FALSE");
 			
 		fprintf(logfile, "Dust\t%d,%d+%dx%d"
 						"\t%d,%d"
@@ -1894,7 +1897,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
 						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
 						(force?'T':'F') );
-	}
+//}
 	
 	
 	/** Update stats */
