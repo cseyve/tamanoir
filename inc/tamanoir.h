@@ -220,6 +220,7 @@ private:
 	bool force_mode;
 	bool m_draw_on;
 	bool m_resize_rect;
+	QRect m_main_display_rect;
 	QString m_currentFile;
 };
 

@@ -197,7 +197,9 @@ void TamanoirImgProc::purge() {
 
 
 void TamanoirImgProc::setDisplaySize(int w, int h) {
-	if(!medianImage) {
+	if(!//medianImage // is forst created when loading gray image
+		grayImage
+	) {
 		displaySize = cvSize(w, h);
 		return;
 	}
@@ -229,7 +231,11 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	displaySize = cvSize(scaled_width, scaled_height);
 	
 	// Resize
-	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
+//	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
+	IplImage * tmp_displayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, originalImage->nChannels);
+	cvConvertImage(originalImage, tmp_displayImage);
+	
+	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
 	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
 		grayImage->width, grayImage->height,
@@ -237,8 +243,9 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		);
 	
 	
-	cvResize(grayImage, displayImage, CV_INTER_LINEAR );
 	
+	cvResize(tmp_displayImage, displayImage, CV_INTER_LINEAR );
+	cvReleaseImage(&tmp_displayImage);
 	
 	// Prevent image values to be > 253
 	for(int r=0; r<displayImage->height; r++)
@@ -284,7 +291,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
 					);
 	m_progress = 10;
-
+	
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : cannot open file '%s' !!\n",
 					__func__, __LINE__, filename);

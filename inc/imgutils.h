@@ -58,6 +58,11 @@ typedef unsigned short u16;
 #define IMGUTILS_NULL
 #endif
 
+#define COLORMARK_FAILED	252
+#define COLORMARK_REFUSED	253
+#define COLORMARK_CORRECTED	254
+#define COLORMARK_CURRENT	255
+
 
 #define DIFF_CONTOUR    92
 #define DIFF_NEUTRALIZE 64

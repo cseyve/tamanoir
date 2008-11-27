@@ -124,7 +124,7 @@
        <x>10</x>
        <y>10</y>
        <width>451</width>
-       <height>131</height>
+       <height>141</height>
       </rect>
      </property>
      <property name="title" >
@@ -134,7 +134,7 @@
       <property name="geometry" >
        <rect>
         <x>90</x>
-        <y>50</y>
+        <y>60</y>
         <width>81</width>
         <height>32</height>
        </rect>
@@ -150,7 +150,7 @@
       <property name="geometry" >
        <rect>
         <x>10</x>
-        <y>20</y>
+        <y>30</y>
         <width>161</width>
         <height>32</height>
        </rect>
@@ -166,7 +166,7 @@
       <property name="geometry" >
        <rect>
         <x>10</x>
-        <y>50</y>
+        <y>60</y>
         <width>81</width>
         <height>32</height>
        </rect>
@@ -182,7 +182,7 @@
       <property name="geometry" >
        <rect>
         <x>10</x>
-        <y>90</y>
+        <y>100</y>
         <width>81</width>
         <height>32</height>
        </rect>
@@ -198,7 +198,7 @@
       <property name="geometry" >
        <rect>
         <x>90</x>
-        <y>90</y>
+        <y>100</y>
         <width>81</width>
         <height>32</height>
        </rect>
@@ -214,7 +214,7 @@
       <property name="geometry" >
        <rect>
         <x>180</x>
-        <y>20</y>
+        <y>30</y>
         <width>141</width>
         <height>101</height>
        </rect>
@@ -317,7 +317,7 @@
       <property name="geometry" >
        <rect>
         <x>320</x>
-        <y>20</y>
+        <y>30</y>
         <width>121</width>
         <height>101</height>
        </rect>
@@ -434,8 +434,8 @@
      <widget class="QPushButton" name="linearButton" >
       <property name="geometry" >
        <rect>
-        <x>120</x>
-        <y>10</y>
+        <x>130</x>
+        <y>20</y>
         <width>91</width>
         <height>32</height>
        </rect>
@@ -451,7 +451,7 @@
     <widget class="QGroupBox" name="dustGroupBox" >
      <property name="geometry" >
       <rect>
-       <x>239</x>
+       <x>240</x>
        <y>150</y>
        <width>221</width>
        <height>261</height>
@@ -547,17 +547,6 @@
       </property>
      </widget>
     </widget>
-    <zorder>frame_2</zorder>
-    <zorder>frame_5</zorder>
-    <zorder>frame_3</zorder>
-    <zorder>frame_4</zorder>
-    <zorder>actionsFrame</zorder>
-    <zorder>groupBox</zorder>
-    <zorder>cropGroupBox</zorder>
-    <zorder>dustGroupBox</zorder>
-    <zorder>groupBox_4</zorder>
-    <zorder>correctGroupBox</zorder>
-    <zorder>diffGroupBox</zorder>
    </widget>
    <widget class="QGroupBox" name="largViewFrame" >
     <property name="geometry" >
@@ -565,7 +554,7 @@
       <x>10</x>
       <y>50</y>
       <width>511</width>
-      <height>561</height>
+      <height>571</height>
      </rect>
     </property>
     <property name="title" >
@@ -575,7 +564,7 @@
      <property name="geometry" >
       <rect>
        <x>10</x>
-       <y>20</y>
+       <y>30</y>
        <width>491</width>
        <height>531</height>
       </rect>
@@ -593,9 +582,6 @@
       <bool>false</bool>
      </property>
     </widget>
-    <zorder>mainPixmapLabel</zorder>
-    <zorder>correctPixmapLabel</zorder>
-    <zorder>groupBox_4</zorder>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar" />
