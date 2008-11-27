@@ -71,10 +71,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
-	
-	ui.linearButton->setToggleButton(TRUE);
-	
-	m_draw_on = false;
+	ui.linearButton->setToggleButton(true);
+	m_draw_on = m_resize_rect = false;
 }
 
 
@@ -203,6 +201,7 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		//		e->pos().x(), e->pos().y(), scale);
 		
 		// Create a fake dust in middle
+		memset(&current_dust, 0, sizeof(t_correction));
 		current_dust.crop_x = (int)roundf(e->pos().x() * scale) - (cropImage->width+1) / 2;
 		current_dust.crop_y = (int)roundf(e->pos().y() * scale) - (cropImage->height +1)/ 2;
 		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
@@ -213,9 +212,11 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		
 		m_pImgProc->setCopySrc(&current_dust,
 			cropImage->width / 2, cropImage->height / 2);
+			
 		updateDisplay();
 	}
 }
+
 
 void TamanoirApp::on_linearButton_toggled(bool state) {
 	
@@ -223,15 +224,16 @@ void TamanoirApp::on_linearButton_toggled(bool state) {
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(m_draw_on != state) {
 		m_draw_on = state;
+		
 		if(m_draw_on) {
 			ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
 		} else {
 			ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
 		}
 	}
-	
-	
 }
+
+
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 	
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
@@ -251,9 +253,25 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
 			cropPixmapLabel_last_button = Qt::NoButton;
 			ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
+			m_resize_rect = false;
 			return;
 			break;
 		case Qt::LeftButton: {
+			if(!m_draw_on) {
+				// Check if the click is near the border of the rectangle
+				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
+						abs(current_dust.rel_src_x - e->pos().x()));
+				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
+						abs(current_dust.rel_src_y - e->pos().y()));
+				if(dx<= 5 && dy <= 5) {
+					cropPixmapLabel_last_button = Qt::RightButton; // e->button();
+					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
+					m_resize_rect = true;
+					return;
+				} else {
+					m_resize_rect = false;
+				}
+			}
 			// First check if click is closer to src or dest
 			int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
 			int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
@@ -270,7 +288,18 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 					// Move dest
 					is_src_selected = false;
 				}
+				
+				if(!m_draw_on) {
+					ui.cropPixmapLabel->setCursor( Qt::PointingHandCursor);
+				}
 			}
+			
+			if(m_draw_on) {
+				// Move dest
+				is_src_selected = false;
+			}
+			
+			
 			cropPixmapLabel_last_button = e->button();
 			if(is_src_selected) {
 				// Move src
@@ -280,6 +309,34 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				// Move dest
 				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
 				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+				if(m_draw_on) {
+					current_dust.rel_seed_x = e->pos().x();
+					current_dust.rel_seed_y = e->pos().y();
+					
+					/** No search when we click = click=apply 
+					t_correction search_correct = current_dust;
+					
+					// Compute correction
+					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
+					//g_debug_imgverbose = 255;
+					//g_debug_correlation = 255;
+					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x , 
+										current_dust.crop_y+current_dust.rel_seed_y , 
+											&search_correct);
+					g_debug_imgverbose = old_debug;
+					g_debug_correlation = old_correlation;
+				
+					if(ret > 0) {
+						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+							current_dust.crop_x+current_dust.rel_seed_x , 
+							current_dust.crop_y+current_dust.rel_seed_y , 
+							ret);
+						current_dust = search_correct;
+						
+					}
+					** No search when we click = click=apply **/
+					m_pImgProc->applyCorrection(current_dust, true);
+				}
 			}
 			
 			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
@@ -291,15 +348,19 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			break;
 		case Qt::RightButton: { // Right is for moving border
 			cropPixmapLabel_last_button = Qt::NoButton;
-			
-			// Check if the click is near the rectangle
-			int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
+			if(m_draw_on) {	// Move src
+				current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
+			} else {
+				// Check if the click is near the rectangle
+				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
 					   abs(current_dust.rel_src_x - e->pos().x()));
-			int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
+				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
 					   abs(current_dust.rel_src_y - e->pos().y()));
-			if(dx<= 5 && dy <= 5) {
-				cropPixmapLabel_last_button = e->button();
-				ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
+				if(dx<= 5 && dy <= 5) {
+					cropPixmapLabel_last_button = e->button();
+					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
+				}
 			}
 			} break;
 		default:
@@ -320,8 +381,67 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		
 		switch(cropPixmapLabel_last_button) {
 		default:
-		case Qt::NoButton:
-			break;
+		case Qt::NoButton: {
+			if(!m_draw_on) {
+				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
+					   abs(current_dust.rel_src_x - e->pos().x()));
+				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
+					   abs(current_dust.rel_src_y - e->pos().y()));
+				if(dx<= 5 && dy <= 5) {
+					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
+					return;
+				}
+				
+				// First check if click is closer to src or dest
+				int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
+				int	dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+				float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+			
+				int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
+				int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+				float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
+				if(tmmin(dist_src, dist_dest) < tmmin(current_dust.copy_width, current_dust.copy_height)/2) {
+					
+					ui.cropPixmapLabel->setCursor( Qt::PointingHandCursor);
+				}
+				else {
+					ui.cropPixmapLabel->setCursor( Qt::ArrowCursor);
+				}
+
+				
+			} else {
+				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
+				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+				current_dust.rel_seed_x = e->pos().x();
+				current_dust.rel_seed_y = e->pos().y();
+				
+				// Compute correction
+				t_correction search_correct = current_dust;
+				u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
+				//g_debug_imgverbose = 255;
+				//g_debug_correlation = 255;
+				int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x , 
+										current_dust.crop_y+current_dust.rel_seed_y , 
+											&search_correct);
+				g_debug_imgverbose = old_debug;
+				g_debug_correlation = old_correlation;
+				
+				if(ret > 0) {
+					fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+							current_dust.crop_x+current_dust.rel_seed_x , 
+							current_dust.crop_y+current_dust.rel_seed_y , 
+							ret);
+					current_dust = search_correct;
+						
+					//m_pImgProc->applyCorrection(search_correct, true);
+				}
+			}
+			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
+			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
+			m_pImgProc->setCopySrc(&current_dust,
+				center_x, center_y);
+			updateDisplay();
+			}break;
 		case Qt::LeftButton:
 			{
 			if(is_src_selected) {
@@ -334,7 +454,44 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
 			}
 			
+			if(m_draw_on) {
+				// Get move from last position 
+				int dx = e->pos().x() - current_dust.rel_seed_x;
+				int dy = e->pos().y() - current_dust.rel_seed_y;
 			
+				current_dust.rel_seed_x = e->pos().x();
+				current_dust.rel_seed_y = e->pos().y();
+				
+				// Move src too
+				current_dust.rel_src_x += dx;
+				current_dust.rel_src_y += dy;
+				
+				
+				/* No search when moving with the button down 
+				// Compute correction
+				t_correction search_correct = current_dust;
+					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
+					//g_debug_imgverbose = 255;
+					//g_debug_correlation = 255;
+					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x , 
+										current_dust.crop_y+current_dust.rel_seed_y , 
+											&search_correct);
+					g_debug_imgverbose = old_debug;
+					g_debug_correlation = old_correlation;
+				
+					if(ret > 0) {
+						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+							current_dust.crop_x+current_dust.rel_seed_x , 
+							current_dust.crop_y+current_dust.rel_seed_y , 
+							ret);
+						current_dust = search_correct;
+						
+						
+					}
+				* No search when moving with the button down */
+				m_pImgProc->applyCorrection(current_dust, true);
+			}
+
 			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
 			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
 			m_pImgProc->setCopySrc(&current_dust,
@@ -1072,7 +1229,6 @@ void TamanoirApp::updateDisplay()
 		// After pre-processing, we can get the grayscale version of input image
 		IplImage * displayImage = m_pImgProc->getDisplayImage();
 		if(displayImage) {
-			
 			
 			// Display in main frame
 			int gray_width = displayImage->widthStep;

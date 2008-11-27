@@ -635,6 +635,61 @@
       <string>Linear / Draw in</string>
      </property>
     </widget>
+    <widget class="QLabel" name="label_3" >
+     <property name="geometry" >
+      <rect>
+       <x>240</x>
+       <y>7</y>
+       <width>201</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="palette" >
+      <palette>
+       <active>
+        <colorrole role="Text" >
+         <brush brushstyle="SolidPattern" >
+          <color alpha="255" >
+           <red>198</red>
+           <green>0</green>
+           <blue>0</blue>
+          </color>
+         </brush>
+        </colorrole>
+       </active>
+       <inactive>
+        <colorrole role="Text" >
+         <brush brushstyle="SolidPattern" >
+          <color alpha="255" >
+           <red>198</red>
+           <green>0</green>
+           <blue>0</blue>
+          </color>
+         </brush>
+        </colorrole>
+       </inactive>
+       <disabled>
+        <colorrole role="Text" >
+         <brush brushstyle="SolidPattern" >
+          <color alpha="255" >
+           <red>69</red>
+           <green>69</green>
+           <blue>69</blue>
+          </color>
+         </brush>
+        </colorrole>
+       </disabled>
+      </palette>
+     </property>
+     <property name="font" >
+      <font>
+       <italic>true</italic>
+      </font>
+     </property>
+     <property name="text" >
+      <string>Warning: no undo !</string>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar" />
