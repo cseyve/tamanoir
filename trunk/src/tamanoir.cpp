@@ -1128,7 +1128,6 @@ QImage iplImageToQImage(IplImage * iplImage) {
 			u8 * buffer3 = (u8 *)iplImage->imageData;
 			u8 * buffer4 = (u8 *)qImage.bits();
 			int orig_width4 = 4 * orig_width;
-			tmSaveImage ("/dev/shm/iplImage2QAimage_RGB24-BGR32-rgb24buf.ppm", iplImage);
 			
 			for(int r=0; r<iplImage->height; r++)
 			{

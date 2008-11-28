@@ -299,6 +299,12 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		m_filename[0] = '\0';
 		return -1;
 	}
+	
+	tmPrintProperties (originalImage);
+	
+	// Save image in /dev/shm
+	//tmSaveImage ("/dev/shm/originalImage.ppm", originalImage );
+	
 	strcpy(m_filename, filename);
 	
 	// Reset evaluation
@@ -1688,6 +1694,16 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 				
 	}
 	
+	// Bottom-right: Diff image for display in GUI
+	tmCropImage(diffImage, 
+			disp_cropImage, 
+			correction.crop_x, correction.crop_y);
+	if(g_debug_savetmp)
+	{
+		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
+			disp_cropImage);
+	}
+
 	
 	// Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
@@ -1704,13 +1720,10 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	}
 	
 	
-	
-	
 	// Bottom-Left
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
-	tmCropImage(originalImage, disp_correctColorImage, 
-			correction.crop_x, correction.crop_y);
+	cvCopy(disp_cropColorImage, disp_correctColorImage);
 	
 	// Clone image region 
 	tmCloneRegion(disp_cropColorImage, 
@@ -1740,16 +1753,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_dilateImage);
 	}
 	
-	// Bottom-right: Diff image for display in GUI
-	tmCropImage(diffImage, 
-			disp_cropImage, 
-			correction.crop_x, correction.crop_y);
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
-			disp_cropImage);
-	}
-
+	
 	
 // Main windows	
 	if(displayImage) {
