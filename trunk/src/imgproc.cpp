@@ -234,9 +234,8 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	
 	// Resize
 //	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
-	IplImage * tmp_displayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, originalImage->nChannels);
-	cvConvertImage(originalImage, tmp_displayImage);
-	
+	IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
+		IPL_DEPTH_8U, originalImage->nChannels);
 	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
 	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
@@ -244,19 +243,31 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		displayImage->width, displayImage->height
 		);
 	
-	
-	
-	cvResize(tmp_displayImage, displayImage, CV_INTER_LINEAR );
-	cvReleaseImage(&tmp_displayImage);
-	
-	// Prevent image values to be > 253
-	for(int r=0; r<displayImage->height; r++)
-	{
-		u8 * lineGray = (u8 *)displayImage->imageData 
-			+ r * displayImage->widthStep;
-		for(int c = 0 ; c<displayImage->width; c++)
-			if(lineGray[c] >= COLORMARK_FAILED)
-				lineGray[c] = COLORMARK_FAILED-1;
+	//cvResize(originalImage, displayImage, CV_INTER_LINEAR );
+	cvConvertImage(originalImage, tmpDisplayImage );
+	cvResize(tmpDisplayImage, displayImage, CV_INTER_LINEAR );
+	cvReleaseImage(&tmpDisplayImage);
+	if(originalImage->nChannels == 1) {
+		// Prevent image values to be > 253
+		for(int r=0; r<displayImage->height; r++)
+		{
+			u8 * lineGray = (u8 *)displayImage->imageData 
+				+ r * displayImage->widthStep;
+			for(int c = 0 ; c<displayImage->width; c++)
+				if(lineGray[c] >= COLORMARK_FAILED)
+					lineGray[c] = COLORMARK_FAILED-1;
+		}
+	} else {
+		for(int r=0; r<displayImage->height; r++)
+		{
+			u8 * lineGray = (u8 *)displayImage->imageData 
+				+ r * displayImage->widthStep;
+			for(int c = 0 ; c<displayImage->width*displayImage->nChannels; c+=displayImage->nChannels) {
+				u8 tmp = lineGray[c];
+				lineGray[c] =  lineGray[c+2];
+				lineGray[c+2] = tmp;
+			}
+		}
 	}
 	
 	if(g_debug_savetmp)  tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, displayImage);
