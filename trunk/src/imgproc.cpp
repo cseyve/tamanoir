@@ -678,8 +678,6 @@ int TamanoirImgProc::preProcessImage() {
 	memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
 	
 	m_progress = 80;
-	int hThresh = (u8)roundf(cdgH * 3.0);;
-	
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n", 
 		__func__, __LINE__); fflush(stderr);
@@ -769,6 +767,7 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 			
 			// Get dispersion
 			if(resume) {
+				*p_mean = (float)val_mean / (float)(tile_step * tile_step);
 				val_mean = (int)roundf((float)val_mean / (float)(tile_step * tile_step));
 				if(val_mean > 64) { // Else we may be in noise
 					long val_diff = 0;
@@ -1351,8 +1350,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			
 			int connect_center_x = crop_connect.rect.x + connect_width/2;
 			int connect_center_y = crop_connect.rect.y + connect_height/2;
-			int connect_topleft_x = crop_connect.rect.x ;
-			int connect_topleft_y = crop_connect.rect.y ;
 			
 			// If the search if forced, limit search to input size
 			if(force_search) {
@@ -1700,7 +1697,6 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 					disp_dilateImage->widthStep * disp_dilateImage->height );
 		}	
 		// Get grown region
-		unsigned long diffH[256];
 		tmCropImage(diffImage, disp_cropImage, 
 					correction.crop_x, correction.crop_y);
 		

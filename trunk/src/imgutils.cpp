@@ -635,13 +635,14 @@ void tmCropImage(IplImage * origImage,
             int nchannels2 = cropImage->nChannels;
 			int ly = 0;
 			int orig_pix_offset = xleft * byte_depth;
+			
 			for(int y=ytop; y<ybottom; ly++, y++) {
 				unsigned char * origBuffer = 
 					(unsigned char *)(origImage->imageData 
 							+ 1 // To get the most significant byte MSB
 							+ y * origImage->widthStep);
-				//int orig_pos = orig_pix_offset + (origImage->nChannels -  1)*2;
-				int orig_pos = orig_pix_offset;
+				int orig_pos = orig_pix_offset + (origImage->nChannels -  1)*2;
+				//int orig_pos = orig_pix_offset;
 				int crop_pix_offset = ly * cropImage->widthStep; // line offset
 				for(int lx = 0; lx<copywidth; lx++, 
 					crop_pix_offset += nchannels2, 
@@ -650,8 +651,8 @@ void tmCropImage(IplImage * origImage,
 						
 						// Avoid 255 value for display
 						unsigned char val = (unsigned char)(
-						//	origBuffer[ orig_pos - ld*2 ]);
-							origBuffer[ orig_pos + ld*2 ]);
+							origBuffer[ orig_pos - ld*2 ]);
+						//	origBuffer[ orig_pos + ld*2 ]);
 						if(val == 255) val = 254;
 						
 						cropImageBuffer[ 
