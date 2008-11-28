@@ -1102,7 +1102,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	int depth = iplImage->nChannels;
 	
 	bool rgb24_to_bgr32 = false;
-	if(depth == 3) {// RGB24 is obsolete on Qt => use 32bit instead
+	if(depth == 3  ) {// RGB24 is obsolete on Qt => use 32bit instead
 		depth = 4;
 		rgb24_to_bgr32 = true;
 	}
@@ -1115,6 +1115,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	
 	switch(iplImage->depth) {
 	default:
+		fprintf(stderr, "[TamanoirApp]::%s:%d : Unsupported depth = %d\n", __func__, __LINE__, iplImage->depth);
 		break;
 	
 	case IPL_DEPTH_8U: {
@@ -1188,6 +1189,76 @@ QImage iplImageToQImage(IplImage * iplImage) {
 						buffer4[pos4   ] = buffer3[pos3];
 						buffer4[pos4 + 1] = buffer3[pos3+1];
 						buffer4[pos4 + 2] = buffer3[pos3+2];
+					}
+				}
+			} else if(depth == 1) {
+				short valmax = 0;
+				short * buffershort = (short *)(iplImage->imageData);
+				for(int pos=0; pos< iplImage->widthStep*iplImage->height; pos++)
+					if(buffershort[pos]>valmax)
+						valmax = buffershort[pos];
+				
+				if(valmax>0)
+					for(int r=0; r<iplImage->height; r++)
+					{
+						short * buffer3 = (short *)(iplImage->imageData 
+											+ r * iplImage->widthStep);
+						int pos3 = 0;
+						int pos4 = r * orig_width;
+						for(int c=0; c<orig_width; c++, pos3++, pos4++)
+						{
+							int val = abs((int)buffer3[pos3]) * 255 / valmax;
+							if(val > 255) val = 255;
+							buffer4[pos4] = (u8)val;
+						}
+					}
+			}
+		}
+		}break;
+	case IPL_DEPTH_16U: {
+		if(!rgb24_to_bgr32) {
+			
+			u8 * buffer4 = (u8 *)qImage.bits();
+			unsigned short valmax = 0;
+			
+			for(int r=0; r<iplImage->height; r++)
+			{
+				unsigned short * buffershort = (unsigned short *)(iplImage->imageData + r*iplImage->widthStep);
+				for(int c=0; c<iplImage->width; c++)
+					if(buffershort[c]>valmax)
+						valmax = buffershort[c];
+			}
+			
+			if(valmax>0)
+				for(int r=0; r<iplImage->height; r++)
+				{
+					unsigned short * buffer3 = (unsigned short *)(iplImage->imageData 
+									+ r * iplImage->widthStep);
+					int pos3 = 0;
+					int pos4 = r * orig_width;
+					for(int c=0; c<orig_width; c++, pos3++, pos4++)
+					{
+						int val = abs((int)buffer3[pos3]) * 255 / valmax;
+						if(val > 255) val = 255;
+						buffer4[pos4] = (u8)val;
+					}
+				}
+		}
+		else {
+			fprintf(stderr, "[TamanoirApp]::%s:%d : U16  depth = %d -> BGR32\n", __func__, __LINE__, iplImage->depth);
+			u8 * buffer4 = (u8 *)qImage.bits();
+			if(depth == 3) {
+				
+				for(int r=0; r<iplImage->height; r++)
+				{
+					short * buffer3 = (short *)(iplImage->imageData + r * iplImage->widthStep);
+					int pos3 = 0;
+					int pos4 = r * orig_width*4;
+					for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
+					{
+						buffer4[pos4   ] = buffer3[pos3]/256;
+						buffer4[pos4 + 1] = buffer3[pos3+1]/256;
+						buffer4[pos4 + 2] = buffer3[pos3+2]/256;
 					}
 				}
 			} else if(depth == 1) {
