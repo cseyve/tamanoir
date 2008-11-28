@@ -71,6 +71,8 @@ TamanoirImgProc::TamanoirImgProc() {
 	init();
 }
 
+
+
 void TamanoirImgProc::init() {
 
 	m_filename[0] = '\0';
@@ -1034,6 +1036,7 @@ int TamanoirImgProc::nextDust() {
 	m_lock = false;
 	return 0;
 }
+
 int TamanoirImgProc::findDust(int x, int y) {
 
 	return findDust(x,y, &m_correct);
@@ -1050,23 +1053,18 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	
 	bool force_search = (pcorrection != &m_correct); // force search
 	if(force_search) {
-		if( diffImageBuffer[y * diffImage->widthStep + x] == 0) {
-			// No difference at this point
-			// return 0;
-		}
-		
 		int lw = growImage->width;
 		int lpitch = growImage->widthStep;
 		int lh = growImage->height;
 		
-		// Clear gnown buffer to enable second region growing
+		// search a dust for region growing
 		int xleft = x - pcorrection->copy_width/2;
 		if(xleft<0) xleft = 0; 
 		else if(xleft >= lw) return 0;
-		 
+		
 		int xright = xleft + pcorrection->copy_width;
 		if(xright<0) return 0; 
-		else if(xright > lw) xright = lw;
+		else if(xright >= lw) xright = lw-1;
 		
 		if(xright <= xleft) return 0;
 		
@@ -1076,7 +1074,31 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		
 		int ybottom = y + pcorrection->copy_height/2;
 		if(ybottom<0) return 0; 
-		else if(ybottom > lh) ybottom = lh;
+		else if(ybottom >= lh) ybottom = lh-1;
+		
+		if( diffImageBuffer[y * diffImage->widthStep + x] == 0) {
+			// No difference at this point
+			// return 0;
+			int closest_dist = 20*20 ;
+			
+			for(int ly=ytop; ly<=ybottom; ly++) {
+				for(int lx=xleft; lx<=xright; lx++) {
+					if(diffImageBuffer[ ly*lpitch + lx] == DIFF_THRESHVAL) {
+						int dx = x - lx;
+						int dy = y - ly;
+						int dist = sqrt(dx*dx+dy*dy);
+						if(dist < closest_dist) {
+							closest_dist = dist;
+							x = lx; y = ly;
+						}
+					}
+				}
+			}
+		}
+		
+		
+		// Clear gnown buffer to enable second region growing
+		
 		for(int ly=ytop; ly<ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
@@ -1876,7 +1898,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-//	if(g_debug_imgverbose || force) {
+	if(g_debug_imgverbose || force) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
 				__func__, __LINE__, force?"TRUE":"FALSE");
 			
@@ -1886,7 +1908,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
 						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
 						(force?'T':'F') );
-//}
+	}
 	
 	
 	/** Update stats */
@@ -1904,7 +1926,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
-	if(!force)
+	//if(!force)
 		tmFillRegion(  diffImage, 
 			correction.dest_x, correction.dest_y,
 			correction.copy_width, correction.copy_height,
