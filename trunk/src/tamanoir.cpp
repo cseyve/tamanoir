@@ -1124,21 +1124,24 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
 		}
 		else {
+			// RGB24 to BGR32
 			u8 * buffer3 = (u8 *)iplImage->imageData;
 			u8 * buffer4 = (u8 *)qImage.bits();
+			int orig_width4 = 4 * orig_width;
+			tmSaveImage ("/dev/shm/iplImage2QAimage_RGB24-BGR32-rgb24buf.ppm", iplImage);
 			
 			for(int r=0; r<iplImage->height; r++)
 			{
 				int pos3 = r * iplImage->widthStep;
-				int pos4 = r * orig_width*4;
+				int pos4 = r * orig_width4;
 				for(int c=0; c<orig_width; c++, pos3+=3, pos4+=4)
 				{
-					buffer4[pos4 + 2] = buffer3[pos3];
-					buffer4[pos4 + 1] = buffer3[pos3+1];
-					buffer4[pos4    ] = buffer3[pos3+2];
-					//buffer4[pos4   ] = buffer3[pos3];
+					//buffer4[pos4 + 2] = buffer3[pos3];
 					//buffer4[pos4 + 1] = buffer3[pos3+1];
-					//buffer4[pos4 + 2] = buffer3[pos3+2];
+					//buffer4[pos4    ] = buffer3[pos3+2];
+					buffer4[pos4   ] = buffer3[pos3];
+					buffer4[pos4 + 1] = buffer3[pos3+1];
+					buffer4[pos4 + 2] = buffer3[pos3+2];
 				}
 			}
 		}
