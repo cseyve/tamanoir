@@ -302,7 +302,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				}
 				
 				if(!m_draw_on) {
-					ui.cropPixmapLabel->setCursor( Qt::PointingHandCursor);
+					ui.cropPixmapLabel->setCursor( Qt::ClosedHandCursor );
 				}
 			}
 			
@@ -414,12 +414,12 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
 				if(tmmin(dist_src, dist_dest) < tmmin(current_dust.copy_width, current_dust.copy_height)/2) {
 					
-					ui.cropPixmapLabel->setCursor( Qt::PointingHandCursor);
+					ui.cropPixmapLabel->setCursor( Qt::OpenHandCursor);
 				}
 				else {
 					ui.cropPixmapLabel->setCursor( Qt::ArrowCursor);
 				}
-
+				
 				
 			} else {
 				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
@@ -1280,7 +1280,7 @@ void TamanoirApp::updateDisplay()
 					largViewFrame->width(),largViewFrame->height());
 			*/
 			pixmap.convertFromImage( grayQImage ); //, QImage::ScaleMin);
-			
+			/*
 			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : %d,%d+%dx%d\n", 
 									__func__, __LINE__,
 									m_main_display_rect.x(), m_main_display_rect.y(),
@@ -1288,7 +1288,7 @@ void TamanoirApp::updateDisplay()
 			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__, 
 									pixmap.width(), pixmap.height(),
 									scaled_width, scaled_height);
-			
+			*/
 			
 			//mainPixmapLabel->setFixedSize(scaled_width,scaled_height);
 			/*
@@ -1298,7 +1298,7 @@ void TamanoirApp::updateDisplay()
 			*/
 			
 			ui.mainPixmapLabel->setGeometry(
-										m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
+								10 +	m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
 								30 +	m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
 										scaled_width+2, scaled_height+2);
 			
