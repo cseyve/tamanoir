@@ -577,7 +577,8 @@ void tmCropImage(IplImage * origImage,
 					(unsigned char *)(origImage->imageData 
 							+ 1 // To get the most significant byte MSB
 							+ y * origImage->widthStep);
-				int orig_pos = orig_pix_offset; // + (origImage->nChannels -  1)*2;
+				//int orig_pos = orig_pix_offset + (origImage->nChannels -  1)*2;
+				int orig_pos = orig_pix_offset;
 				int crop_pix_offset = ly * cropImage->widthStep; // line offset
 				for(int lx = 0; lx<copywidth; lx++, 
 					crop_pix_offset += nchannels2, 
@@ -586,6 +587,7 @@ void tmCropImage(IplImage * origImage,
 						
 						// Avoid 255 value for display
 						unsigned char val = (unsigned char)(
+						//	origBuffer[ orig_pos - ld*2 ]);
 							origBuffer[ orig_pos + ld*2 ]);
 						if(val == 255) val = 254;
 						
@@ -604,15 +606,13 @@ void tmCropImage(IplImage * origImage,
 		
 		u8 * cropImageBuffer = (u8 *)cropImage->imageData;
 		u8 * origImageBuffer = (u8 *)origImage->imageData;
-	
+		
 		int ly = 0;
 		for(int y=ytop; y<ybottom; ly++, y++) 
 			memcpy(cropImageBuffer + ly * cropImage->widthStep, 
 				origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
 	}
 }
-
-
 
 void tmMarkCloneRegion(IplImage * origImage, 
 	int orig_x, int orig_y,
@@ -1249,24 +1249,24 @@ extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * c
 void tmSaveImage(const char * filename, IplImage * src) {
 #ifdef HAVE_LIBTIFF
 	// If image format if TIFF, save it with libtiff
-        if(src->depth != IPL_DEPTH_8U)
-                if(strstr(filename, ".tif") || strstr(filename, ".TIF") ) {
-                        int ret = saveIplImageAsTIFF(src, (char *)filename,
-                                // compression in none, packbits,jpeg,lzw,zip
-                                "none" 
-                                //"lzw" //"packbits"
-                                //"zip" //"lzw"
-                                                                );
-        		if(ret != 0) {
-        			fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
-        				"file '%s' for writing !\n",
-        				__func__, __LINE__, filename);
-        		}
-        		else {
-        			// Ok, we can return now
-        			return;
-        		}
-        	}
+	if(src->depth != IPL_DEPTH_8U)
+		if(strstr(filename, ".tif") || strstr(filename, ".TIF") ) {
+			int ret = saveIplImageAsTIFF(src, (char *)filename,
+						// compression in none, packbits,jpeg,lzw,zip
+						"none" 
+						//"lzw" //"packbits"
+						//"zip" //"lzw"
+														);
+			if(ret != 0) {
+				fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
+					"file '%s' for writing !\n",
+					__func__, __LINE__, filename);
+			}
+			else {
+				// Ok, we can return now
+				return;
+			}
+		}
 #endif
 	
 	// If image format if PNM, save it with our own source code, else use OpenCV>hugigui function
@@ -1334,8 +1334,9 @@ void tmSaveImage(const char * filename, IplImage * src) {
 		}
 		
 		if(src->width == src->widthStep) // Save buffer at once
+		{
 			fwrite(src->imageData, 1, src->widthStep * src-> height, f);
-		else {
+		} else {
 			for(int r=0; r<src->height; r++) {
 				fwrite(src->imageData + src->widthStep*r, 1, 
 					src->width * byte_per_sample, f);
