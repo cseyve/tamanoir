@@ -74,6 +74,69 @@ int tmByteDepth(IplImage * iplImage) {
 	
 	return byte_depth;
 }
+/* Print image properties */
+void tmPrintProperties(IplImage * img) {
+	/*
+	     *
+
+      IplImage
+        |-- int  nChannels;     // Number of color channels (1,2,3,4)
+        |-- int  depth;         // Pixel depth in bits: 
+        |                       //   IPL_DEPTH_8U, IPL_DEPTH_8S, 
+        |                       //   IPL_DEPTH_16U,IPL_DEPTH_16S, 
+        |                       //   IPL_DEPTH_32S,IPL_DEPTH_32F, 
+        |                       //   IPL_DEPTH_64F
+        |-- int  width;         // image width in pixels
+        |-- int  height;        // image height in pixels
+        |-- char* imageData;    // pointer to aligned image data
+        |                       // Note that color images are stored in BGR order
+        |-- int  dataOrder;     // 0 - interleaved color channels, 
+        |                       // 1 - separate color channels
+        |                       // cvCreateImage can only create interleaved images
+        |-- int  origin;        // 0 - top-left origin,
+        |                       // 1 - bottom-left origin (Windows bitmaps style)
+        |-- int  widthStep;     // size of aligned image row in bytes
+        |-- int  imageSize;     // image data size in bytes = height*widthStep
+        |-- struct _IplROI *roi;// image ROI. when not NULL specifies image
+        |                       // region  to be processed.
+        |-- char *imageDataOrigin; // pointer to the unaligned origin of image data
+        |                          // (needed for correct image deallocation)
+        |
+        |-- int  align;         // Alignment of image rows: 4 or 8 byte alignment
+        |                       // OpenCV ignores this and uses widthStep instead
+        |-- char colorModel[4]; // Color model - ignored by OpenCV
+
+	 */
+	fprintf(stderr, "[imgutils] %s:%d : IMAGE PROPERTIES : img=%p\n"
+			"\t nChannels = %d\n"
+			"\t depth = %d => %d bytes per pixel\n"
+			"\t width = %d\n"
+			"\t height = %d\n"
+			"\t imageData = %p\n"
+			"\t dataOrder = %d - %s\n"
+			"\t origin = %d - %s\n"
+			"\t widthStep = %d\n"
+			"\t imageSize = %d\n"
+			"\t align = %d (OpenCV ignores this and uses widthStep instead)\n"
+			"\t colorModel = %c%c%c%c\n"
+			"==============================\n\n"
+			
+			, __func__, __LINE__, img,
+			img->nChannels,
+			img->depth, tmByteDepth(img), 
+			img->width,
+			img->height,
+			img->imageData,
+			img->dataOrder, (img->dataOrder==0?"INTERLEAVED":"SEPARATE"),
+			img->origin,(img->origin==0?"TOP-LEFT":"BOTTOM-LEFT (Windows BMP)"),
+			img->widthStep,
+			img->imageSize,
+			img->align,
+			img->colorModel[0],img->colorModel[1],img->colorModel[2],img->colorModel[3]
+			
+			);
+	
+}
 
 /* Create an IplImage width OpenCV's cvCreateImage and clear buffer */
 IplImage * tmCreateImage(CvSize size, int depth, int channels) {
@@ -212,8 +275,8 @@ void tmMarkFailureRegion(IplImage * origImage,
 			cvRectangle(origImage, 
 				cvPoint(x - 1, y-1),
 				cvPoint(x +w + 1, y+h+1),
-				//CV_RGB(255,255,0)
-				CV_RGB(0,255,255)
+				CV_RGB(255,255,0)
+				//CV_RGB(0,255,255)
 				, 1);
 			break;
 		//grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
@@ -221,8 +284,8 @@ void tmMarkFailureRegion(IplImage * origImage,
 			cvRectangle(origImage, 
 				cvPoint(x - 1, y-1),
 				cvPoint(x +w + 1, y+h+1),
-				//CV_RGB(255,0,0)
-				CV_RGB(0,0,255)
+				CV_RGB(255,0,0)
+				//CV_RGB(0,0,255)
 				, 1);
 			break;
 		//grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
@@ -230,7 +293,8 @@ void tmMarkFailureRegion(IplImage * origImage,
 			cvRectangle(origImage, 
 				cvPoint(x - 1, y-1),
 				cvPoint(x +w + 1, y+h+1),
-			CV_RGB(255,0,0)	//CV_RGB(0,0,255)
+				//CV_RGB(255,0,0)	
+				CV_RGB(0,0,255)
 				, 1);
 			break;
 		default:
@@ -566,7 +630,6 @@ void tmCropImage(IplImage * origImage,
 		if(origImage->depth == IPL_DEPTH_16U) {
 			unsigned char * cropImageBuffer = (unsigned char *)(cropImage->imageData);
 			
-			
 			copywidth = (xright - xleft);
 			
             int nchannels2 = cropImage->nChannels;
@@ -611,6 +674,9 @@ void tmCropImage(IplImage * origImage,
 		for(int y=ytop; y<ybottom; ly++, y++) 
 			memcpy(cropImageBuffer + ly * cropImage->widthStep, 
 				origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
+		
+		//tmSaveImage ("/dev/shm/tmCropImage_cropImage.ppm", cropImage);
+		//tmSaveImage ("/dev/shm/tmCropImage_origImage.ppm", origImage);
 	}
 }
 
