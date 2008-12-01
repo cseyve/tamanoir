@@ -258,19 +258,23 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 					lineGray[c] = COLORMARK_FAILED-1;
 		}
 	} else {
-		for(int r=0; r<displayImage->height; r++)
-		{
-			u8 * lineGray = (u8 *)displayImage->imageData 
-				+ r * displayImage->widthStep;
-			for(int c = 0 ; c<displayImage->width*displayImage->nChannels; c+=displayImage->nChannels) {
-				u8 tmp = lineGray[c];
-				lineGray[c] =  lineGray[c+2];
-				lineGray[c+2] = tmp;
+		if(originalImage->depth != IPL_DEPTH_8U) {
+			fprintf(stderr, "TamanoirImgProc::%s:%d : invert R <-> B for 8 bit images\n", 
+					__func__, __LINE__);
+			for(int r=0; r<displayImage->height; r++)
+			{
+				u8 * lineGray = (u8 *)displayImage->imageData 
+					+ r * displayImage->widthStep;
+				for(int c = 0 ; c< displayImage->width * displayImage->nChannels; c+=displayImage->nChannels) {
+					u8 tmp = lineGray[c];
+					lineGray[c] =  lineGray[c+2];
+					lineGray[c+2] = tmp;
+				}
 			}
 		}
 	}
 	
-	if(g_debug_savetmp)  tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, displayImage);
+	if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, displayImage); }
 }
 
 
