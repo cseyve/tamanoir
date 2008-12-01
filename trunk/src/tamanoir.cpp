@@ -75,6 +75,10 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_draw_on = m_resize_rect = false;
 	
 	m_main_display_rect = ui.mainPixmapLabel->rect();
+	
+#ifdef SIMPLE_VIEW
+	on_loadButton_clicked ();
+#endif
 }
 
 
@@ -620,7 +624,7 @@ void TamanoirApp::loadFile(QString s) {
 		__func__, __LINE__, s.latin1());
 	// Open file
 	if(!m_pImgProc) {
-		m_pImgProc = new TamanoirImgProc();
+		m_pImgProc = new TamanoirImgProc(ui.cropPixmapLabel->width() -2, ui.cropPixmapLabel->height() -2);
 		
 		refreshMainDisplay();
 		
@@ -1369,8 +1373,8 @@ void TamanoirApp::updateDisplay()
 			*/
 			
 			ui.mainPixmapLabel->setGeometry(
-								10 +	m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
-								30 +	m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
+								ui.largViewFrame->x() +	10 + m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
+								ui.largViewFrame->y() +	20 + m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
 										scaled_width+2, scaled_height+2);
 			
 			ui.mainPixmapLabel->setPixmap(pixmap);

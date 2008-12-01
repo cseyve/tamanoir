@@ -25,6 +25,7 @@
 
 #include "tamanoir.h"
 
+
 /*
 Linux : 
 /usr/bin/qmake-qt4 -unix -o Makefile Tamanoir.pro
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
 		"." );
 	
  	a.installTranslator( &tor );
-
+	
 	/* --- Create application ---*/
 	TamanoirApp sA;
 	sA.setArgs(argc, argv);
