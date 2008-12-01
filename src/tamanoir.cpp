@@ -77,6 +77,13 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_main_display_rect = ui.mainPixmapLabel->rect();
 	
 #ifdef SIMPLE_VIEW
+	ui.diffPixmapLabel->hide();
+	ui.growPixmapLabel->hide();
+	ui.hotPixelsCheckBox->hide();
+	ui.autoButton->hide();
+	ui.overAllProgressBar->hide();
+	ui.loadingTextLabel->hide();
+
 	on_loadButton_clicked ();
 #endif
 }
@@ -98,6 +105,35 @@ void TamanoirApp::purge() {
 		m_pImgProc = NULL;
 	}
 }
+
+
+
+void TamanoirApp::resizeEvent(QResizeEvent * e) {
+	// Resize components
+	if(!e) return;
+	int groupBoxWidth = e->size().width()/2 - ui.cropGroupBox->pos().x() - 10 * 3;
+	int groupBoxHeight = e->size().height()/2 - 10 * 3 -  180;
+	
+	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => mainPixmapLabel=%d,%d+%dx%d groupbox : %dx%d\n",
+		__func__, __LINE__,
+		e->size().width(), e->size().height(),
+		ui.mainPixmapLabel->pos().y(), ui.mainPixmapLabel->pos().y(), ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height(), 
+		groupBoxWidth, groupBoxHeight);
+
+	ui.correctPixmapLabel->resize( ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height() );
+	
+	// Then force update of crops
+	updateDisplay();
+	
+	/*
+
+	ui.cropGroupBox->resize( groupBoxWidth, groupBoxHeight);
+	ui.dustGroupBox->resize( groupBoxWidth, groupBoxHeight);
+	*/
+}
+
+
+
 
 void TamanoirApp::on_refreshTimer_timeout() {
 	if(m_pProcThread) {
@@ -263,6 +299,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	if(e && m_pProcThread && m_pImgProc) {
 		
+		//int e_pos_x = (int)( e->pos().x() * ui.cropPixmapLabel->size().width() / cropSize.width );
 		
 		switch(e->button()) {
 		case Qt::NoButton:
@@ -1017,11 +1054,6 @@ void TamanoirApp::on_autoButton_clicked()
 
 
 
-void TamanoirApp::resizeEvent(QResizeEvent *) {
-}
-
-
-
 
 
 
@@ -1346,15 +1378,21 @@ void TamanoirApp::updateDisplay()
 			}
 			else
 				grayQImage = iplImageToQImage(displayImage);
-				
+			
+			QImage ratioImage;
+			ratioImage = grayQImage.scaled( 
+				ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height() , 
+				Qt::KeepAspectRatio, Qt::SmoothTransformation);
+			
 			QPixmap pixmap;
 			
-			/*
-			 fprintf(stderr, "TamanoirApp::%s:%d : => grayscaled display : %dx%d\n", 
+			
+			fprintf(stderr, "TamanoirApp::%s:%d : => grayscaled display : %dx%d\n", 
 					__func__, __LINE__, 
-					largViewFrame->width(),largViewFrame->height());
-			*/
-			pixmap.convertFromImage( grayQImage ); //, QImage::ScaleMin);
+					ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height());
+			
+			
+			pixmap.convertFromImage( ratioImage ); //, QImage::ScaleMin);
 			/*
 			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : %d,%d+%dx%d\n", 
 									__func__, __LINE__,
@@ -1365,18 +1403,18 @@ void TamanoirApp::updateDisplay()
 									scaled_width, scaled_height);
 			*/
 			
-			//mainPixmapLabel->setFixedSize(scaled_width,scaled_height);
+			//ui.mainPixmapLabel->setFixedSize(scaled_width,scaled_height);
 			/*
 			mainPixmapLabel->setGeometry(largViewFrame->x() + (largViewFrame->width()-scaled_width)/2,
 																	 largViewFrame->y() + (largViewFrame->height()-scaled_height)/2,
 																	 scaled_width, scaled_height);
 			*/
-			
+			/*
 			ui.mainPixmapLabel->setGeometry(
 								ui.largViewFrame->x() +	10 + m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
 								ui.largViewFrame->y() +	20 + m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
 										scaled_width+2, scaled_height+2);
-			
+			*/
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
 		
@@ -1384,6 +1422,8 @@ void TamanoirApp::updateDisplay()
 		
 		// Update cropped buffers
 		if(m_pProcThread) {
+			current_dust.crop_width = ui.cropPixmapLabel->size().width()-4;
+			current_dust.crop_height = ui.cropPixmapLabel->size().height()-4;
 			m_pImgProc->cropCorrectionImages(current_dust);
 		}
 		
@@ -1400,7 +1440,7 @@ void TamanoirApp::updateDisplay()
 					grayQImage.setColor(c, qRgb(c,c,c));
 				
 				grayQImage.setColor(255, qRgb(0,255,0));
-			}			
+			}
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
 				grayQImage,
