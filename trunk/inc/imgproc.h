@@ -87,6 +87,9 @@ typedef struct t_correction_ {
 	int rel_seed_x;
 	int rel_seed_y;
 	
+	// Crop for display
+	int crop_width;
+	int crop_height;
 	
 	// Dust size statistics
 	int area;
@@ -222,6 +225,9 @@ public:
 	/** @brief Crop images for detailled view arround a previous correction */
 	void cropCorrectionImages(t_correction correction);
 	
+	void cropOriginalImage(t_correction correction);
+	void cropCorrectImage(t_correction correction);
+	
 	/** @brief Find a dust from (x, y) seed
 		@return 1 if must return now
 	*/
@@ -236,6 +242,8 @@ private:
 	
 	/** Purge buffers */
 	void purge();
+	/** Purge display buffers */
+	void purgeDisplay();
 	
 	/** Film type */
 	int m_FilmType;
@@ -282,6 +290,7 @@ private:
 
 	// Image buffers
 	IplImage * originalImage;
+	IplImage * originalSmallImage;
 	
 	IplImage * origBlurredImage;
 	
