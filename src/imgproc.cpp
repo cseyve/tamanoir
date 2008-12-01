@@ -65,10 +65,12 @@ double orig_width=0, orig_height=0;
 
 
 
-TamanoirImgProc::TamanoirImgProc() {
-	fprintf(logfile, "TamanoirImgProc::%s:%d ...\n", 
-		__func__, __LINE__);
+TamanoirImgProc::TamanoirImgProc(int bw, int bh) {
+	fprintf(logfile, "TamanoirImgProc::%s:%d block %dx%d...\n", 
+		__func__, __LINE__, bw, bh);
+	
 	init();
+	blockSize = cvSize(bw, bh);
 }
 
 
@@ -713,8 +715,8 @@ int TamanoirImgProc::preProcessImage() {
 		__func__, __LINE__); fflush(stderr);
 	
 	// Cropped image
-	processingSize = cvSize( tmmin(200, originalImage->width), 
-							tmmin(200, originalImage->height));
+	processingSize = cvSize( tmmin(blockSize.width, originalImage->width), 
+							tmmin(blockSize.height, originalImage->height));
 	
 	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);

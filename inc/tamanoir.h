@@ -28,7 +28,12 @@
 #include "imgutils.h"
 #include "imgproc.h"
 
+#ifdef SIMPLE_VIEW
+#include "ui_tamanoir_simple.h"
+#else 
 #include "ui_tamanoir.h"
+#endif
+
 #include <QtGui>
 
 
@@ -141,6 +146,7 @@ public:
 	
 	
 private:
+	
 	Ui::Tamanoir ui;
 	
 	/** @brief Delete allocated structures */

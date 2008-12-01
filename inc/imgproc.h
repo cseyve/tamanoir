@@ -135,7 +135,8 @@ bool testKnownDust(t_correction, int img_w, int img_h);
 */
 class TamanoirImgProc {
 public:
-	TamanoirImgProc();
+	/** @brief Constructor */
+	TamanoirImgProc( int bw = 200, int bh = 200);
 	~TamanoirImgProc();
 
 
@@ -176,6 +177,9 @@ public:
 	/** @brief Mark a former correction proposal as refused by user*/
 	int skipCorrection(t_correction correction);
 
+	/** @brief Set block size */
+	int setBlocSize(int bw, int bh);
+	
 	/** @brief Get progress in %age */
 	int getProgress();
 	
@@ -269,6 +273,11 @@ private:
 
 	/** Original image size */
 	CvSize originalSize;
+
+	/** @brief current block */
+	CvRect scannedBlock;
+	/** @brief block size */
+	CvSize blockSize;
 
 
 	// Image buffers
