@@ -6,7 +6,7 @@
     <x>0</x>
     <y>0</y>
     <width>793</width>
-    <height>607</height>
+    <height>621</height>
    </rect>
   </property>
   <property name="windowTitle" >
@@ -98,10 +98,16 @@
             <item>
              <widget class="QImageDisplay" name="mainPixmapLabel" >
               <property name="sizePolicy" >
-               <sizepolicy vsizetype="Preferred" hsizetype="Preferred" >
-                <horstretch>1</horstretch>
-                <verstretch>1</verstretch>
+               <sizepolicy vsizetype="Fixed" hsizetype="Fixed" >
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="minimumSize" >
+               <size>
+                <width>160</width>
+                <height>120</height>
+               </size>
               </property>
               <property name="toolTip" >
                <string>Main display : current dust is marked in blue, corrected ones in green, ones with refused proposals in yellow</string>

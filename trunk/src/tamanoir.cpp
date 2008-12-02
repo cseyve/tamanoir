@@ -85,6 +85,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.loadingTextLabel->hide();
 
 	on_loadButton_clicked ();
+	
+	resize(ui.centralwidget->size().width(), ui.centralwidget->height());
+	
 #endif
 }
 
@@ -94,6 +97,7 @@ TamanoirApp::~TamanoirApp()
 {
 	purge();
 }
+
 
 void TamanoirApp::purge() {
 	if(m_pProcThread) {
@@ -1422,8 +1426,9 @@ void TamanoirApp::updateDisplay()
 		
 		// Update cropped buffers
 		if(m_pProcThread) {
-			current_dust.crop_width = ui.cropPixmapLabel->size().width()-4;
-			current_dust.crop_height = ui.cropPixmapLabel->size().height()-4;
+			current_dust.crop_width = ui.cropPixmapLabel->size().width()-2;
+			current_dust.crop_height = ui.cropPixmapLabel->size().height()-2;
+		
 			m_pImgProc->cropCorrectionImages(current_dust);
 		}
 		

@@ -183,6 +183,7 @@ private:
 	bool is_src_selected;
 	Qt::MouseButton cropPixmapLabel_last_button;
 	
+
 signals:
 	
 private slots:
@@ -198,6 +199,7 @@ private slots:
 
 	void on_linearButton_toggled(bool state);
 
+		
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 
