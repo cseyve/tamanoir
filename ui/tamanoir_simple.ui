@@ -297,7 +297,7 @@
        <widget class="QGroupBox" name="dustGroupBox" >
         <property name="sizePolicy" >
          <sizepolicy vsizetype="Expanding" hsizetype="Expanding" >
-          <horstretch>0</horstretch>
+          <horstretch>1</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
@@ -356,7 +356,7 @@
        <widget class="QGroupBox" name="cropGroupBox" >
         <property name="sizePolicy" >
          <sizepolicy vsizetype="Expanding" hsizetype="Expanding" >
-          <horstretch>2</horstretch>
+          <horstretch>1</horstretch>
           <verstretch>2</verstretch>
          </sizepolicy>
         </property>
