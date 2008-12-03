@@ -146,3 +146,15 @@ cd Tamanoir/
 }}}
 
 Then open the _Tamanoir.xcodeproj_ with XCode then build&run.
+
+
+----
+== Building packages ==
+
+Reference : http://www.siteduzero.com/forum-83-234070-p1-un-bundle-mac-pour-vos-applications-qt4.html
+
+Required : Python : http://www.python.org/download/
+
+
+
+
