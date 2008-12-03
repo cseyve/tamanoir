@@ -86,8 +86,6 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	on_loadButton_clicked ();
 	
-	resize(ui.centralwidget->size().width(), ui.centralwidget->height());
-	
 #endif
 }
 
@@ -166,7 +164,11 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			switch(m_curCommand) {
 			default:
 				break;
-			case PROTH_LOAD_FILE:
+                        case PROTH_LOAD_FILE:
+                                #ifdef SIMPLE_VIEW
+                                ui.correctPixmapLabel->resize(ui.cropPixmapLabel->size().width(), ui.centralwidget->height());
+                                #endif
+
 				refreshMainDisplay();
 				updateDisplay();
 				break;
@@ -708,7 +710,7 @@ void TamanoirApp::on_loadButton_clicked()
 	QString s = QFileDialog::getOpenFileName(this,
                    	tr("Open file dialog"),
                    	m_options.currentDir,
-                    tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
+                        tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 	if(s.isEmpty()) {
 		//fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
