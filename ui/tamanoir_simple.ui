@@ -10,7 +10,7 @@
    </rect>
   </property>
   <property name="windowTitle" >
-   <string>MainWindow</string>
+   <string>Tamanoir</string>
   </property>
   <widget class="QWidget" name="centralwidget" >
    <layout class="QVBoxLayout" name="verticalLayout" >
@@ -104,6 +104,12 @@
                </sizepolicy>
               </property>
               <property name="minimumSize" >
+               <size>
+                <width>160</width>
+                <height>120</height>
+               </size>
+              </property>
+              <property name="baseSize" >
                <size>
                 <width>160</width>
                 <height>120</height>

@@ -240,11 +240,15 @@ private:
 	/** Lock flag for long tasks (such as load and save) */
 	bool m_lock;
 	
-	/** Purge buffers */
+        /** @brief Purge allocated buffers */
 	void purge();
-	/** Purge display buffers */
+	/** @brief Purge display buffers */
 	void purgeDisplay();
-	
+	/** @brief Purge cropped processing buffers */
+	void purgeCropped();
+	/** @brief Allocate cropped processing buffers */
+	void allocCropped();
+
 	/** Film type */
 	int m_FilmType;
 	
@@ -279,14 +283,17 @@ private:
 	/** @brief Progress value */
 	int m_progress;
 
-	/** Original image size */
+	/** @brief Original image size */
 	CvSize originalSize;
 
-	/** @brief current block */
+	/** @brief currently scanned block */
 	CvRect scannedBlock;
+
 	/** @brief block size */
 	CvSize blockSize;
 
+	/** @brief block size */
+	CvSize displayCropSize;
 
 	// Image buffers
 	IplImage * originalImage;

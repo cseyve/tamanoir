@@ -183,7 +183,7 @@ private:
 	bool is_src_selected;
 	Qt::MouseButton cropPixmapLabel_last_button;
 	
-
+	CvSize originalMainPixmapLabelSize;
 signals:
 	
 private slots:
