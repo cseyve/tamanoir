@@ -27,6 +27,10 @@
 
 #include <QLabel>
 
+
+#include "imgproc.h"
+
+
 /** @brief Replacement for QLabel to display images with mouse events handling
  * */
 class QImageDisplay : public QLabel {
