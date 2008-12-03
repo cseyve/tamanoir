@@ -75,7 +75,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_draw_on = m_resize_rect = false;
 	
 	m_main_display_rect = ui.mainPixmapLabel->rect();
-	
+
 #ifdef SIMPLE_VIEW
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
@@ -1342,10 +1342,12 @@ void TamanoirApp::refreshMainDisplay() {
 	if(!m_pImgProc) {
 		return;
 	}
-	
+
 	int scaled_width = m_main_display_rect.width()-2;
 	int scaled_height = m_main_display_rect.height()-2;
-	
+	fprintf(stderr, "TamanoirApp::%s:%d : original display = %d x %d\n",
+			__func__, __LINE__, scaled_width, scaled_height);
+        // image proc will only store this size at first call
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
 
@@ -1368,8 +1370,8 @@ void TamanoirApp::updateDisplay()
 			
 			// Display in main frame
 			int gray_width = displayImage->width;
-			int scaled_width = displayImage->width;
-			int scaled_height = displayImage->height;
+			//unused int scaled_width = displayImage->width;
+			//unused int scaled_height = displayImage->height;
 			QImage grayQImage(gray_width, displayImage->height, 8*displayImage->nChannels);
 			if(displayImage->nChannels == 1) {
 				memcpy(grayQImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
@@ -1393,12 +1395,13 @@ void TamanoirApp::updateDisplay()
 			QPixmap pixmap;
 			
 			
-			fprintf(stderr, "TamanoirApp::%s:%d : => grayscaled display : %dx%d\n", 
+			pixmap.convertFromImage( ratioImage ); //, QImage::ScaleMin);
+			/*
+			 fprintf(stderr, "TamanoirApp::%s:%d : => grayscaled display : %dx%d\n", 
 					__func__, __LINE__, 
 					ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height());
+			*/
 			
-			
-			pixmap.convertFromImage( ratioImage ); //, QImage::ScaleMin);
 			/*
 			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : %d,%d+%dx%d\n", 
 									__func__, __LINE__,
@@ -1473,28 +1476,29 @@ void TamanoirApp::updateDisplay()
 		
 		
 		// Mask image = dust in white on black background
-		curImage = m_pImgProc->getMask();
-		if(curImage) {
-			QLabel * pLabel = ui.growPixmapLabel;
-			
-			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
-			if(curImage->nChannels == 1) {
-				grayQImage.setNumColors(256);
-				for(int c=0; c<255; c++) 
-					grayQImage.setColor(c, qRgb(c,c,c));
+		if(!ui.growPixmapLabel->isHidden()) {
+			curImage = m_pImgProc->getMask();
+			if(curImage) {
+				QLabel * pLabel = ui.growPixmapLabel;
 				
-				grayQImage.setColor(255, qRgb(255,0,0));
+				// Display in frame
+				QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
+				if(curImage->nChannels == 1) {
+					grayQImage.setNumColors(256);
+					for(int c=0; c<255; c++) 
+						grayQImage.setColor(c, qRgb(c,c,c));
+					
+					grayQImage.setColor(255, qRgb(255,0,0));
+				}
+				
+				QPixmap pixmap;
+				pixmap.convertFromImage( 
+						grayQImage,
+						QPixmap::Color);
+				pLabel->setPixmap(pixmap);
+				pLabel->repaint();
 			}
-			
-			QPixmap pixmap;
-			pixmap.convertFromImage( 
-					grayQImage,
-					QPixmap::Color);
-			pLabel->setPixmap(pixmap);
-			pLabel->repaint();
 		}
-		
 		
 		
 		// Top-right : Display dust info
@@ -1510,24 +1514,26 @@ void TamanoirApp::updateDisplay()
 		ui.dustGroupBox->setTitle(str);
 		
 		// Bottom-right : Display diff image (neighbouring)
-		curImage = m_pImgProc->getDiffCrop();
-		if(g_debug_correlation)
-		{
-			curImage = getCorrelationImage();
+		if(!ui.diffPixmapLabel->isHidden()) {
+			curImage = m_pImgProc->getDiffCrop();
+			if(g_debug_correlation)
+			{
+				curImage = getCorrelationImage();
+			}
+			
+			if(curImage) {
+				QLabel * pLabel = ui.diffPixmapLabel;
+
+				// Display in frame
+				QImage grayQImage = iplImageToQImage(curImage);
+				QPixmap pixmap;
+				pixmap.convertFromImage( grayQImage.smoothScale(pLabel->width(),pLabel->height()),
+					QPixmap::Color);
+				pLabel->setPixmap(pixmap);
+				pLabel->repaint();
+			}
 		}
 		
-		if(curImage) {
-			QLabel * pLabel = ui.diffPixmapLabel;
-
-			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage);
-			QPixmap pixmap;
-			pixmap.convertFromImage( grayQImage.smoothScale(pLabel->width(),pLabel->height()),
-				QPixmap::Color);
-			pLabel->setPixmap(pixmap);
-			pLabel->repaint();
-		}
-
 		ui.overAllProgressBar->setValue(m_pImgProc->getProgress());
 		
 	} else {

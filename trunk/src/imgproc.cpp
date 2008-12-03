@@ -129,7 +129,7 @@ void TamanoirImgProc::init() {
 		disp_cropImage = NULL;
 	
 	displaySize = cvSize(0,0);
-	
+	displayCropSize = cvSize(0,0);
 	
 	memset(&m_correct, 0, sizeof(t_correction));
 	memset(&m_last_correction, 0, sizeof(t_correction));
@@ -182,7 +182,13 @@ void TamanoirImgProc::purge() {
 	if(medianImage) cvReleaseImage(&medianImage);  medianImage = NULL;
 	if(diffImage) 	cvReleaseImage(&diffImage);  diffImage = NULL;
 	if(growImage) 	cvReleaseImage(&growImage);  growImage = NULL;
-	
+
+	// purge display and processing buffers
+	purgeDisplay();
+	purgeCropped();
+}
+
+void TamanoirImgProc::purgeCropped() {
 	// Cropped images
 	if(cropImage) cvReleaseImage(&cropImage);  cropImage = NULL;
 	if(cropColorImage)	cvReleaseImage(&cropColorImage); cropColorImage = NULL;
@@ -190,15 +196,17 @@ void TamanoirImgProc::purge() {
 	if(correctImage) 	cvReleaseImage(&correctImage);  	correctImage = NULL;
 	if(tmpCropImage) 	cvReleaseImage(&tmpCropImage);  	tmpCropImage = NULL;
 	if(sobelImage) 		cvReleaseImage(&sobelImage);  	sobelImage = NULL;
-	purgeDisplay();
+	processingSize = cvSize(0,0);
 }
 
 void TamanoirImgProc::purgeDisplay() {
+	fprintf(stderr, "TamanoirImgProc::%s:%d \n", __func__, __LINE__);
 	// Display images
 	if(disp_cropImage) cvReleaseImage(&disp_cropImage);  disp_cropImage = NULL;
 	if(disp_cropColorImage) 	cvReleaseImage(&disp_cropColorImage); disp_cropColorImage = NULL;
 	if(disp_correctColorImage) 	cvReleaseImage(&disp_correctColorImage); disp_correctColorImage = NULL;
 	if(disp_dilateImage) 	cvReleaseImage(&disp_dilateImage); 	disp_dilateImage = NULL;
+	displayCropSize = cvSize(0,0);
 }
 
 
@@ -210,7 +218,10 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	) {
 		displaySize = cvSize(w, h);
 		return;
-	}
+        }
+
+
+
 	if(displayImage) { return; }
 	
 	IplImage * old_displayImg = displayImage;
@@ -731,21 +742,8 @@ int TamanoirImgProc::preProcessImage() {
 	// Cropped image
 	processingSize = cvSize( tmmin(blockSize.width, originalImage->width), 
 							tmmin(blockSize.height, originalImage->height));
-	
-	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	if(!sobelImage) sobelImage = tmCreateImage(processingSize,IPL_DEPTH_16S, 1);
-	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	
-	if(originalImage->nChannels == 1)
-		correctColorImage = correctImage;
-	else {
-		if(correctColorImage != correctImage && correctColorImage)
-			cvReleaseImage(&correctColorImage);
-		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
-	}
+
+	allocCropped();
 
 	m_lock = false;
 
@@ -755,6 +753,27 @@ int TamanoirImgProc::preProcessImage() {
 	
 	return 0;
 }
+
+
+void TamanoirImgProc::allocCropped() {
+	fprintf(stderr, "TamanoirImgProc::%s:%d : (re)alloc cropped images for processing : %d x %d\n",
+		__func__, __LINE__, processingSize.width, processingSize.height);
+	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	if(!sobelImage) sobelImage = tmCreateImage(processingSize,IPL_DEPTH_16S, 1);
+	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+
+	if(originalImage->nChannels == 1)
+		correctColorImage = correctImage;
+	else {
+		if(correctColorImage != correctImage && correctColorImage)
+			cvReleaseImage(&correctColorImage);
+		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+	}
+}
+
 /*
  Epson 4990 :
 	N&B, 2400dpi, 400ISO: Tile 225,344 : diff_mean=2.24707 variance = 6.97754
@@ -1080,7 +1099,21 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
-	
+
+	// If crop size changed, we change the analysis size to provide centered cropped images to GUI
+	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
+		if(processingSize.width != displayCropSize.width
+		   || processingSize.height != displayCropSize.height) {
+			fprintf(stderr, "TamanoirImgProc::%s:%d : changing crop size %dx%d => %dx%d\n",
+					__func__, __LINE__, processingSize.width, processingSize.height,
+					displayCropSize.width, displayCropSize.height);
+			purgeCropped();
+			processingSize = displayCropSize;
+			allocCropped();
+		}
+	}
+
+
 	bool force_search = (pcorrection != &m_correct); // force search
 	if(force_search) {
 		int lw = growImage->width;
@@ -1692,13 +1725,17 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	}
 	
 	CvSize cropSize = processingSize;
+	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
+		cropSize = displayCropSize;
+	}
+
 	if(disp_cropColorImage) {
 		cropSize = cvSize( disp_cropColorImage->width, disp_cropColorImage->height );
 	}
 	if(correction.crop_width > 0 && correction.crop_height > 0) {
 		if(cropSize.width != correction.crop_width || cropSize.height != correction.crop_height) {
 			purgeDisplay();
-			cropSize = cvSize( correction.crop_width, correction.crop_height );
+			displayCropSize = cropSize = cvSize( correction.crop_width, correction.crop_height );
 		}
 	}
 	
