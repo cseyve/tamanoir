@@ -105,13 +105,25 @@
               </property>
               <property name="minimumSize" >
                <size>
-                <width>160</width>
+                <width>20</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize" >
+               <size>
+                <width>256</width>
                 <height>120</height>
+               </size>
+              </property>
+              <property name="sizeIncrement" >
+               <size>
+                <width>8</width>
+                <height>8</height>
                </size>
               </property>
               <property name="baseSize" >
                <size>
-                <width>160</width>
+                <width>200</width>
                 <height>120</height>
                </size>
               </property>
@@ -122,7 +134,10 @@
                <pixmap/>
               </property>
               <property name="scaledContents" >
-               <bool>true</bool>
+               <bool>false</bool>
+              </property>
+              <property name="alignment" >
+               <set>Qt::AlignCenter</set>
               </property>
               <property name="wordWrap" >
                <bool>false</bool>
@@ -354,7 +369,10 @@
             <pixmap/>
            </property>
            <property name="scaledContents" >
-            <bool>true</bool>
+            <bool>false</bool>
+           </property>
+           <property name="alignment" >
+            <set>Qt::AlignCenter</set>
            </property>
            <property name="wordWrap" >
             <bool>false</bool>
@@ -400,11 +418,17 @@
              <height>200</height>
             </size>
            </property>
+           <property name="sizeIncrement" >
+            <size>
+             <width>4</width>
+             <height>4</height>
+            </size>
+           </property>
            <property name="mouseTracking" >
             <bool>true</bool>
            </property>
            <property name="contextMenuPolicy" >
-            <enum>Qt::CustomContextMenu</enum>
+            <enum>Qt::DefaultContextMenu</enum>
            </property>
            <property name="toolTip" >
             <string>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</string>
@@ -413,7 +437,10 @@
             <pixmap/>
            </property>
            <property name="scaledContents" >
-            <bool>true</bool>
+            <bool>false</bool>
+           </property>
+           <property name="alignment" >
+            <set>Qt::AlignCenter</set>
            </property>
            <property name="wordWrap" >
             <bool>false</bool>

@@ -201,7 +201,8 @@ public:
 	/** @brief Set available size for display : it will scale the 8bit grayscale version
 	 * of input image for this rectangle */
 	void setDisplaySize(int w, int h);
-	IplImage * getDisplayImage() { return displayImage; };
+	/** @brief return small image for global view display */
+	IplImage * getDisplayImage() { return displayBlockImage; };
 	
 	// Cropped images
 	IplImage * getCorrectedCrop() { return disp_correctColorImage; };
@@ -234,7 +235,7 @@ public:
 	int findDust(int x, int y, t_correction * pcorrection);
 	
 private:
-	/** Initialize buffers */
+	/** @brief Initialize buffers */
 	void init();
 	
 	/** Lock flag for long tasks (such as load and save) */
@@ -249,23 +250,24 @@ private:
 	/** @brief Allocate cropped processing buffers */
 	void allocCropped();
 
-	/** Film type */
+	/** @brief Film type */
 	int m_FilmType;
 	
-	/** Scan resolution */
+	/** @brief Scan resolution */
 	int m_dpi;
 	
 	/** opened file name */
 	char m_filename[512];
 
-	/** Hot pixels filtering */
+	/** @brief Hot pixels filtering */
 	bool m_hotPixels;
 	
-	/** Trust good correction proposals */
+	/** @brief Trust good correction proposals */
 	bool m_trust;
 	
 	/** Dust statistics */
 	dust_stats_t m_dust_stats;
+
 	/** Last correct area size */
 	int m_correct_area;
 	
@@ -306,6 +308,8 @@ private:
 	IplImage * diffImage;
 	IplImage * growImage;
 	
+	/// image buffer for display
+	IplImage * displayBlockImage;
 	/// image buffer for display
 	IplImage * displayImage;
 	CvSize displaySize;

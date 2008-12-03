@@ -74,7 +74,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.linearButton->setToggleButton(true);
 	m_draw_on = m_resize_rect = false;
 	
-	m_main_display_rect = ui.mainPixmapLabel->rect();
+	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
 
 #ifdef SIMPLE_VIEW
 	ui.diffPixmapLabel->hide();
@@ -116,22 +116,16 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	int groupBoxWidth = e->size().width()/2 - ui.cropGroupBox->pos().x() - 10 * 3;
 	int groupBoxHeight = e->size().height()/2 - 10 * 3 -  180;
 	
-	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => mainPixmapLabel=%d,%d+%dx%d groupbox : %dx%d\n",
+	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => cropPixmapLabel= %d x %d  -  groupbox : %dx%d\n",
 		__func__, __LINE__,
 		e->size().width(), e->size().height(),
-		ui.mainPixmapLabel->pos().y(), ui.mainPixmapLabel->pos().y(), ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height(), 
+		ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height(),
 		groupBoxWidth, groupBoxHeight);
 
 	ui.correctPixmapLabel->resize( ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height() );
 	
 	// Then force update of crops
 	updateDisplay();
-	
-	/*
-
-	ui.cropGroupBox->resize( groupBoxWidth, groupBoxHeight);
-	ui.dustGroupBox->resize( groupBoxWidth, groupBoxHeight);
-	*/
 }
 
 
@@ -236,41 +230,35 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			return;
 		IplImage * displayImage = m_pImgProc->getDisplayImage();
 		
-		IplImage * cropImage = m_pImgProc->getCrop();
-		if(!cropImage)
-			return;
 		
 		//int scaled_width = m_main_display_rect.width()-12;
 		//int scaled_height = m_main_display_rect.height()-12;
-		int scaled_width = ui.mainPixmapLabel->width()-2;
-		int scaled_height = ui.mainPixmapLabel->height()-2;
-		
-		
-		
-		//float scale = (float)tmmax( displayImage->width, displayImage->height )
-		//	/ (float)tmmax(scaled_width, scaled_height);
-		float scale = (float)tmmax( displayImage->width, displayImage->height )
-			/ (float)tmmax(scaled_width, scaled_height);
+		int scaled_width = displayImage->width;
+		int scaled_height = displayImage->height;
 		
 		float scale_x = (float)origImage->width / (float)scaled_width;
 		float scale_y = (float)origImage->height / (float)scaled_height;
 		
-		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%g\n", __func__, __LINE__,
-				e->pos().x(), e->pos().y(), scale);
+		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%gx%g\n", __func__, __LINE__,
+				e->pos().x(), e->pos().y(), scale_x, scale_y);
 		
 		// Create a fake dust in middle
+		int crop_w = ui.cropPixmapLabel->size().width()-2;
+		int crop_h = ui.cropPixmapLabel->size().height()-2;
+		int offset_x = (ui.mainPixmapLabel->size().width()-2 - scaled_width)/2;// pixmap is centered
+		int offset_y = (ui.mainPixmapLabel->size().height()-2 - scaled_height)/2;// pixmap is centered
+
 		memset(&current_dust, 0, sizeof(t_correction));
-		current_dust.crop_x = (int)roundf(e->pos().x() * scale_x) - (cropImage->width+1) / 2;
-		current_dust.crop_y = (int)roundf(e->pos().y() * scale_y) - (cropImage->height +1)/ 2;
-		current_dust.rel_src_x = current_dust.rel_dest_x = cropImage->width / 2;
-		current_dust.rel_src_y = current_dust.rel_dest_y = cropImage->height / 2;
+		current_dust.crop_x = (int)roundf( (e->pos().x()-offset_x) * scale_x) - (crop_w+1) / 2;
+		current_dust.crop_y = (int)roundf( (e->pos().y()-offset_y) * scale_y) - (crop_h+1)/ 2;
+		current_dust.rel_src_x = current_dust.rel_dest_x =crop_w / 2;
+		current_dust.rel_src_y = current_dust.rel_dest_y = crop_h / 2;
 		current_dust.rel_dest_y += 20;
 		current_dust.copy_width = current_dust.copy_height = 16;
 		current_dust.area = 1;
 		
-		m_pImgProc->setCopySrc(&current_dust,
-			cropImage->width / 2, cropImage->height / 2);
-			
+		m_pImgProc->setCopySrc(&current_dust, crop_w / 2, crop_h / 2);
+
 		updateDisplay();
 	}
 }
@@ -304,9 +292,40 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	
 	
 	if(e && m_pProcThread && m_pImgProc) {
-		
-		//int e_pos_x = (int)( e->pos().x() * ui.cropPixmapLabel->size().width() / cropSize.width );
-		
+		int dist_to_border = 100;
+
+		int mouse_x = e->pos().x();
+		int mouse_y = e->pos().y();
+		int border_tolerance = 5;
+
+		// Distance to border of source rectangle
+		if(		mouse_x >= current_dust.rel_src_x-border_tolerance
+			&& mouse_x <= current_dust.rel_src_x+current_dust.copy_width+border_tolerance
+			&& mouse_y >= current_dust.rel_src_y-border_tolerance
+			&& mouse_y <= current_dust.rel_src_y+current_dust.copy_height+border_tolerance ) {
+			int dx = tmmin( abs(current_dust.rel_src_x+current_dust.copy_width - mouse_x),
+					abs(current_dust.rel_src_x - mouse_x) );
+
+			int dy = tmmin( abs(current_dust.rel_src_y+current_dust.copy_height - mouse_y),
+					abs(current_dust.rel_src_y - mouse_y) );
+
+			dist_to_border = tmmin(	dx, dy );
+		}
+
+		// Dist to destination
+		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
+		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
+		int dist_to_dest = tmmax( dx_dest, dy_dest );
+
+		// Dist to source
+		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
+		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+		int dist_to_src = tmmax( dx_src, dy_src );
+
+fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
+		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
 		switch(e->button()) {
 		case Qt::NoButton:
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
@@ -318,28 +337,21 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		case Qt::LeftButton: {
 			if(!m_draw_on) {
 				// Check if the click is near the border of the rectangle
-				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
-						abs(current_dust.rel_src_x - e->pos().x()));
-				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
-						abs(current_dust.rel_src_y - e->pos().y()));
-				if(dx<= 5 && dy <= 5) {
+				if( dist_to_border <= 5 && dist_to_border<=dist_to_src) {
+
 					cropPixmapLabel_last_button = Qt::RightButton; // e->button();
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
+
 					m_resize_rect = true;
+
 					return;
 				} else {
 					m_resize_rect = false;
 				}
 			}
-			// First check if click is closer to src or dest
-			int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
-			int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
-			float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
-			
-			int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
-			int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
-			float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
-			if(tmmin(dist_src, dist_dest) < 50) {
+
+
+			if(tmmin(dist_to_src, dist_to_dest) < 50) {
 				if(dist_src < dist_dest) {
 					// Move src
 					is_src_selected = true;
@@ -436,30 +448,52 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 	
 	if(e && m_pProcThread && m_pImgProc) {
 		
-		//if(e->button() == Qt::NoButton) return;
-		
+		int dist_to_border = 100;
+
+		int mouse_x = e->pos().x();
+		int mouse_y = e->pos().y();
+		int border_tolerance = 5;
+
+		// Distance to border of source rectangle
+		if(		mouse_x >= current_dust.rel_src_x-border_tolerance
+			&& mouse_x <= current_dust.rel_src_x+current_dust.copy_width+border_tolerance
+			&& mouse_y >= current_dust.rel_src_y-border_tolerance
+			&& mouse_y <= current_dust.rel_src_y+current_dust.copy_height+border_tolerance ) {
+			int dx = tmmin( abs(current_dust.rel_src_x+current_dust.copy_width - mouse_x),
+					abs(current_dust.rel_src_x - mouse_x) );
+
+			int dy = tmmin( abs(current_dust.rel_src_y+current_dust.copy_height - mouse_y),
+					abs(current_dust.rel_src_y - mouse_y) );
+
+			dist_to_border = tmmin(	dx, dy );
+		}
+
+		// Dist to destination
+		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
+		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
+		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
+		int dist_to_dest = tmmax(	dx_dest, dy_dest );
+
+		// Dist to source
+		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
+		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
+		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+		int dist_to_src = tmmax( dx_src, dy_src );
+
+
+
+
 		switch(cropPixmapLabel_last_button) {
 		default:
 		case Qt::NoButton: {
 			if(!m_draw_on) {
-				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width - e->pos().x()),
-					   abs(current_dust.rel_src_x - e->pos().x()));
-				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height - e->pos().y()),
-					   abs(current_dust.rel_src_y - e->pos().y()));
-				if(dx<= 5 && dy <= 5) {
+				if( dist_to_border <= border_tolerance && dist_to_border<=dist_to_src) {
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 					return;
 				}
 				
 				// First check if click is closer to src or dest
-				int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
-				int	dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
-				float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
-			
-				int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
-				int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
-				float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
-				if(tmmin(dist_src, dist_dest) < tmmin(current_dust.copy_width, current_dust.copy_height)/2) {
+				if(tmmin(dist_to_src, dist_to_dest) < tmmin(current_dust.copy_width, current_dust.copy_height)/2) {
 					
 					ui.cropPixmapLabel->setCursor( Qt::OpenHandCursor);
 				}
@@ -557,6 +591,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				center_x, center_y);
 			updateDisplay();
 			}break;
+
 		case Qt::RightButton: { // Resize rectangle
 			int center_x = current_dust.rel_src_x + (current_dust.copy_width+1)/2;
 			int center_y = current_dust.rel_src_y + (current_dust.copy_height+1)/2;
@@ -1345,9 +1380,10 @@ void TamanoirApp::refreshMainDisplay() {
 
 	int scaled_width = m_main_display_rect.width()-2;
 	int scaled_height = m_main_display_rect.height()-2;
-	fprintf(stderr, "TamanoirApp::%s:%d : original display = %d x %d\n",
-			__func__, __LINE__, scaled_width, scaled_height);
-        // image proc will only store this size at first call
+	//fprintf(stderr, "TamanoirApp::%s:%d : original display = %d x %d\n",
+	//		__func__, __LINE__, scaled_width, scaled_height);
+
+	// image proc will only store this size at first call
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
 
@@ -1365,78 +1401,52 @@ void TamanoirApp::updateDisplay()
 			refreshMainDisplay ();
 			displayImage = m_pImgProc->getDisplayImage();
 		}
-		
+
+		// Update cropped buffers
+		if(m_pProcThread) {
+			current_dust.crop_width = ui.cropPixmapLabel->size().width()-2;
+			current_dust.crop_height = ui.cropPixmapLabel->size().height()-2;
+
+			m_pImgProc->cropCorrectionImages(current_dust);
+		}
+
 		if(displayImage) {
 			
 			// Display in main frame
 			int gray_width = displayImage->width;
-			//unused int scaled_width = displayImage->width;
-			//unused int scaled_height = displayImage->height;
-			QImage grayQImage(gray_width, displayImage->height, 8*displayImage->nChannels);
+			int scaled_width = displayImage->width;
+			int scaled_height = displayImage->height;
+			QImage mainImage(gray_width, displayImage->height, 8*displayImage->nChannels);
 			if(displayImage->nChannels == 1) {
-				memcpy(grayQImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
-				grayQImage.setNumColors(256);
+				memcpy(mainImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
+				mainImage.setNumColors(256);
 				for(int c=0; c<256; c++) 
-					grayQImage.setColor(c, qRgb(c,c,c));
+					mainImage.setColor(c, qRgb(c,c,c));
 			
-				grayQImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
-				grayQImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
-				grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
-				grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
+				mainImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
+				mainImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
+				mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
+				mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
 			}
 			else
-				grayQImage = iplImageToQImage(displayImage);
-			
-			QImage ratioImage;
-			ratioImage = grayQImage.scaled( 
-				ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height() , 
-				Qt::KeepAspectRatio, Qt::SmoothTransformation);
-			
+				mainImage = iplImageToQImage(displayImage);
+
 			QPixmap pixmap;
-			
-			
-			pixmap.convertFromImage( ratioImage ); //, QImage::ScaleMin);
+			pixmap.convertFromImage( mainImage );
 			/*
-			 fprintf(stderr, "TamanoirApp::%s:%d : => grayscaled display : %dx%d\n", 
-					__func__, __LINE__, 
-					ui.mainPixmapLabel->size().width(), ui.mainPixmapLabel->size().height());
-			*/
-			
-			/*
-			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : %d,%d+%dx%d\n", 
+			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
 									__func__, __LINE__,
-									m_main_display_rect.x(), m_main_display_rect.y(),
 									m_main_display_rect.width(),m_main_display_rect.height() );
 			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__, 
 									pixmap.width(), pixmap.height(),
 									scaled_width, scaled_height);
-			*/
-			
-			//ui.mainPixmapLabel->setFixedSize(scaled_width,scaled_height);
-			/*
-			mainPixmapLabel->setGeometry(largViewFrame->x() + (largViewFrame->width()-scaled_width)/2,
-																	 largViewFrame->y() + (largViewFrame->height()-scaled_height)/2,
-																	 scaled_width, scaled_height);
-			*/
-			/*
-			ui.mainPixmapLabel->setGeometry(
-								ui.largViewFrame->x() +	10 + m_main_display_rect.x() + (m_main_display_rect.width()-scaled_width+1)/2,
-								ui.largViewFrame->y() +	20 + m_main_display_rect.y() + (m_main_display_rect.height()-scaled_height+1)/2,
-										scaled_width+2, scaled_height+2);
 			*/
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
 		
 		IplImage * curImage;
 		
-		// Update cropped buffers
-		if(m_pProcThread) {
-			current_dust.crop_width = ui.cropPixmapLabel->size().width()-2;
-			current_dust.crop_height = ui.cropPixmapLabel->size().height()-2;
-		
-			m_pImgProc->cropCorrectionImages(current_dust);
-		}
-		
+
 		// Top-left : Display cropped / detailled images
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
@@ -1503,21 +1513,21 @@ void TamanoirApp::updateDisplay()
 		
 		// Top-right : Display dust info
 		
-		char strinfo[32];
 		float width_mm = current_dust.width_mm;
-		float height_mm = current_dust.width_mm;
+		float height_mm = current_dust.height_mm;
 		
-		sprintf(strinfo, "%d pix/%.1gx%.1g mm",
+		QString strinfo;
+		strinfo.sprintf( "%d pix/%.1gx%.1g mm",
 			current_dust.area,
 			width_mm, height_mm);
-		QString str = tr("Dust: ") + QString(strinfo);
+		QString str = tr("Corrected: dust: ") + strinfo ;
 		ui.dustGroupBox->setTitle(str);
 		
 		// Bottom-right : Display diff image (neighbouring)
 		if(!ui.diffPixmapLabel->isHidden()) {
 			curImage = m_pImgProc->getDiffCrop();
-			if(g_debug_correlation)
-			{
+
+			if(g_debug_correlation) {
 				curImage = getCorrelationImage();
 			}
 			

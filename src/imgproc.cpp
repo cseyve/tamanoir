@@ -120,7 +120,7 @@ void TamanoirImgProc::init() {
 	sobelImage = NULL;
 	
 	// Display images
-	displayImage = NULL;
+	displayImage = displayBlockImage = NULL;
 	originalSmallImage = NULL;
 
 	disp_cropColorImage =
@@ -174,6 +174,7 @@ void TamanoirImgProc::purge() {
 
 	if(originalImage) cvReleaseImage(&originalImage);  originalImage = NULL;
 	if(displayImage) cvReleaseImage(&displayImage); displayImage = NULL;
+	if(displayBlockImage) cvReleaseImage(&displayBlockImage); displayBlockImage = NULL;
 	if(originalSmallImage) cvReleaseImage(&originalSmallImage); originalSmallImage = NULL;
 	
 	// Big images
@@ -224,15 +225,16 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 	if(displayImage) { return; }
 	
-	IplImage * old_displayImg = displayImage;
+	IplImage * old_displayImg = displayBlockImage;
 	if(displayImage) {
 		if(w == displayImage->width && h == displayImage->height)
 			return; // Already displayed
 	}
-	displayImage = NULL;
+	displayBlockImage = NULL;
 	
 	cvReleaseImage(&old_displayImg);
-	
+	cvReleaseImage(&displayImage);
+
 	// Get best fit w/h for display in main frame
 	int gray_width = grayImage->width;
 	while((gray_width % 4) > 0)
@@ -242,13 +244,18 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	
 	int scaled_width = w;
 	int scaled_height = h;
-	
-	if(grayImage->width > grayImage->height)
-		scaled_height = scaled_width * grayImage->height/ grayImage->width;
-	else
-		scaled_width = scaled_height * grayImage->width / grayImage->height;
-	
-	fprintf(stderr, "TamanoirImgProc::%s:%d : => scaled size %dx%d\n", __func__, __LINE__, scaled_width, scaled_height);
+
+	float scale_x = (float)w / (float)grayImage->width ;
+	float scale_y = (float)h / (float)grayImage->height;
+
+	// use lower factor
+	float factor = std::min(scale_x, scale_y);
+	scaled_width = (int)(factor*grayImage->width);
+	scaled_height = (int)(factor*grayImage->height);
+
+	fprintf(stderr, "TamanoirImgProc::%s:%d : factor=%g => scaled size %dx%d\n", __func__, __LINE__,
+			factor,
+			scaled_width, scaled_height);
 	
 	// Use only size with 4xN dimensions
 	while(scaled_width % 4) { scaled_width--; }
@@ -261,6 +268,10 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
 		IPL_DEPTH_8U, originalImage->nChannels);
 	IplImage * new_displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
+
+	// Main display image (with permanent modification)
+	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
+
 	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
 		grayImage->width, grayImage->height,
@@ -300,8 +311,11 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	}
 	
 	if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, new_displayImage); }
-	
-	displayImage = new_displayImage;
+
+	cvCopy(new_displayImage, displayImage);
+
+	// only set the pointer at the end of the fonction, it will unlock the graphical user interface
+	displayBlockImage = new_displayImage;
 }
 
 
@@ -315,9 +329,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	
-	if(m_lock)
+	if(m_lock) {
 		return -1;
-	
+	}
 	m_lock = true;
 	
 	m_progress = 0;
@@ -756,8 +770,19 @@ int TamanoirImgProc::preProcessImage() {
 
 
 void TamanoirImgProc::allocCropped() {
+	if(processingSize.width <= 0) return;
+	if(processingSize.height <= 0) return;
+
+	while( (processingSize.width % 4) > 0) {
+		processingSize.width--;
+	}
+	while( (processingSize.height % 4) > 0) {
+		processingSize.height--;
+	}
+
 	fprintf(stderr, "TamanoirImgProc::%s:%d : (re)alloc cropped images for processing : %d x %d\n",
 		__func__, __LINE__, processingSize.width, processingSize.height);
+
 	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
@@ -765,11 +790,12 @@ void TamanoirImgProc::allocCropped() {
 	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 
-	if(originalImage->nChannels == 1)
+	if(originalImage->nChannels == 1) {
 		correctColorImage = correctImage;
-	else {
-		if(correctColorImage != correctImage && correctColorImage)
+	} else {
+		if(correctColorImage != correctImage && correctColorImage) {
 			cvReleaseImage(&correctColorImage);
+		}
 		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
 }
@@ -795,9 +821,10 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 		
 		for(tile_x = width/10; tile_x < width*9/10-tile_step*2; tile_x += tile_step) {
 			int x, y;
-			int val_topleft = buffer[tile_y * pitch + tile_x];
+			int val_topleft = buffer[ tile_y * pitch + tile_x ];
 			long val_mean = 0;
 			bool resume = true;
+
 			// Get mean of pixel values
 			for(y=tile_y; y<tile_y+tile_step; y++) {
 				
@@ -1102,13 +1129,15 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 	// If crop size changed, we change the analysis size to provide centered cropped images to GUI
 	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
-		if(processingSize.width != displayCropSize.width
-		   || processingSize.height != displayCropSize.height) {
+		if(abs(processingSize.width - displayCropSize.width)>=4
+		   || abs(processingSize.height - displayCropSize.height)>=4) {
 			fprintf(stderr, "TamanoirImgProc::%s:%d : changing crop size %dx%d => %dx%d\n",
 					__func__, __LINE__, processingSize.width, processingSize.height,
 					displayCropSize.width, displayCropSize.height);
+
 			purgeCropped();
 			processingSize = displayCropSize;
+
 			allocCropped();
 		}
 	}
@@ -1646,6 +1675,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
 					tmMarkFailureRegion(displayImage, 
 							disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
+					tmMarkFailureRegion(displayBlockImage,
+							disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
 				}
 				
 				if(g_debug_imgoutput) {
@@ -1854,9 +1885,10 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	
 	
 	
-// Main windows	
-	if(displayImage) {
-		
+	// Main windows
+	if(displayBlockImage) {
+		cvCopy(displayImage, displayBlockImage);
+
 		// Return when we can propose something for correction
 		// Mark current on displayImage
 		int disp_x = (correction.crop_x + correction.rel_dest_x) * displayImage->width / grayImage->width;
@@ -1864,8 +1896,17 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 		
-		tmMarkFailureRegion(displayImage, 
+		tmMarkFailureRegion(displayBlockImage,
 					disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
+
+		if(correction.crop_width > 0 && correction.crop_height > 0) {
+			disp_x = (correction.crop_x ) * displayImage->width / grayImage->width;
+			disp_y = (correction.crop_y ) * displayImage->height / grayImage->height;
+			disp_w = correction.crop_width * displayImage->width / grayImage->width;
+			disp_h = correction.crop_height * displayImage->height / grayImage->height;
+			tmMarkFailureRegion(displayBlockImage,
+						disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
+		}
 	}
 }
 
@@ -1921,7 +1962,7 @@ int TamanoirImgProc::skipCorrection(t_correction correction) {
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 	
-		tmMarkFailureRegion(displayImage, 
+		tmMarkFailureRegion(displayImage,
 			disp_x, disp_y, disp_w, disp_h, COLORMARK_REFUSED);
 	}	
 	return 0;
@@ -2010,13 +2051,13 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 			DIFF_NEUTRALIZE);
 	
 	
-	if(displayImage) {
+	if( displayImage ) {
 		// Mark failure on displayImage
 		int disp_x = (correction.dest_x ) * displayImage->width / grayImage->width;
 		int disp_y = (correction.dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
-		tmMarkFailureRegion(displayImage, 
+		tmMarkFailureRegion(displayImage,
 				disp_x, disp_y, disp_w, disp_h, COLORMARK_CORRECTED);
 	}
 	
