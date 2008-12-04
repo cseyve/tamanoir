@@ -1,7 +1,7 @@
 import os, subprocess
 # Reference : http://www.siteduzero.com/forum-83-234070-p1-un-bundle-mac-pour-vos-applications-qt4.html
 
-APPNAME = "Tamanoir-simple"
+APPNAME = "Tamanoir"
 VERSION = "0.1"
 
 def makedmg(d, volname,

@@ -1120,6 +1120,10 @@ int TamanoirImgProc::findDust(int x, int y) {
 
 
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
+	if(x<0 || x>=diffImage->width
+	   || y<0 || y>=diffImage->height ) {
+		return -1;
+	}
 
 	CvConnectedComp connect;
 	memset(&connect, 0, sizeof(CvConnectedComp));
