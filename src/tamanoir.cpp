@@ -81,7 +81,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
 	ui.autoButton->hide();
-	ui.overAllProgressBar->hide();
+	//ui.overAllProgressBar->hide();
 	ui.loadingTextLabel->hide();
 
 	on_loadButton_clicked ();

@@ -1120,6 +1120,8 @@ int TamanoirImgProc::findDust(int x, int y) {
 
 
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
+	if(!diffImage) return -1;
+
 	if(x<0 || x>=diffImage->width
 	   || y<0 || y>=diffImage->height ) {
 		return -1;

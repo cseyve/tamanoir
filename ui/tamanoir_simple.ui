@@ -12,6 +12,9 @@
   <property name="windowTitle" >
    <string>Tamanoir</string>
   </property>
+  <property name="toolTip" >
+   <string>Tamanoir - Dust removal tool</string>
+  </property>
   <widget class="QWidget" name="centralwidget" >
    <layout class="QVBoxLayout" name="verticalLayout" >
     <item>
@@ -68,7 +71,7 @@
            <item>
             <widget class="QProgressBar" name="overAllProgressBar" >
              <property name="enabled" >
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy" >
               <sizepolicy vsizetype="Fixed" hsizetype="Preferred" >
@@ -164,8 +167,6 @@
              </widget>
             </item>
            </layout>
-           <zorder>mainPixmapLabel</zorder>
-           <zorder></zorder>
           </widget>
          </item>
         </layout>
