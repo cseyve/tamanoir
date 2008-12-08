@@ -79,8 +79,14 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip" >
+              <string>Display progress of loading or processing</string>
+             </property>
              <property name="value" >
               <number>0</number>
+             </property>
+             <property name="textVisible" >
+              <bool>false</bool>
              </property>
              <property name="orientation" >
               <enum>Qt::Horizontal</enum>
