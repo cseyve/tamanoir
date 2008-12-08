@@ -471,13 +471,13 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		// Dist to destination
 		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x + (current_dust.copy_width+1)/2));
 		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y + (current_dust.copy_height+1)/2));
-		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
+		//unused float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
 		int dist_to_dest = tmmax(	dx_dest, dy_dest );
 
 		// Dist to source
 		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x + (current_dust.copy_width+1)/2));
 		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y + (current_dust.copy_height+1)/2));
-		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
+		//unused float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
 		int dist_to_src = tmmax( dx_src, dy_src );
 
 

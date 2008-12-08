@@ -321,6 +321,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 
 
+
 int TamanoirImgProc::loadFile(const char * filename) {
 	
 	int retry = 0;
@@ -1026,6 +1027,15 @@ int TamanoirImgProc::setResolution(int dpi) {
 }
 
 
+int TamanoirImgProc::setBlockSize(int w, int h) {
+	if(w == blockSize.width && h == blockSize.height) {
+		return 0;
+	}
+	blockSize = cvSize(w,h);
+	firstDust();
+
+	return 0;
+}
 
 /* @brief Get progress in %age */
 int TamanoirImgProc::getProgress() {

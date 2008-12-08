@@ -219,7 +219,10 @@ public:
 	bool setTrustCorrection(bool on);
 	/** @brief set the scan resolution to use the statistics on dust sizes */
 	int setResolution(int dpi);
-	
+	/** @brief Set analysis block size, for display which do not use vertical scanlines */
+	int setBlockSize(int w, int h);
+
+
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };
 	
