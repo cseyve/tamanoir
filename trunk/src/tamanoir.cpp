@@ -249,8 +249,11 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		int offset_y = (ui.mainPixmapLabel->size().height()-2 - scaled_height)/2;// pixmap is centered
 
 		memset(&current_dust, 0, sizeof(t_correction));
-		current_dust.crop_x = (int)roundf( (e->pos().x()-offset_x) * scale_x) - (crop_w+1) / 2;
-		current_dust.crop_y = (int)roundf( (e->pos().y()-offset_y) * scale_y) - (crop_h+1)/ 2;
+		current_dust.crop_x = std::max(0, (int)roundf( (e->pos().x()-offset_x) * scale_x) - (crop_w+1) / 2);
+		current_dust.crop_y = std::max(0, (int)roundf( (e->pos().y()-offset_y) * scale_y) - (crop_h+1)/ 2);
+		// Clip
+
+
 		current_dust.rel_src_x = current_dust.rel_dest_x =crop_w / 2;
 		current_dust.rel_src_y = current_dust.rel_dest_y = crop_h / 2;
 		current_dust.rel_dest_y += 20;
