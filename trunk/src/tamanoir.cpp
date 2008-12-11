@@ -746,16 +746,16 @@ void TamanoirApp::on_loadButton_clicked()
 {
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
-                   	tr("Open file dialog"),
+                        tr("Tamanoir - Open a picture to be cleaned"),
                    	m_options.currentDir,
                         tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
-								"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
+                            "*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 	if(s.isEmpty()) {
 		//fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
 		return;
 	}
 	
-	ui.loadingTextLabel->setText(tr("Loading..."));
+        ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
 	
 	loadFile( s);
 }
