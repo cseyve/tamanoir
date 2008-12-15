@@ -78,7 +78,11 @@ TamanoirImgProc::TamanoirImgProc(int bw, int bh) {
 void TamanoirImgProc::init() {
 
 	m_filename[0] = '\0';
-	
+#ifdef SIMPLE_VIEW
+	m_show_crop_debug = false;
+#else
+	m_show_crop_debug = true;
+#endif
 	m_lock = false;
 	
 	
@@ -1130,7 +1134,7 @@ int TamanoirImgProc::findDust(int x, int y) {
 
 
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
-	if(!diffImage) return -1;
+	if(!growImage) return -1; // Loading is not finished
 
 	if(x<0 || x>=diffImage->width
 	   || y<0 || y>=diffImage->height ) {
@@ -1795,7 +1799,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		disp_correctColorImage = tmCreateImage(cropSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
 	
-	if(!disp_cropImage) {
+	if(!disp_cropImage && m_show_crop_debug) {
 		disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
 	
@@ -1816,7 +1820,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
 		else
 			cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
-	} else { // Grown region
+	} else if(m_show_crop_debug) { // Grown region
 		
 		if(!disp_dilateImage) {
 			disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_8U, 1);
@@ -1837,19 +1841,25 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 					DIFF_THRESHVAL,
 					255,
 					&ext_connect);
-				
+		// Top-right = dilatation image of dust
+		if(g_debug_savetmp)
+		{
+			tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,
+				disp_dilateImage);
+		}
 	}
 	
 	// Bottom-right: Diff image for display in GUI
-	tmCropImage(diffImage, 
+	if(disp_cropImage) {
+		tmCropImage(diffImage,
 			disp_cropImage, 
 			correction.crop_x, correction.crop_y);
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION, 
-			disp_cropImage);
+		if(g_debug_savetmp)
+		{
+			tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION,
+				disp_cropImage);
+		}
 	}
-
 	
 	// Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
@@ -1892,12 +1902,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_correctColorImage);
 	}
 	
-	// Top-right = dilatation image of dust
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,  
-			disp_dilateImage);
-	}
+
 	
 	
 	
@@ -2032,7 +2037,8 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-	if(g_debug_imgverbose || force) {
+	if(g_debug_imgverbose //|| force
+		) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
 				__func__, __LINE__, force?"TRUE":"FALSE");
 			

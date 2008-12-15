@@ -333,7 +333,8 @@ private:
 	IplImage * disp_cropColorImage;
 	IplImage * disp_correctColorImage;
 	IplImage * disp_dilateImage; 
-	IplImage * disp_cropImage;
+        IplImage * disp_cropImage;
+        bool m_show_crop_debug;
 	
 	/** @brief Find a dust from (x, y) seed
 		@return 1 if must return now
