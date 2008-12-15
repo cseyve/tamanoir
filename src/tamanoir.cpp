@@ -327,8 +327,8 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
 		int dist_to_src = tmmax( dx_src, dy_src );
 
-fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
-		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
+//fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
+//		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
 		switch(e->button()) {
 		case Qt::NoButton:
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
@@ -746,10 +746,10 @@ void TamanoirApp::on_loadButton_clicked()
 {
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
-                        tr("Tamanoir - Open a picture to be cleaned"),
-                   	m_options.currentDir,
-                        tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
-                            "*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
+						tr("Tamanoir - Open a picture to be cleaned"),
+						m_options.currentDir,
+						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
+							"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 	if(s.isEmpty()) {
 		//fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
 		return;

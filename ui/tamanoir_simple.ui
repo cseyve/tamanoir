@@ -50,6 +50,9 @@
              <property name="text" >
               <string>Load</string>
              </property>
+             <property name="shortcut" >
+              <string>Ctrl+O</string>
+             </property>
             </widget>
            </item>
            <item>
@@ -65,6 +68,9 @@
              </property>
              <property name="text" >
               <string>Save</string>
+             </property>
+             <property name="shortcut" >
+              <string>Ctrl+S</string>
              </property>
             </widget>
            </item>
@@ -207,6 +213,9 @@
               <property name="text" >
                <string>|&lt;</string>
               </property>
+              <property name="shortcut" >
+               <string>Home</string>
+              </property>
              </widget>
             </item>
             <item>
@@ -224,11 +233,20 @@
             </item>
             <item>
              <widget class="QPushButton" name="prevButton" >
+              <property name="minimumSize" >
+               <size>
+                <width>59</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="toolTip" >
                <string>Go back to previous correction</string>
               </property>
               <property name="text" >
                <string>&lt;</string>
+              </property>
+              <property name="shortcut" >
+               <string>Left</string>
               </property>
              </widget>
             </item>
@@ -240,6 +258,9 @@
               <property name="text" >
                <string>Skip</string>
               </property>
+              <property name="shortcut" >
+               <string>Right</string>
+              </property>
              </widget>
             </item>
             <item>
@@ -249,6 +270,9 @@
               </property>
               <property name="text" >
                <string>Apply</string>
+              </property>
+              <property name="shortcut" >
+               <string>A</string>
               </property>
              </widget>
             </item>
@@ -336,6 +360,9 @@
               </property>
               <property name="text" >
                <string>Trust mode</string>
+              </property>
+              <property name="shortcut" >
+               <string>T</string>
               </property>
               <property name="checked" >
                <bool>false</bool>
@@ -435,6 +462,9 @@
            </property>
            <property name="text" >
             <string>Clone</string>
+           </property>
+           <property name="shortcut" >
+            <string>C</string>
            </property>
           </widget>
          </item>
@@ -569,6 +599,11 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar" />
+  <action name="Left" >
+   <property name="text" >
+    <string>Left</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
