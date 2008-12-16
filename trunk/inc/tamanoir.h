@@ -199,7 +199,11 @@ private slots:
 
 	void on_linearButton_toggled(bool state);
 
-		
+	// Global image navigation button
+	void on_topLeftButton_clicked();
+	void on_pageDownButton_clicked();
+	void on_pageUpButton_clicked();
+
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 
@@ -230,6 +234,11 @@ private:
 	bool m_resize_rect;
 	QSize m_main_display_rect;
 	QString m_currentFile;
+
+	// Page up/down navigation
+	int m_nav_x_block;
+	int m_nav_y_block;
+	void moveBlock();
 };
 
 /** @brief Convert an OpenCV IplImage to a Qt QImage */

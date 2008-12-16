@@ -222,6 +222,8 @@ public:
 	/** @brief Set analysis block size, for display which do not use vertical scanlines */
 	int setBlockSize(int w, int h);
 
+	/** @brief Return the display (crop) block size, used for display and processing */
+	CvSize getDisplayCropSize() { return displayCropSize; };
 
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };

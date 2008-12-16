@@ -75,7 +75,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_draw_on = m_resize_rect = false;
 	
 	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
-
+	m_nav_x_block = m_nav_y_block = 0;
 #ifdef SIMPLE_VIEW
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
@@ -83,7 +83,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.autoButton->hide();
 	//ui.overAllProgressBar->hide();
 	ui.loadingTextLabel->hide();
-
+	//ui.hiddenFrame->hide();
 	on_loadButton_clicked ();
 	
 #endif
@@ -116,19 +116,23 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	int groupBoxWidth = e->size().width()/2 - ui.cropGroupBox->pos().x() - 10 * 3;
 	int groupBoxHeight = e->size().height()/2 - 10 * 3 -  180;
 	
-	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => cropPixmapLabel= %d x %d  -  groupbox : %dx%d\n",
+	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => cropPixmapLabel= %d x %d  "
+			" cropGroupBox:%dx%d "
+			"->  groupbox : %dx%d\n",
 		__func__, __LINE__,
 		e->size().width(), e->size().height(),
 		ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height(),
+		ui.cropGroupBox->size().width(), ui.cropGroupBox->size().height(),
 		groupBoxWidth, groupBoxHeight);
 
-	ui.correctPixmapLabel->resize( ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height() );
-	
+	int size_w = (ui.cropPixmapLabel->size().width()/4)*4+3;
+	int size_h = (ui.cropPixmapLabel->size().height()/4)*4+3;
+	ui.cropPixmapLabel->resize( size_w, size_h);
+	ui.correctPixmapLabel->resize( size_w, size_h);
+
 	// Then force update of crops
 	updateDisplay();
 }
-
-
 
 
 void TamanoirApp::on_refreshTimer_timeout() {
@@ -264,6 +268,64 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 		updateDisplay();
 	}
+}
+
+void TamanoirApp::moveBlock() {
+	if(!m_pImgProc) return;
+	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d\n", __func__, __LINE__,
+			m_nav_x_block, m_nav_y_block);
+	CvSize blockSize = m_pImgProc->getDisplayCropSize();
+	IplImage * origImage = m_pImgProc->getGrayscale();
+	if(!origImage) return;
+	if(blockSize.height * m_nav_y_block > origImage->height) {
+		// move to right
+		if((m_nav_x_block+1)*blockSize.width < origImage->width) {
+			m_nav_y_block = 0;
+			m_nav_x_block++;
+		} else { // nothing to do, we'are already at bottom-right of image
+		}
+	}
+
+	if(m_nav_y_block<0) {
+		if(m_nav_x_block>0) {
+			m_nav_x_block--;
+		}
+	}
+	// Create a fake dust in middle
+	int crop_w = blockSize.width;
+	int crop_h = blockSize.height;
+	int offset_x = crop_w/2;
+	int offset_y = crop_h/2;
+
+	memset(&current_dust, 0, sizeof(t_correction));
+	current_dust.crop_x = crop_w * m_nav_x_block;
+	current_dust.crop_y = crop_h * m_nav_y_block;
+	// Clip
+
+
+	current_dust.rel_src_x = current_dust.rel_dest_x = crop_w / 2;
+	current_dust.rel_src_y = current_dust.rel_dest_y = crop_h / 2;
+	current_dust.rel_dest_y += 20;
+	current_dust.copy_width = current_dust.copy_height = 16;
+	current_dust.area = 1;
+
+	m_pImgProc->setCopySrc(&current_dust, crop_w / 2, crop_h / 2);
+
+	updateDisplay();
+
+}
+void TamanoirApp::on_topLeftButton_clicked() {
+	m_nav_x_block = m_nav_y_block = 0;
+	moveBlock();
+}
+
+void TamanoirApp::on_pageDownButton_clicked() {
+	m_nav_y_block++;
+	moveBlock();
+}
+void TamanoirApp::on_pageUpButton_clicked() {
+	m_nav_y_block--;
+	moveBlock();
 }
 
 
