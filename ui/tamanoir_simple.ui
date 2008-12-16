@@ -213,9 +213,6 @@
               <property name="text" >
                <string>|&lt;</string>
               </property>
-              <property name="shortcut" >
-               <string>Home</string>
-              </property>
              </widget>
             </item>
             <item>
@@ -559,25 +556,6 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1" >
-       <widget class="QCheckBox" name="hotPixelsCheckBox" >
-        <property name="sizePolicy" >
-         <sizepolicy vsizetype="Fixed" hsizetype="Expanding" >
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="toolTip" >
-         <string>Enable hot pixels removal, e.g. very small light points</string>
-        </property>
-        <property name="text" >
-         <string>Hot pixels</string>
-        </property>
-        <property name="checked" >
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
       <item row="5" column="0" >
        <widget class="QLabel" name="growPixmapLabel" >
         <property name="enabled" >
@@ -592,6 +570,80 @@
         <property name="text" >
          <string>TextLabel</string>
         </property>
+       </widget>
+      </item>
+      <item row="3" column="1" >
+       <widget class="QFrame" name="hiddenFrame" >
+        <property name="enabled" >
+         <bool>true</bool>
+        </property>
+        <property name="frameShape" >
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow" >
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QWidget" name="horizontalLayoutWidget" >
+         <property name="geometry" >
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>381</width>
+           <height>29</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_5" >
+          <item>
+           <widget class="QCheckBox" name="hotPixelsCheckBox" >
+            <property name="sizePolicy" >
+             <sizepolicy vsizetype="Fixed" hsizetype="Expanding" >
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip" >
+             <string>Enable hot pixels removal, e.g. very small light points</string>
+            </property>
+            <property name="text" >
+             <string>Hot pixels</string>
+            </property>
+            <property name="checked" >
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="topLeftButton" >
+            <property name="text" >
+             <string>topleft</string>
+            </property>
+            <property name="shortcut" >
+             <string>Home</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pageDownButton" >
+            <property name="text" >
+             <string>down</string>
+            </property>
+            <property name="shortcut" >
+             <string>PgDown</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pageUpButton" >
+            <property name="text" >
+             <string>page up</string>
+            </property>
+            <property name="shortcut" >
+             <string>PgUp</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </item>
      </layout>
