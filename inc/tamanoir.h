@@ -235,6 +235,7 @@ private:
 	QSize m_main_display_rect;
 	QString m_currentFile;
 
+	CvSize m_blockSize;
 	// Page up/down navigation
 	int m_nav_x_block;
 	int m_nav_y_block;

@@ -87,6 +87,10 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	on_loadButton_clicked ();
 	
 #endif
+	int size_w = (ui.cropPixmapLabel->size().width()/4)*4+2;
+	int size_h = (ui.cropPixmapLabel->size().height()/4)*4+2;
+	m_blockSize = cvSize(size_w, size_h);
+
 }
 
 
@@ -125,8 +129,12 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 		ui.cropGroupBox->size().width(), ui.cropGroupBox->size().height(),
 		groupBoxWidth, groupBoxHeight);
 
-	int size_w = (ui.cropPixmapLabel->size().width()/4)*4+3;
-	int size_h = (ui.cropPixmapLabel->size().height()/4)*4+3;
+	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) -1)*4;
+	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) -1)*4;
+	m_blockSize = cvSize(size_w, size_h);
+	size_w += 2;
+	size_h += 2;
+
 	ui.cropPixmapLabel->resize( size_w, size_h);
 	ui.correctPixmapLabel->resize( size_w, size_h);
 
@@ -247,8 +255,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				e->pos().x(), e->pos().y(), scale_x, scale_y);
 		
 		// Create a fake dust in middle
-		int crop_w = ui.cropPixmapLabel->size().width()-2;
-		int crop_h = ui.cropPixmapLabel->size().height()-2;
+		int crop_w = m_blockSize.width; //ui.cropPixmapLabel->size().width()-2;
+		int crop_h = m_blockSize.height; //ui.cropPixmapLabel->size().height()-2;
 		int offset_x = (ui.mainPixmapLabel->size().width()-2 - scaled_width)/2;// pixmap is centered
 		int offset_y = (ui.mainPixmapLabel->size().height()-2 - scaled_height)/2;// pixmap is centered
 
@@ -294,8 +302,6 @@ void TamanoirApp::moveBlock() {
 	// Create a fake dust in middle
 	int crop_w = blockSize.width;
 	int crop_h = blockSize.height;
-	int offset_x = crop_w/2;
-	int offset_y = crop_h/2;
 
 	memset(&current_dust, 0, sizeof(t_correction));
 	current_dust.crop_x = crop_w * m_nav_x_block;
@@ -1479,8 +1485,8 @@ void TamanoirApp::updateDisplay()
 			
 			// Display in main frame
 			int gray_width = displayImage->width;
-			int scaled_width = displayImage->width;
-			int scaled_height = displayImage->height;
+			//int scaled_width = displayImage->width;
+			//int scaled_height = displayImage->height;
 			QImage mainImage(gray_width, displayImage->height, 8*displayImage->nChannels);
 			if(displayImage->nChannels == 1) {
 				memcpy(mainImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
