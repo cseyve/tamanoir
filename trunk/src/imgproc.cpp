@@ -692,7 +692,7 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
-	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
+//unused	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	int width = diffImage->widthStep;
 	int height = diffImage->height;
 	int pos;
@@ -707,15 +707,16 @@ int TamanoirImgProc::preProcessImage() {
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
 		}
 		break;
-	case FILM_NEGATIVE: 
+	case FILM_NEGATIVE: {
 		for(pos=0; pos<width*height; pos++) 
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
 			
-			if( (diff >= m_threshold && grayImageBuffer[pos]>164) ) // Opaque pixels are white
+			if( (diff >= m_threshold ) ) // Opaque pixels are whiter that median
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
 		}
-		break;
+
+		}break;
 	case FILM_POSITIVE: 
 		for(pos=0; pos<width*height; pos++) 
 		{
@@ -1373,35 +1374,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				cropImage, 
 				crop_x, crop_y);
 			
-			
-			/* TRY TO DETECT COPY FROM PATTERNS WITH CONTOUR DETECTION
-			// Use absolute value of Sobel
-			cvSobel(cropImage, sobelImage, 1, 0, 5);
-			cvConvertScaleAbs(sobelImage, tmpCropImage, 0.25, 0);
-			cvSobel(cropImage, sobelImage, 0, 1, 5);
-			cvConvertScaleAbs(sobelImage, dilateImage, 0.25, 0);
-			
-			// Compare direction of contour at detected dust center
-			u8 val_horiz = *(u8 *)(tmpCropImage->imageData +
-					(int)(crop_connect.rect.y+crop_connect.rect.height/2) * tmpCropImage->widthStep
-					+ (int)(crop_connect.rect.x+crop_connect.rect.width/2));
-			u8 val_vert = *(u8 *)(dilateImage->imageData +
-					(int)(crop_connect.rect.y+crop_connect.rect.height/2) * dilateImage->widthStep
-					+ (int)(crop_connect.rect.x+crop_connect.rect.width/2));
-			
-			fprintf(stderr, "TmImgProc::%s:%d : %d,%d %dx%d => horiz=%d vert=%d\n",
-					__func__, __LINE__,
-					x,y,
-					(int)crop_connect.rect.width, (int)crop_connect.rect.height,
-					val_horiz, val_vert);
-			u8 * sobelImageBuffer = NULL;
-			if(val_vert > val_horiz)
-				sobelImageBuffer = (u8 *)dilateImage->imageData;
-			else
-				sobelImageBuffer = (u8 *)tmpCropImage->imageData;
-			*/
-			
-			
+
 			
 			// => this dilated image will be used as mask for correlation search
 			// but we have to fill the center of the dust 
@@ -1799,7 +1772,9 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(!disp_correctColorImage) {
 		disp_correctColorImage = tmCreateImage(cropSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
-	
+	if(g_debug_savetmp) {// force debug
+		m_show_crop_debug = true;
+	}
 	if(!disp_cropImage && m_show_crop_debug) {
 		disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
@@ -1872,7 +1847,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_cropColorImage);
 		
 		
-		tmSaveImage(TMP_DIRECTORY "z-cropImageGray" IMG_EXTENSION, 
+		tmSaveImage(TMP_DIRECTORY "z-cropImageGray" IMG_EXTENSION,
 			disp_cropImage);
 	}
 	

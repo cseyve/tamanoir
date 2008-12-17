@@ -258,7 +258,7 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 	IplConvKernel *elt = createStructElt();
 
 	// perform open
-        cvMorphologyEx (src, dst, tmp, elt,
+	cvMorphologyEx (src, dst, tmp, elt,
 		CV_MOP_CLOSE,
 		iterations);
 
@@ -1346,6 +1346,8 @@ extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * c
 
 
 void tmSaveImage(const char * filename, IplImage * src) {
+	if(!src) { return; }
+
 #ifdef HAVE_LIBTIFF
 	// If image format if TIFF, save it with libtiff
 	if(src->depth != IPL_DEPTH_8U)

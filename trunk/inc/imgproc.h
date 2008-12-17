@@ -140,8 +140,11 @@ class TamanoirImgProc {
 public:
 	/** @brief Constructor */
 	TamanoirImgProc( int bw = 200, int bh = 200);
+	/** @brief Destructor */
 	~TamanoirImgProc();
 
+	/** @brief allow cropping of debug images */
+	void allowDebugCrop(bool on) { m_show_crop_debug = on; };
 
 	/** @brief Set film type \param type : 0 for undefined, 1 for negative, 2 for positive */
 	void setFilmType(int type);
@@ -335,8 +338,8 @@ private:
 	IplImage * disp_cropColorImage;
 	IplImage * disp_correctColorImage;
 	IplImage * disp_dilateImage; 
-        IplImage * disp_cropImage;
-        bool m_show_crop_debug;
+	IplImage * disp_cropImage;
+	bool m_show_crop_debug;
 	
 	/** @brief Find a dust from (x, y) seed
 		@return 1 if must return now
