@@ -176,17 +176,17 @@ void TamanoirImgProc::purge() {
 		g_dataset_f = NULL;
 	}
 
-	if(originalImage) cvReleaseImage(&originalImage);  originalImage = NULL;
-	if(displayImage) cvReleaseImage(&displayImage); displayImage = NULL;
-	if(displayBlockImage) cvReleaseImage(&displayBlockImage); displayBlockImage = NULL;
-	if(originalSmallImage) cvReleaseImage(&originalSmallImage); originalSmallImage = NULL;
+	if(originalImage) tmReleaseImage(&originalImage);  originalImage = NULL;
+	if(displayImage) tmReleaseImage(&displayImage); displayImage = NULL;
+	if(displayBlockImage) tmReleaseImage(&displayBlockImage); displayBlockImage = NULL;
+	if(originalSmallImage) tmReleaseImage(&originalSmallImage); originalSmallImage = NULL;
 	
 	// Big images
-	if(grayImage) cvReleaseImage(&grayImage);  grayImage = NULL;
-	if(origBlurredImage) cvReleaseImage(&origBlurredImage); origBlurredImage = NULL;
-	if(medianImage) cvReleaseImage(&medianImage);  medianImage = NULL;
-	if(diffImage) 	cvReleaseImage(&diffImage);  diffImage = NULL;
-	if(growImage) 	cvReleaseImage(&growImage);  growImage = NULL;
+	if(grayImage) tmReleaseImage(&grayImage);  grayImage = NULL;
+	if(origBlurredImage) tmReleaseImage(&origBlurredImage); origBlurredImage = NULL;
+	if(medianImage) tmReleaseImage(&medianImage);  medianImage = NULL;
+	if(diffImage) 	tmReleaseImage(&diffImage);  diffImage = NULL;
+	if(growImage) 	tmReleaseImage(&growImage);  growImage = NULL;
 
 	// purge display and processing buffers
 	purgeDisplay();
@@ -195,22 +195,22 @@ void TamanoirImgProc::purge() {
 
 void TamanoirImgProc::purgeCropped() {
 	// Cropped images
-	if(cropImage) cvReleaseImage(&cropImage);  cropImage = NULL;
-	if(cropColorImage)	cvReleaseImage(&cropColorImage); cropColorImage = NULL;
-	if(dilateImage) 	cvReleaseImage(&dilateImage);  		dilateImage = NULL;
-	if(correctImage) 	cvReleaseImage(&correctImage);  	correctImage = NULL;
-	if(tmpCropImage) 	cvReleaseImage(&tmpCropImage);  	tmpCropImage = NULL;
-	if(sobelImage) 		cvReleaseImage(&sobelImage);  	sobelImage = NULL;
+	if(cropImage) tmReleaseImage(&cropImage);  cropImage = NULL;
+	if(cropColorImage)	tmReleaseImage(&cropColorImage); cropColorImage = NULL;
+	if(dilateImage) 	tmReleaseImage(&dilateImage);  		dilateImage = NULL;
+	if(correctImage) 	tmReleaseImage(&correctImage);  	correctImage = NULL;
+	if(tmpCropImage) 	tmReleaseImage(&tmpCropImage);  	tmpCropImage = NULL;
+	if(sobelImage) 		tmReleaseImage(&sobelImage);  	sobelImage = NULL;
 	processingSize = cvSize(0,0);
 }
 
 void TamanoirImgProc::purgeDisplay() {
 	fprintf(stderr, "TamanoirImgProc::%s:%d \n", __func__, __LINE__);
 	// Display images
-	if(disp_cropImage) cvReleaseImage(&disp_cropImage);  disp_cropImage = NULL;
-	if(disp_cropColorImage) 	cvReleaseImage(&disp_cropColorImage); disp_cropColorImage = NULL;
-	if(disp_correctColorImage) 	cvReleaseImage(&disp_correctColorImage); disp_correctColorImage = NULL;
-	if(disp_dilateImage) 	cvReleaseImage(&disp_dilateImage); 	disp_dilateImage = NULL;
+	if(disp_cropImage) tmReleaseImage(&disp_cropImage);  disp_cropImage = NULL;
+	if(disp_cropColorImage) 	tmReleaseImage(&disp_cropColorImage); disp_cropColorImage = NULL;
+	if(disp_correctColorImage) 	tmReleaseImage(&disp_correctColorImage); disp_correctColorImage = NULL;
+	if(disp_dilateImage) 	tmReleaseImage(&disp_dilateImage); 	disp_dilateImage = NULL;
 	displayCropSize = cvSize(0,0);
 }
 
@@ -236,15 +236,15 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	}
 	displayBlockImage = NULL;
 	
-	cvReleaseImage(&old_displayImg);
-	cvReleaseImage(&displayImage);
+	tmReleaseImage(&old_displayImg);
+	tmReleaseImage(&displayImage);
 
 	// Get best fit w/h for display in main frame
 	int gray_width = grayImage->width;
 	while((gray_width % 4) > 0)
 		gray_width--;
 	
-	//cvReleaseImage(&displayImage); displayImage = NULL;
+	//tmReleaseImage(&displayImage); displayImage = NULL;
 	
 	int scaled_width = w;
 	int scaled_height = h;
@@ -285,7 +285,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	//cvResize(originalImage, displayImage, CV_INTER_LINEAR );
 	cvConvertImage(originalImage, tmpDisplayImage );
 	cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
-	cvReleaseImage(&tmpDisplayImage);
+	tmReleaseImage(&tmpDisplayImage);
 	
 	if(originalImage->nChannels == 1) {
 		// Prevent image values to be > 253
@@ -563,10 +563,11 @@ int TamanoirImgProc::preProcessImage() {
 			IPL_DEPTH_8U, 1);
 	
 	// Difference (allocated here because it may be used for Open filter 
-	if(!diffImage)
+	if(!diffImage) {
 		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
-	
+	}
+
 	m_progress = 30;
 	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
 	m_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
@@ -799,7 +800,7 @@ void TamanoirImgProc::allocCropped() {
 		correctColorImage = correctImage;
 	} else {
 		if(correctColorImage != correctImage && correctColorImage) {
-			cvReleaseImage(&correctColorImage);
+			tmReleaseImage(&correctColorImage);
 		}
 		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
@@ -1004,6 +1005,7 @@ int TamanoirImgProc::setResolution(int dpi) {
 	// Then re-process file
 	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n", 
 		__func__, __LINE__, dpi);
+
 	if(originalImage) {
 		// No need to pre-process again the image
 		// We just reset the dust seeker
@@ -1100,23 +1102,23 @@ int TamanoirImgProc::nextDust() {
 	m_correct.dest_x = -1; // Clear stored correction
 	
 	
-	for(y = m_seed_y; y<height; y++) {
+	for(y = m_seed_y; y<height-1; y++) {
 		pos = y * diffImage->widthStep + m_seed_x;
 		for(x = m_seed_x; x<width-1; x++, pos++) {
 			
-			if(diffImageBuffer[pos] == DIFF_THRESHVAL && !growImageBuffer[pos])
-			// Grow region here if the region is big enough
-			if(diffImageBuffer[pos+1]==DIFF_THRESHVAL || m_hotPixels) 
-//			|| diffImageBuffer[pos+diffImage->widthStep]==DIFF_THRESHVAL) 
-			{
-				int return_now = findDust(x,y);
-			
-				if(return_now > 0) {
-					m_lock = false;
-					return return_now;
+			if(diffImageBuffer[pos] == DIFF_THRESHVAL && !growImageBuffer[pos]) {
+				// Grow region here if the region is big enough
+				if(diffImageBuffer[pos+1] == DIFF_THRESHVAL || m_hotPixels)
+	//			|| diffImageBuffer[pos+diffImage->widthStep]==DIFF_THRESHVAL)
+				{
+					int return_now = findDust(x,y);
+
+					if(return_now > 0) {
+						m_lock = false;
+						return return_now;
+					}
 				}
 			}
-			
 		}
 		
 		
@@ -1214,7 +1216,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		for(int ly=ytop; ly<ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
-		
 	}
 	
 	// Process a region growing 
@@ -1236,7 +1237,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				connect.rect.width,
 					connect.rect.height);
 	}
-		
+
 	//if(connect.area <=0) return 0;
 	
 	if( (connect.area >= m_dust_area_min &&
