@@ -283,6 +283,8 @@ void TamanoirApp::moveBlock() {
 	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d\n", __func__, __LINE__,
 			m_nav_x_block, m_nav_y_block);
 	CvSize blockSize = m_pImgProc->getDisplayCropSize();
+	if(blockSize.width <= 0 || blockSize.height <= 0) return;
+
 	IplImage * origImage = m_pImgProc->getGrayscale();
 	if(!origImage) return;
 	if(blockSize.height * m_nav_y_block > origImage->height) {
@@ -297,6 +299,8 @@ void TamanoirApp::moveBlock() {
 	if(m_nav_y_block<0) {
 		if(m_nav_x_block>0) {
 			m_nav_x_block--;
+			// and move y to bottom
+			m_nav_y_block = origImage->height / blockSize.height;
 		}
 	}
 	// Create a fake dust in middle

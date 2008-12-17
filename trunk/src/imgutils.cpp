@@ -148,6 +148,12 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 	*/
 	IplImage * img = cvCreateImage(size, depth, channels);
 	if(img) {
+		if(!(img->imageData)) {
+			fprintf(stderr, "[utils] %s:%d : ERROR : img->imageData=NULL while "
+				"creating IplImage => %dx%d x depth=%d x channels=%d\n",
+				__func__, __LINE__,
+				img->width, img->height, img->depth, img->nChannels);
+		}
 		memset(img->imageData, 0, sizeof(char) * img->widthStep * img->height);
 		return img;
 	} else {
@@ -162,6 +168,14 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 			img->width, img->height, img->depth, img->nChannels);
 	}
 	return img;
+}
+
+/** @brief Release an image and clear pointer */
+void tmReleaseImage(IplImage ** img) {
+	if(!img) return;
+	if(!(*img) ) return;
+	cvReleaseImage(img);
+	*img = NULL;
 }
 
 /** process a dilatation around the dust */

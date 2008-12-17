@@ -78,6 +78,8 @@ int tmByteDepth(IplImage * iplImage);
 
 /** @brief Create an IplImage width OpenCV's cvCreateImage and clear buffer */
 IplImage * tmCreateImage(CvSize size, int depth, int channels);
+/** @brief Release an image and clear pointer */
+void tmReleaseImage(IplImage ** img);
 
 /** @brief Process a dilatation */
 void tmDilateImage(IplImage * src, IplImage * dst);
