@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include <highgui.h>
 
@@ -349,7 +351,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	*/
 	fprintf(logfile, "TamanoirImgProc::%s:%d : loading '%s'...\n", 
 		__func__, __LINE__, filename);
-	
+	struct timeval tvLoad1;
+	gettimeofday(&tvLoad1, NULL);
 	originalImage = cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
 					);
@@ -362,7 +365,12 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		m_filename[0] = '\0';
 		return -1;
 	}
-	
+	struct timeval tvLoad2;
+	gettimeofday(&tvLoad2, NULL);
+
+	long dt_ms = (tvLoad2.tv_sec - tvLoad1.tv_sec)*1000
+				 + (tvLoad2.tv_usec - tvLoad1.tv_usec)/1000;
+
 	tmPrintProperties (originalImage);
 	
 	// Save image in /dev/shm
@@ -455,10 +463,10 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	}
 	
 	
-	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x depth=%d x %d bytes\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x depth=%d x %d bytes : read time= %ld ms\n",
 		__func__, __LINE__, filename, 
 		originalImage->width, originalImage->height, originalImage->nChannels,
-		tmByteDepth(originalImage));
+		tmByteDepth(originalImage), dt_ms);
 	
 
 	originalImage = tmAddBorder4x(originalImage);
@@ -475,7 +483,9 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	#ifdef CV_LOAD_IMAGE_GRAYSCALE
 	fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n", 
 		__func__, __LINE__);
-	if(originalImage->depth != IPL_DEPTH_8U) {
+	if(originalImage->depth != IPL_DEPTH_8U
+	   //&& dt_ms < 5000 // Maybe the hard drive is a removable disk, so it will be faster to convert from already read data
+	   ) {
 		grayImage = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
 		m_progress = 20;
 		grayImage = tmAddBorder4x(grayImage);
@@ -705,6 +715,9 @@ int TamanoirImgProc::preProcessImage() {
 		
 			if(diff >= m_threshold) 
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
+			else
+				if(diff >= tmmax(3, m_threshold-2))
+					diffImageBuffer[pos] = DIFF_CONTOUR;
 		}
 		break;
 	case FILM_NEGATIVE: {
@@ -714,6 +727,9 @@ int TamanoirImgProc::preProcessImage() {
 			
 			if( (diff >= m_threshold ) ) // Opaque pixels are whiter that median
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
+			else
+				if(diff >= tmmax(3, m_threshold-2))
+					diffImageBuffer[pos] = DIFF_CONTOUR;
 		}
 
 		}break;
@@ -2013,7 +2029,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-	if(g_debug_imgverbose //|| force
+	if(g_debug_imgverbose || force
 		) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
 				__func__, __LINE__, force?"TRUE":"FALSE");
@@ -2032,7 +2048,13 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	if(correction.area<STATS_MAX_SURF) {
 		m_dust_stats.grown_size_validated[correction.area]++;
 	}
-	
+
+	// Correction if dest_x is not set, because it may not be set if we use the clone tool
+	if(correction.dest_x == 0 && correction.dest_y == 0) {
+		correction.dest_x = correction.crop_x + correction.rel_dest_x;
+		correction.dest_y = correction.crop_y + correction.rel_dest_y;
+	}
+
 	
 	// Apply clone on original image
 	tmCloneRegion(  originalImage, 
