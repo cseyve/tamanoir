@@ -451,10 +451,14 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				// Move src
 				current_dust.rel_src_x = e->pos().x() - (current_dust.copy_width+1)/2;
 				current_dust.rel_src_y = e->pos().y() - (current_dust.copy_height+1)/2;
+				current_dust.src_x = current_dust.crop_x + current_dust.rel_src_x;
+				current_dust.src_y = current_dust.crop_y + current_dust.rel_src_y;
 			} else {
 				// Move dest
 				current_dust.rel_dest_x = e->pos().x() - (current_dust.copy_width+1)/2;
 				current_dust.rel_dest_y = e->pos().y() - (current_dust.copy_height+1)/2;
+				current_dust.dest_x = current_dust.crop_x + current_dust.rel_dest_x;
+				current_dust.dest_y = current_dust.crop_y + current_dust.rel_dest_y;
 				if(m_draw_on) {
 					current_dust.rel_seed_x = e->pos().x();
 					current_dust.rel_seed_y = e->pos().y();
