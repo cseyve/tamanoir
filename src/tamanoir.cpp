@@ -637,8 +637,14 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				// Move src too
 				current_dust.rel_src_x += dx;
 				current_dust.rel_src_y += dy;
-				
-				
+                                current_dust.src_x = current_dust.crop_x + current_dust.rel_src_x;
+                                current_dust.src_y = current_dust.crop_y + current_dust.rel_src_y;
+
+                                current_dust.src_x = current_dust.crop_x + current_dust.rel_src_x;
+                                current_dust.src_y = current_dust.crop_y + current_dust.rel_src_y;
+                                current_dust.dest_x = current_dust.crop_x + current_dust.rel_dest_x;
+                                current_dust.dest_y = current_dust.crop_y + current_dust.rel_dest_y;
+
 				/* No search when moving with the button down 
 				// Compute correction
 				t_correction search_correct = current_dust;
@@ -678,13 +684,15 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 			
 			int dest_x = current_dust.rel_dest_x + (current_dust.copy_width+1)/2;
 			int dest_y = current_dust.rel_dest_y + (current_dust.copy_height+1)/2;
-			
+
 			current_dust.copy_width = 2*abs(center_x - e->pos().x());
 			current_dust.copy_height = 2*abs(center_y - e->pos().y());
 			
 			current_dust.rel_dest_x = dest_x -  (current_dust.copy_width+1)/2;
 			current_dust.rel_dest_y = dest_y -  (current_dust.copy_height+1)/2;
-			
+                        current_dust.dest_x = current_dust.crop_x + current_dust.rel_dest_x;
+                        current_dust.dest_y = current_dust.crop_y + current_dust.rel_dest_y;
+
 			
 			m_pImgProc->setCopySrc(&current_dust,
 				center_x, center_y);

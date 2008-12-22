@@ -2000,6 +2000,8 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 	return applyCorrection(correction, force);
 }	
 
+
+
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 {
@@ -2029,11 +2031,11 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-	if(g_debug_imgverbose || force
+        if(g_debug_imgverbose //|| force
 		) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
 				__func__, __LINE__, force?"TRUE":"FALSE");
-			
+
 		fprintf(logfile, "Dust\t%d,%d+%dx%d"
 						"\t%d,%d"
 						"\t%c\n",
@@ -2054,6 +2056,10 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 		correction.dest_x = correction.crop_x + correction.rel_dest_x;
 		correction.dest_y = correction.crop_y + correction.rel_dest_y;
 	}
+        if(correction.src_x == 0 && correction.src_y == 0) {
+                correction.src_x = correction.crop_x + correction.rel_src_x;
+                correction.src_y = correction.crop_y + correction.rel_src_y;
+        }
 
 	
 	// Apply clone on original image
