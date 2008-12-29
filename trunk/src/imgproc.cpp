@@ -479,16 +479,17 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			dt_ms);
 	
 	// convert to Grayscaled image
-	if(dt_ms > 500) {
+	if(dt_ms > 2000) {
 		// Huge file : should use faster method than reload to convert to grayscale
 		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
 			__func__, __LINE__);
 		grayImage = tmFastConvertToGrayscale(originalImage);
+		m_progress = 20;
+
 	}
 	
 	
 	#ifdef CV_LOAD_IMAGE_GRAYSCALE
-
 	if(originalImage->depth != IPL_DEPTH_8U
 			&& !grayImage
 		//&& dt_ms < 5000 // Maybe the hard drive is a removable disk, so it will be faster to convert from already read data
@@ -502,35 +503,35 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	}
 	else
 	#endif
-	{
-	m_progress = 20;
-	
-	// convert full image to grayscale
-	grayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
-	fprintf(logfile, "TamanoirImgProc::%s:%d : created grayscaled "
-			"=> w=%d x h=%d x channels=%d => %d bytes per pixel\n", 
-			__func__, __LINE__, 
-			grayImage->width, grayImage->height, grayImage->nChannels,
-			tmByteDepth(originalImage));
-	
-	switch(originalImage->nChannels) {
-	default:
-	case 1:
-		fprintf(logfile, "TamanoirImgProc::%s:%d : copy to Grayscaled image...\n", 
-			__func__, __LINE__);
-		memcpy(grayImage->imageData, originalImage->imageData, originalImage->widthStep * originalImage->height);
-		break;
-	case 3:
-		fprintf(logfile, "TamanoirImgProc::%s:%d : convert RGB24 to Grayscaled image...\n", 
-			__func__, __LINE__);
-		cvCvtColor(originalImage, grayImage, CV_RGB2GRAY);
-		break;
-	case 4:
-		fprintf(logfile, "TamanoirImgProc::%s:%d : convert BGRA to Grayscaled image...\n", 
-			__func__, __LINE__);
-		cvCvtColor(originalImage, grayImage, CV_BGRA2GRAY);
-		break;
-	}
+	if(!grayImage) {
+		m_progress = 20;
+
+		// convert full image to grayscale
+		grayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : created grayscaled "
+				"=> w=%d x h=%d x channels=%d => %d bytes per pixel\n",
+				__func__, __LINE__,
+				grayImage->width, grayImage->height, grayImage->nChannels,
+				tmByteDepth(originalImage));
+
+		switch(originalImage->nChannels) {
+		default:
+		case 1:
+			fprintf(logfile, "TamanoirImgProc::%s:%d : copy to Grayscaled image...\n",
+				__func__, __LINE__);
+			memcpy(grayImage->imageData, originalImage->imageData, originalImage->widthStep * originalImage->height);
+			break;
+		case 3:
+			fprintf(logfile, "TamanoirImgProc::%s:%d : convert RGB24 to Grayscaled image...\n",
+				__func__, __LINE__);
+			cvCvtColor(originalImage, grayImage, CV_RGB2GRAY);
+			break;
+		case 4:
+			fprintf(logfile, "TamanoirImgProc::%s:%d : convert BGRA to Grayscaled image...\n",
+				__func__, __LINE__);
+			cvCvtColor(originalImage, grayImage, CV_BGRA2GRAY);
+			break;
+		}
 	}
 	m_progress = 25;
 	
