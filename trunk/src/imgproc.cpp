@@ -1116,7 +1116,7 @@ int TamanoirImgProc::nextDust() {
 	
 	memset(&m_lastDustComp, 0, sizeof(CvConnectedComp));
 	
-	m_correct.dest_x = -1; // Clear stored correction
+        m_correct.copy_width = -1; // Clear stored correction
 	
 	
 	for(y = m_seed_y; y<height-1; y++) {
@@ -2005,7 +2005,7 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 {
-	if(correction.dest_x < 0)
+        if(correction.copy_width < 0)
 		return -1; // no available correction
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
@@ -2052,35 +2052,31 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 
 	// Correction if dest_x is not set, because it may not be set if we use the clone tool
-	if(correction.dest_x == 0 && correction.dest_y == 0) {
-		correction.dest_x = correction.crop_x + correction.rel_dest_x;
-		correction.dest_y = correction.crop_y + correction.rel_dest_y;
-	}
-        if(correction.src_x == 0 && correction.src_y == 0) {
-                correction.src_x = correction.crop_x + correction.rel_src_x;
-                correction.src_y = correction.crop_y + correction.rel_src_y;
-        }
+        int correction_dest_x = correction.crop_x + correction.rel_dest_x;
+        int correction_dest_y = correction.crop_y + correction.rel_dest_y;
+        int correction_src_x = correction.crop_x + correction.rel_src_x;
+        int correction_src_y = correction.crop_y + correction.rel_src_y;
 
 	
 	// Apply clone on original image
 	tmCloneRegion(  originalImage, 
-			correction.dest_x, correction.dest_y,
-			correction.src_x, correction.src_y,
+                        correction_dest_x, correction_dest_y,
+                        correction_src_x, correction_src_y,
 			correction.copy_width, correction.copy_height);
 	
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
 	//if(!force)
 		tmFillRegion(  diffImage, 
-			correction.dest_x, correction.dest_y,
+                        correction_dest_x, correction_dest_y,
 			correction.copy_width, correction.copy_height,
 			DIFF_NEUTRALIZE);
 	
 	
 	if( displayImage ) {
 		// Mark failure on displayImage
-		int disp_x = (correction.dest_x ) * displayImage->width / grayImage->width;
-		int disp_y = (correction.dest_y ) * displayImage->height / grayImage->height;
+                int disp_x = (correction_dest_x ) * displayImage->width / grayImage->width;
+                int disp_y = (correction_dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 		tmMarkFailureRegion(displayImage,
@@ -2092,14 +2088,14 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	if(g_debug_imgoutput) {
 
 		tmMarkCloneRegion(originalImage, 
-					correction.dest_x, correction.dest_y,
-					correction.src_x, correction.src_y,
+                                        correction_dest_x, correction_dest_y,
+                                        correction_src_x, correction_src_y,
 					correction.copy_width, correction.copy_height);
 	}
 	
 	
 	memset(&correction, 0, sizeof(t_correction));
-	correction.dest_x = -1;
+        correction.copy_width = -1;
 	return 0;
 }
 
