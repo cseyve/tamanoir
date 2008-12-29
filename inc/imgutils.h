@@ -81,6 +81,9 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels);
 /** @brief Release an image and clear pointer */
 void tmReleaseImage(IplImage ** img);
 
+/** @brief Fast conversion from color/16bit image to 8bit grayscale image */
+IplImage * tmFastConvertToGrayscale(IplImage * img);
+
 /** @brief Process a dilatation */
 void tmDilateImage(IplImage * src, IplImage * dst);
 

@@ -471,21 +471,30 @@ int TamanoirImgProc::loadFile(const char * filename) {
 
 	originalImage = tmAddBorder4x(originalImage);
 	m_progress = 15;
-	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x channels=%d => %d bytes per pixel\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x channels=%d => %d bytes per pixel\n"
+			"\tLoaded in %ld ms\n",
 			__func__, __LINE__, filename, 
 			originalImage->width, originalImage->height, originalImage->nChannels,
-			tmByteDepth(originalImage));
+			tmByteDepth(originalImage),
+			dt_ms);
 	
 	// convert to Grayscaled image
-	
+	if(dt_ms > 500) {
+		// Huge file : should use faster method than reload to convert to grayscale
+		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
+			__func__, __LINE__);
+		grayImage = tmFastConvertToGrayscale(originalImage);
+	}
 	
 	
 	#ifdef CV_LOAD_IMAGE_GRAYSCALE
-	fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n", 
-		__func__, __LINE__);
+
 	if(originalImage->depth != IPL_DEPTH_8U
-	   //&& dt_ms < 5000 // Maybe the hard drive is a removable disk, so it will be faster to convert from already read data
-	   ) {
+			&& !grayImage
+		//&& dt_ms < 5000 // Maybe the hard drive is a removable disk, so it will be faster to convert from already read data
+		) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n",
+			__func__, __LINE__);
 		grayImage = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
 		m_progress = 20;
 		grayImage = tmAddBorder4x(grayImage);
