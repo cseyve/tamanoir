@@ -56,17 +56,12 @@ typedef struct dust_stats_t_ {
 
 
 
-/** @brief Local correction storage structure */
+/** @brief Local correction storage structure
+
+This structure contains the information needed to clone a part of the original image into the corrected image
+*/
 typedef struct t_correction_ {
-	/// Destination of copy
-	int dest_x;
-	/// Destination of copy
-//	int dest_y;
-	/// Source of copy
-	int src_x;
-	/// Source of copy
-//	int src_y;
-	/// Width of copy
+        /// Width of copy
 	int copy_width;
 	/// Height of copy
 	int copy_height;
@@ -76,27 +71,34 @@ typedef struct t_correction_ {
 	/// top-left of Crop image
 	int crop_y;
 	
-	/// relative origin of clone
+        /// relative origin of clone, x coordinate
 	int rel_src_x;
-	/// relative origin of clone
+        /// relative origin of clone, y coordinate
 	int rel_src_y;
 	
-	/// relative destination of clone
+        /// relative destination of clone, x coordinate
 	int rel_dest_x;
-	int rel_dest_y;
+        /// relative destination of clone, y coordinate
+        int rel_dest_y;
 	
-	/// relative seed of region growing
+        /// relative seed of region growing, x coordinate
 	int rel_seed_x;
-	int rel_seed_y;
+        /// relative seed of region growing, y coordinate
+        int rel_seed_y;
 	
-	// Crop for display
+        /// Crop size for display, width
 	int crop_width;
-	int crop_height;
+        /// Crop size for display, height
+        int crop_height;
 	
 	// Dust size statistics
+        /// Area of dust in image (pixel^2)
 	int area;
-	float width_mm;
-	float height_mm;
+
+        /// physical/real width of dust in millimeters
+        float width_mm;
+        /// physical/real height of dust in millimeters
+        float height_mm;
 	
 } t_correction;
 
