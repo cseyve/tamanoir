@@ -547,6 +547,54 @@ void tmCloneRegion(IplImage * origImage,
 		}
 	}		
 }
+/*
+ * Convert a colored/16bit image to 8bit gray */
+IplImage * tmFastConvertToGrayscale(IplImage * img) {
+	if(!img) { return NULL; }
+	IplImage * grayImage = tmCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 1);
+
+	// Convert
+	switch(img->depth) {
+	default:
+		tmReleaseImage(&grayImage);
+		return NULL;
+	case IPL_DEPTH_8U: // 8bit image as input
+		switch(img->nChannels) {
+		case 1:	// same size, image is already grayscaled
+			memcpy(grayImage->imageData, img->imageData, img->widthStep*img->height);
+			break;
+		default: { // Use Green plane as grayscaled
+			int offset = 1; // green
+			int bytedepth = tmByteDepth(img);
+			unsigned char * buf_in = (unsigned char *)img->imageData;
+			unsigned char * buf_out = (unsigned char *)grayImage->imageData;
+			for(int pos = offset; pos < img->widthStep * img->height; pos+=bytedepth, buf_out++) {
+				*buf_out = buf_in[pos];
+			}
+			}break;
+		}
+		break;
+	case IPL_DEPTH_16U: { // 16bit image as input
+		int offset = 1; // green
+
+		switch(img->nChannels) {
+		case 1:	// same size, image is already grayscaled
+			break;
+		default:  // Use Green plane as grayscaled
+			offset = 1+2; // green (1=MSB + MSB+LSB of red or blue)
+		}
+
+		int bytedepth = tmByteDepth(img);
+		unsigned char * buf_in = (unsigned char *)img->imageData;
+		unsigned char * buf_out = (unsigned char *)grayImage->imageData;
+		for(int pos = offset; pos < img->widthStep * img->height; pos+=bytedepth, buf_out++) {
+			*buf_out = buf_in[pos];
+		}
+		}break;
+	}
+
+	return grayImage;
+}
 
 
 /*
