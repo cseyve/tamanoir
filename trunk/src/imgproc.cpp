@@ -1555,8 +1555,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				
 				// Store correction in full image buffer
 				if(!force_search) {
-					pcorrection->dest_x = crop_x + copy_dest_x;
-					pcorrection->dest_y = crop_y + copy_dest_y;
+//					pcorrection->dest_x = crop_x + copy_dest_x;
+//					pcorrection->dest_y = crop_y + copy_dest_y;
 					
 					pcorrection->copy_width = copy_width;
 					pcorrection->copy_height = copy_height;
@@ -1591,8 +1591,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				pcorrection->rel_seed_y = crop_center_y;
 				
 				// Update dest
-				pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
-				pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
+//				pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
+//				pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
 				pcorrection->area = connect_area;
 				
 				// Fill size statistics
@@ -1944,13 +1944,13 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 	// Store correction in full image buffer
 	pcorrection->rel_src_x = x;
 	pcorrection->rel_src_y = y;
-	pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
-	pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
+//	pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
+//	pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
 
 
 	// Update absolute dest if changed
-	pcorrection->dest_x = pcorrection->crop_x + pcorrection->rel_dest_x;
-	pcorrection->dest_y = pcorrection->crop_y + pcorrection->rel_dest_y;
+//	pcorrection->dest_x = pcorrection->crop_x + pcorrection->rel_dest_x;
+//	pcorrection->dest_y = pcorrection->crop_y + pcorrection->rel_dest_y;
 
 
 	// Update display must be requested by the GUI !
@@ -1970,8 +1970,8 @@ int TamanoirImgProc::skipCorrection(t_correction correction) {
 	
 	// Mark skip action on displayImage
 	if(displayImage) {
-		int disp_x = (correction.dest_x ) * displayImage->width / grayImage->width;
-		int disp_y = (correction.dest_y ) * displayImage->height / grayImage->height;
+		int disp_x = (correction.crop_x + correction.rel_dest_x ) * displayImage->width / grayImage->width;
+		int disp_y = (correction.crop_y + correction.rel_dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 	
@@ -2023,7 +2023,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 			fprintf(g_dataset_f, "Dust\t%d,%d+%dx%d"
 						"\t%d,%d"
 						"\t%c\n",
-						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
+						correction.crop_x + correction.rel_dest_x, correction.crop_y + correction.rel_dest_y, correction.copy_width, correction.copy_height,
 						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
 						(force?'T':'F') );
 			fflush(g_dataset_f);
@@ -2039,7 +2039,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 		fprintf(logfile, "Dust\t%d,%d+%dx%d"
 						"\t%d,%d"
 						"\t%c\n",
-						correction.dest_x, correction.dest_y, correction.copy_width, correction.copy_height,
+						correction.crop_x + correction.rel_dest_x, correction.crop_y + correction.rel_dest_y, correction.copy_width, correction.copy_height,
 						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
 						(force?'T':'F') );
 	}

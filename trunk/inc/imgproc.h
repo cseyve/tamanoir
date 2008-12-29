@@ -61,12 +61,14 @@ typedef struct t_correction_ {
 	/// Destination of copy
 	int dest_x;
 	/// Destination of copy
-	int dest_y;
+//	int dest_y;
 	/// Source of copy
 	int src_x;
 	/// Source of copy
-	int src_y;
+//	int src_y;
+	/// Width of copy
 	int copy_width;
+	/// Height of copy
 	int copy_height;
 	
 	/// top-left of Crop image
