@@ -44,16 +44,30 @@ La vue générale affiche une vignette de l'image entière, avec l'incrustation 
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-VueGenerale.png
 
+*Navigation : * on peut déplacer la zone de zoom avec les touches : 
+  * touche "début" : revient en haut à gauche de l'image
+  * touche "page suivante" : déplace le zoom vers le bas. Quand le zoom atteint le bas de l'image, il se décale vers la droite et revient en haut.
+  * touche "page précédente" : déplace le zoom vers le haut. Quand le zoom atteint le haut de l'image, il se décale vers la gauche et revient en bas.
+
 = Vues détaillées : avant/après =
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
 
 Il y a deux vues : 
-  * Top-left is a crop of *original image* around the detected dust. The proposed correction is represented by a green rectangle for the source of cloning, and the destination of the cloning is linked to source by a green line. *You can move the position of the source with the mouse*.
-  * Bottom-left is the *corrected image*. If you move the source of the cloning on the original crop display, this display is refreshed immediatly.
+  * En hautà gauche, une partie ("crop") de l'image originale, à l'échelle 1:1 (100%). La correction proposée est matérialisée par un rectangle et une flèche verts :
+     * Le rectangle représente l'origine (la source) de la copie. On peut modifier sa taille à la souris en étirant le rectangle par un coin, ou en utilisant la molette.
+     * la pointe de la flèche désigne la destination de la copie. On la déplace avec la souris en maintenant le bouton de gauche appuyé. 
 
-  * Top-right is the binary image of detected dust. It's almost shown for debug purpose.
-  * Bottom-right is the binary image of high frequency regions in original images. It's almost shown for debug purpose.
+    Pour modifier la copie, le plus rapide est de déplacer la destination avec la souris et de régler la taille avec la molette.
+
+    La partie gauche affiche de plus un bouton "Clonage". Si le clonage est activé :
+    * La flèche suit en permanence le curseur de la souris. Si aucun bouton n'est appuyé, le logiciel cherche la meilleure source pour la destination pointée par la souris.
+    * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : il n'y a pas de fonction d'annulation !
+    * Le clic droit positionne l'origine (source) de la copie
+    * La molette sert à redimensionner le rectangle source
+
+  * En haut à droite, la version corrigée de l'image, actualisée en temps réel.
+
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Dust_and_correction.png
 
