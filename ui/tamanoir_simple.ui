@@ -455,7 +455,7 @@
          <item>
           <widget class="QPushButton" name="linearButton">
            <property name="toolTip">
-            <string>Linear correction: draw the trajectory of correction in &quot;Original&quot; display</string>
+            <string>Linear correction: draw the trajectory of correction in &quot;Original&quot; display. Mouse left button set the destination point, right button set the source position.</string>
            </property>
            <property name="text">
             <string>Clone</string>
