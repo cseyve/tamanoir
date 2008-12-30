@@ -21,6 +21,14 @@ L'interface de Tamanoir est divisée en plusieurs sections :
 
 Chaque bouton ou affichage contient une aide contextuelle (qui s'affiche lorsque la souris reste un moment sur l'objet) décrivant sa fonction.
 
+= Cas d'utilisation =
+
+L'utilisation typique de Tamanoir est la suivante : 
+  * On ouvre une image
+  * Une première passe en mode assisté : le logiciel détecte les poussières et propose les corrections. L'utilisateur utilise les boutons ou les raccourcis claviers pour valider ou refuser les corrections
+  * On effectue une seconde passe en mode manuel : on appuie sur la touche "Début", on corrige les fibres et poussières restantes dans la zone affichée en mode "Clonage", puis on passe au bloc suivant en appuyant sur la touche "Page suivante". Et ainsi de suite jusqu'au coin en bas à droite de l'image.
+  * On sauvegarde l'image. Eventuellement selon son organisation, on archive l'originale et/ou on tague la version corrigée.
+
 ----
 
 = Ouvrir / Sauver =
@@ -60,13 +68,13 @@ Il y a deux vues :
 
     Pour modifier la copie, le plus rapide est de déplacer la destination avec la souris et de régler la taille avec la molette.
 
-    La partie gauche affiche de plus un bouton "Clonage". Si le clonage est activé :
-    * La flèche suit en permanence le curseur de la souris. Si aucun bouton n'est appuyé, le logiciel cherche la meilleure source pour la destination pointée par la souris.
-    * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : il n'y a pas de fonction d'annulation !
-    * Le clic droit positionne l'origine (source) de la copie
-    * La molette sert à redimensionner le rectangle source
+    La partie gauche affiche de plus un bouton "Clonage" (_raccourci : 'C'_). Si le clonage est activé :
+        * La flèche suit en permanence le curseur de la souris. Si aucun bouton n'est appuyé, le logiciel cherche la meilleure source pour la destination pointée par la souris.
+        * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : il n'y a pas de fonction d'annulation !
+        * Le clic droit positionne l'origine (source) de la copie
+        * La molette sert à redimensionner le rectangle source
 
-  * En haut à droite, la version corrigée de l'image, actualisée en temps réel.
+  * En haut à droite, la version corrigée de l'image, actualisée en temps réel. 
 
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Dust_and_correction.png
