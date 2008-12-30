@@ -6,7 +6,7 @@ Cette page décrit le mode d'utilisation de Tamanoir pour dépoussiérer les sca
 
 Elle présente les éléments de l'outil, les raccourcis et les astuces pour une utilisation efficace.
 
-= Détails =
+= Interface =
 
 *Attention:* _Pour le moment, seuls les scans de diapositives couleur sont bien supportés. Voir le ToDo (en anglais) pour les développements futurs._
 
@@ -44,9 +44,11 @@ La vue générale affiche une vignette de l'image entière, avec l'incrustation 
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-VueGenerale.png
 
-= Detail views =
+= Vues détaillées : avant/après =
 
-There are 4 image displays for detailled view of currnt dust :
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
+
+Il y a deux vues : 
   * Top-left is a crop of *original image* around the detected dust. The proposed correction is represented by a green rectangle for the source of cloning, and the destination of the cloning is linked to source by a green line. *You can move the position of the source with the mouse*.
   * Bottom-left is the *corrected image*. If you move the source of the cloning on the original crop display, this display is refreshed immediatly.
 
