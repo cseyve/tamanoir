@@ -21,7 +21,7 @@ L'interface de Tamanoir est divisée en plusieurs sections :
 
 Chaque bouton ou affichage contient une aide contextuelle (qui s'affiche lorsque la souris reste un moment sur l'objet) décrivant sa fonction.
 
-= Cas d'utilisation =
+= Cas d'utilisation typique =
 
 L'utilisation typique de Tamanoir est la suivante : 
   * On ouvre une image
@@ -62,13 +62,13 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-VueGenerale.png
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
 
 Il y a deux vues : 
-  * En hautà gauche, une partie ("crop") de l'image originale, à l'échelle 1:1 (100%). La correction proposée est matérialisée par un rectangle et une flèche verts :
+  * En haut à gauche, une partie ("crop") de l'image originale, à l'échelle 1:1 (100%). La correction proposée est matérialisée par un rectangle et une flèche verts :
      * Le rectangle représente l'origine (la source) de la copie. On peut modifier sa taille à la souris en étirant le rectangle par un coin, ou en utilisant la molette.
      * la pointe de la flèche désigne la destination de la copie. On la déplace avec la souris en maintenant le bouton de gauche appuyé. 
 
     Pour modifier la copie, le plus rapide est de déplacer la destination avec la souris et de régler la taille avec la molette.
 
-    La partie gauche affiche de plus un bouton "Clonage" (_raccourci : 'C'_). Si le clonage est activé :
+    La partie gauche affiche de plus un bouton "Clonage" (_raccourci : touche 'C'_). Si le clonage est activé :
         * La flèche suit en permanence le curseur de la souris. Si aucun bouton n'est appuyé, le logiciel cherche la meilleure source pour la destination pointée par la souris.
         * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : il n'y a pas de fonction d'annulation !
         * Le clic droit positionne l'origine (source) de la copie
@@ -77,15 +77,13 @@ Il y a deux vues :
   * En haut à droite, la version corrigée de l'image, actualisée en temps réel. 
 
 
-http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Dust_and_correction.png
-
 = Actions : Retour au début/précédent/refuser/appliquer =
 
 Il y a 3 types d'actions : 
   * *Bouton Refuser* / (_Raccourci : flèche vers la droite_) : on passe à la poussière suivante sans appliquer la correction proposée. 
-  * *Bouton Appliquer* / (_Raccourci : A) : on applique la correction proposée, puis on passe à la poussière suivante. 
+  * *Bouton Appliquer* / (_Raccourci : touche 'A'_) : on applique la correction proposée, puis on passe à la poussière suivante. 
   * *Bouton "<"* (précédent) / (_Raccourci : flèche vers la gauche_) : on revient à la poussière précédente (sans appliquer la correction proposée). C'est très pratique pour revenir sur une poussière que l'on a refusé par erreur en allant trop vite.
-  * *Bouton "|<"* (retour au début) / (_Raccourci : flèche début_) : on revient à la première poussière en haut à gauche de la photo (sans appliquer la correction proposée). Attention : il faudra alors refuser de nouveau toutes les propositions déjà refusées.
+  * *Bouton "|<"* (retour au début) / (_Raccourci : flèche Début_) : on revient à la première poussière en haut à gauche de la photo (sans appliquer la correction proposée). Attention : il faudra alors refuser de nouveau toutes les propositions déjà refusées.
 
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png
