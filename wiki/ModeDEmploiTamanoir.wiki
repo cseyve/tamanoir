@@ -1,0 +1,93 @@
+#summary Mode d'emploi de Tamanoir / Manuel utilisateur [FR]
+
+= Introduction =
+
+Cette page décrit le mode d'utilisation de Tamanoir pour dépoussiérer les scans de photos.
+
+Elle présente les éléments de l'outil, les raccourcis et les astuces pour une utilisation efficace.
+
+= Détails =
+
+*Attention:* _Pour le moment, seuls les scans de diapositives couleur sont bien supportés. Voir le ToDo (en anglais) pour les développements futurs._
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Global.png
+
+L'interface de Tamanoir est divisée en plusieurs sections :
+  * *Affichages des images* sur la partie haute. A gauche la vue originale, à droite la vue corrigée.
+  * Boutons *Ouvrir/Sauver* en dessous à gauche
+  * La *Vignette de l'image entière* qui contient l'incrustation de la zone en cours
+  * Les *boutons d'action* pour valider ou refuser les corrections proposées
+  * Les *options :* type de film, résolution, mode "confiance"
+
+Chaque bouton ou affichage contient une aide contextuelle (qui s'affiche lorsque la souris reste un moment sur l'objet) décrivant sa fonction.
+
+----
+
+= Ouvrir / Sauver =
+
+  * *Ouvrir :* lance une fenêtre de choix de fichier image, puis effectue les pré-traitements en fonction des options choisies. A la fni des pré-traitement l'interface propose la première correction.
+    La barre de progression indique la progression du chargement et des pré-traitements.
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Ouvrir.png
+
+  * *Sauver:* sauvegarde l'image courante avec le *même nom que le fichier original*. De cette façon, si vous avez indexé votre fichier avec un outil de gestion de photothèque, il sera automatiquement modifié, pas besoin de le réimporter. Une copie de sauvegarde esr générée avec l'extension _-copie_ (par dédefaut pour le moment. Cette copie sera éventuellement optionnelle dans les versions futures).
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-OuvrirSauver.png
+
+
+= Vue générale / Vignette de l'image entière =
+
+La vue générale affiche une vignette de l'image entière, avec l'incrustation de petits rectangles : 
+  * *Rectangles bleus* : le grand rectangle bleu indique la zone affichée sur la vue à l'échelle 1:1, le petit à l'intérieur la position de la poussière détectée.
+  * *Rectangles verts* : indique où les corrections ont été validées par l'utilisateur (bouton "Appliquer") ou validées par le mode "confiance".
+  * *Rectangles jaunes* : indique où les corrections ont été refusées par l'utilisateur (bouton "Refuser").
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-VueGenerale.png
+
+= Detail views =
+
+There are 4 image displays for detailled view of currnt dust :
+  * Top-left is a crop of *original image* around the detected dust. The proposed correction is represented by a green rectangle for the source of cloning, and the destination of the cloning is linked to source by a green line. *You can move the position of the source with the mouse*.
+  * Bottom-left is the *corrected image*. If you move the source of the cloning on the original crop display, this display is refreshed immediatly.
+
+  * Top-right is the binary image of detected dust. It's almost shown for debug purpose.
+  * Bottom-right is the binary image of high frequency regions in original images. It's almost shown for debug purpose.
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-Dust_and_correction.png
+
+= Actions : Retour au début/précédent/refuser/appliquer =
+
+Il y a 3 types d'actions : 
+  * *Bouton Refuser* / (_Raccourci : flèche vers la droite_) : on passe à la poussière suivante sans appliquer la correction proposée. 
+  * *Bouton Appliquer* / (_Raccourci : A) : on applique la correction proposée, puis on passe à la poussière suivante. 
+  * *Bouton "<"* (précédent) / (_Raccourci : flèche vers la gauche_) : on revient à la poussière précédente (sans appliquer la correction proposée). C'est très pratique pour revenir sur une poussière que l'on a refusé par erreur en allant trop vite.
+  * *Bouton "|<"* (retour au début) / (_Raccourci : flèche début_) : on revient à la première poussière en haut à gauche de la photo (sans appliquer la correction proposée). Attention : il faudra alors refuser de nouveau toutes les propositions déjà refusées.
+
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png
+
+_*Astuce :*_ pour être efficace, il convient d'utiliser les raccourcis clavier 'A' et flèche de droite. On passe rapidement sur les corrections en les refusant ou en les validant, et si une correction est refusée trop vite, on utilise la flèche gauche pour revenir sur la proposition.
+
+= Options : Film, résolution =
+
+Les options sont :
+  * *Type de film type :* parmi : 
+    * _Indéfinis_: les poussières sont détectées si elles sont plus sombres ou plus claires que le fond
+    * _Positif_ soit diapos couleurs ou photo numérique : les poussières sont détectées seulement si elles sont plus sombres que le fond
+    * _Négatif_ soit négatifs couleurs : les poussières sont détectées seulement si elles sont plus claires que le fond
+
+Le films couleurs ou noir et blancs sont détectés automatiquement. Les paramètres de détection s'adaptent à la présence de grain.
+
+  * *Résolution* : ce paramètre modifie la taille minimale de la poussière à détecter. Plus la résolution est élevée, plus la poussière doit être de taille importante.
+
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Options.png
+
+
+= Mode "confiance" =
+
+Le mode "confiance" permet d'accélérer la tâche de correction en validant automatiquement les corrections qui sont jugées comme très bonnes par le logiciel. Les corrections sont indiquées en vert sur la vue générale.
+
+
+----
+
+Commentaires et suggestions sont bienvenues !! Nous cherchons de nouveaux contributeurs.
