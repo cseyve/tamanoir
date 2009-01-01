@@ -28,10 +28,14 @@ Chaque bouton ou affichage contient une aide contextuelle (qui s'affiche lorsque
 
 ----
 
-= Cas d'utilisation typique =
+= Cas d'utilisation typique / Tutoriel pas à pas =
 
-L'utilisation typique de Tamanoir est la suivante : 
-  * On ouvre une image : sélectionner le fichier à nettoyer
+Tamanoir a été conçu pour éviter les manipulations trop longues de correction des poussières. Avec deux idées : 
+  # le logiciel détecte automatiquement les poussières pour proposer une correction à l'utilisateur. Il corrige donc une poussière par copier/coller (ou clonage) tout en laissant le choix à l'utilisateur d'accepter ou non , 
+  # on donne à l'utilisateur un moyen simple pour corriger manuellement les poussières restantes (outil de clonage).
+
+L'utilisation typique de Tamanoir est ainsi la suivante : 
+  # On ouvre une image : sélectionner le fichier à nettoyer
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Ouvrir.png
     * Attendre la fin du chargement. La progression est indiquée en dessous du bouton "Sauver"
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-OuvrirSauver.png
@@ -39,19 +43,26 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-OuvrirSauver.pn
     * Vérifier si les options correspondent au type de film et à la résolution du scan
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Options.png
 
-  * Une première passe en mode assisté : le logiciel détecte les poussières et propose les corrections. L'utilisateur utilise les boutons ou les raccourcis claviers pour valider ('A' ou bouton "Appliquer") ou refuser les corrections (flèche droite ou bouton "Refuser")
-http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
-http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png
+  # Une première passe en mode assisté : le logiciel détecte les poussières et propose les corrections. L'utilisateur utilise les boutons ou les raccourcis claviers pour valider ('A' ou bouton "Appliquer") ou refuser les corrections (flèche droite ou bouton "Refuser")
+  A chaque proposition, l'affichage détaillé présente *l'image originale à gauche et l'image corrigée à droite*, à l'échelle 1:1 ou 100%. 
+  http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
+  On peut alors : 
+    *  *Modifier la correction proposée* en changeant au choix : la position de l'origine de la copie (le rectangle vert), ou sa destination (le bout de la flèche verte), ou sa taille (soit en étirant le rectangle vert à la souris, soit en utilisant la molette de la souris). L'image de droite est actualisée en temps réel.
+    http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png 
+    *  *Accepter (valider) ou refuser la correction*. L'acceptation se fait à l'aide du bouton "Appliquer" ou de la touche 'A'. http://tamanoir.googlecode.com/svn/trunk/screenshots/Key-A.jpg
+    On peut passer à la correction suivante avec le bouton "Refuser" ou la touche flèche droite (suivant)     http://tamanoir.googlecode.com/svn/trunk/screenshots/Key-Right.jpg
+    Si on est pasé trop vite à la poussière suivante, on peut toujours revenir sur la ou les corrections précédemment refusées en cliquant sur le bouton "<" ou sur la flèche gauche http://tamanoir.googlecode.com/svn/trunk/screenshots/Key-Left.jpg
 
-    Une fois cette étape terminée, la plupart des poussières a été supprimée. Cependant, des poussières ont probablement été oubliée ou le logiciel n'avait pas de proposition de correction, il faut donc les corriger à la main. De plus, le logiciel est incapable de supprimer les fibres en raison de leur taille importante dans l'image et parce qu'il est difficile de trouver une zone de correction automatiquement.
-    Il faut donc inspecter l'image manuellement.
+  Une fois cette étape terminée, *la plupart des poussières a été supprimée.* Cependant, des poussières ont probablement été oubliées ou le logiciel n'avait pas de proposition de correction, il faut donc les corriger à la main. De plus, le logiciel est incapable de supprimer les fibres en raison de leur taille importante dans l'image et parce qu'il est difficile de trouver une zone de correction automatiquement.
+  Il faut donc inspecter l'image manuellement.
 
-  * On effectue une seconde passe en mode manuel : on appuie sur la touche "Début", on corrige les fibres et poussières restantes dans la zone affichée en mode "Clonage", puis on passe au bloc suivant en appuyant sur la touche "Page suivante". Et ainsi de suite jusqu'au coin en bas à droite de l'image.
-  * On sauvegarde l'image. Eventuellement selon son organisation, on archive l'originale et/ou on tague la version corrigée.
+  # On effectue une seconde passe en mode manuel : on appuie sur la touche "Début" http://tamanoir.googlecode.com/svn/trunk/screenshots/Key-home.jpg , on corrige les fibres et poussières restantes dans la zone affichée en mode "Clonage" (raccourci : touche 'C'), puis on passe au bloc suivant en appuyant sur la touche "Page suivante". http://tamanoir.googlecode.com/svn/trunk/screenshots/Key-PageDown.jpg
+  Et ainsi de suite jusqu'au coin en bas à droite de l'image.
+  # On sauvegarde l'image. Eventuellement selon son organisation, on archive l'originale et/ou on tague la version corrigée.
 
 ----
 
-= Mode d'emploi =
+= Détail des fonctionnalités =
 
 == Ouvrir / Sauver ==
 
