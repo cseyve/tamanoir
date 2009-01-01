@@ -227,7 +227,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		return;
         }
 
-
+        if(w == 0 || h == 0) return;
 
 	if(displayImage) { return; }
 	
@@ -254,9 +254,11 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	float scale_x = (float)w / (float)grayImage->width ;
 	float scale_y = (float)h / (float)grayImage->height;
 
+
 	// use lower factor
 	float factor = std::min(scale_x, scale_y);
-	scaled_width = (int)(factor*grayImage->width);
+        if(factor>1.f) factor = 1.f;
+        scaled_width = (int)(factor*grayImage->width);
 	scaled_height = (int)(factor*grayImage->height);
 
 	fprintf(stderr, "TamanoirImgProc::%s:%d : factor=%g => scaled size %dx%d\n", __func__, __LINE__,

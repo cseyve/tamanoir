@@ -3,9 +3,12 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = Tamanoir 
+TARGET = Tamanoir-debug
+
 DEPENDPATH += . inc src ui
 INCLUDEPATH += . inc ui
+OBJECTS_DIR = .obj-debug
+MOC_DIR = .mpc-debug
 
 DEFINES += QT3_SUPPORT
 
