@@ -273,9 +273,16 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	
 	// Resize
 //	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
-	IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
-		IPL_DEPTH_8U, originalImage->nChannels);
 	IplImage * new_displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
+	if(originalImage->depth != new_displayImage->depth) {
+		IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
+			IPL_DEPTH_8U, originalImage->nChannels);
+		cvConvertImage(originalImage, tmpDisplayImage );
+		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
+		tmReleaseImage(&tmpDisplayImage);
+	} else {
+		cvResize(originalImage, new_displayImage, CV_INTER_LINEAR );
+	}
 
 	// Main display image (with permanent modification)
 	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
@@ -285,11 +292,6 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		grayImage->width, grayImage->height,
 		new_displayImage->width, new_displayImage->height
 		);
-	
-	//cvResize(originalImage, displayImage, CV_INTER_LINEAR );
-	cvConvertImage(originalImage, tmpDisplayImage );
-	cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
-	tmReleaseImage(&tmpDisplayImage);
 	
 	if(originalImage->nChannels == 1) {
 		// Prevent image values to be > 253
@@ -1101,8 +1103,9 @@ int TamanoirImgProc::firstDust()
 int TamanoirImgProc::nextDust() {
 	int x, y;
 	int pos;
-	if(!diffImage) return -1;
-	
+	if(!diffImage || !growImage) return -1;
+	if(!diffImage->imageData || !growImage->imageData) return -1;
+
 	int retry = 0;
 	while(retry < 10 && m_lock) {
 		sleep(1); retry++;
