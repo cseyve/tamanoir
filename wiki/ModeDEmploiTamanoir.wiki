@@ -6,6 +6,11 @@ Cette page décrit le mode d'utilisation de Tamanoir pour dépoussiérer les sca
 
 Elle présente les éléments de l'outil, les raccourcis et les astuces pour une utilisation efficace.
 
+Le mode d'emploi est découpé en deux parties : 
+  * un cas d'utilisation pas à pas pour décrire comment utiliser Tamanoir dans l'esprit où il a été conçu
+  * l'explication détaillée de tous les boutons et outils
+
+
 = Interface =
 
 *Attention:* _Pour le moment, seuls les scans de diapositives couleur sont bien supportés. Voir le ToDo (en anglais) pour les développements futurs._
@@ -21,17 +26,34 @@ L'interface de Tamanoir est divisée en plusieurs sections :
 
 Chaque bouton ou affichage contient une aide contextuelle (qui s'affiche lorsque la souris reste un moment sur l'objet) décrivant sa fonction.
 
+----
+
 = Cas d'utilisation typique =
 
 L'utilisation typique de Tamanoir est la suivante : 
-  * On ouvre une image
-  * Une première passe en mode assisté : le logiciel détecte les poussières et propose les corrections. L'utilisateur utilise les boutons ou les raccourcis claviers pour valider ou refuser les corrections
+  * On ouvre une image : sélectionner le fichier à nettoyer
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Ouvrir.png
+    * Attendre la fin du chargement. La progression est indiquée en dessous du bouton "Sauver"
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-OuvrirSauver.png
+
+    * Vérifier si les options correspondent au type de film et à la résolution du scan
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Options.png
+
+  * Une première passe en mode assisté : le logiciel détecte les poussières et propose les corrections. L'utilisateur utilise les boutons ou les raccourcis claviers pour valider ('A' ou bouton "Appliquer") ou refuser les corrections (flèche droite ou bouton "Refuser")
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png
+
+    Une fois cette étape terminée, la plupart des poussières a été supprimée. Cependant, des poussières ont probablement été oubliée ou le logiciel n'avait pas de proposition de correction, il faut donc les corriger à la main. De plus, le logiciel est incapable de supprimer les fibres en raison de leur taille importante dans l'image et parce qu'il est difficile de trouver une zone de correction automatiquement.
+    Il faut donc inspecter l'image manuellement.
+
   * On effectue une seconde passe en mode manuel : on appuie sur la touche "Début", on corrige les fibres et poussières restantes dans la zone affichée en mode "Clonage", puis on passe au bloc suivant en appuyant sur la touche "Page suivante". Et ainsi de suite jusqu'au coin en bas à droite de l'image.
   * On sauvegarde l'image. Eventuellement selon son organisation, on archive l'originale et/ou on tague la version corrigée.
 
 ----
 
-= Ouvrir / Sauver =
+= Mode d'emploi =
+
+== Ouvrir / Sauver ==
 
   * *Ouvrir :* lance une fenêtre de choix de fichier image, puis effectue les pré-traitements en fonction des options choisies. A la fni des pré-traitement l'interface propose la première correction.
     La barre de progression indique la progression du chargement et des pré-traitements.
@@ -43,7 +65,7 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Ouvrir.png
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-OuvrirSauver.png
 
 
-= Vue générale / Vignette de l'image entière =
+== Vue générale / Vignette de l'image entière ==
 
 La vue générale affiche une vignette de l'image entière, avec l'incrustation de petits rectangles : 
   * *Rectangles bleus* : le grand rectangle bleu indique la zone affichée sur la vue à l'échelle 1:1, le petit à l'intérieur la position de la poussière détectée.
@@ -57,7 +79,7 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-VueGenerale.png
   * touche "page suivante" : déplace le zoom vers le bas. Quand le zoom atteint le bas de l'image, il se décale vers la droite et revient en haut.
   * touche "page précédente" : déplace le zoom vers le haut. Quand le zoom atteint le haut de l'image, il se décale vers la gauche et revient en bas.
 
-= Vues détaillées : avant/après =
+== Vues détaillées : avant/après ==
 
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Details.png
 
@@ -77,7 +99,7 @@ Il y a deux vues :
   * En haut à droite, la version corrigée de l'image, actualisée en temps réel. 
 
 
-= Actions : Retour au début/précédent/refuser/appliquer =
+== Actions : Retour au début/précédent/refuser/appliquer ==
 
 Il y a 3 types d'actions : 
   * *Bouton Refuser* / (_Raccourci : flèche vers la droite_) : on passe à la poussière suivante sans appliquer la correction proposée. 
@@ -90,7 +112,7 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Actions.png
 
 _*Astuce :*_ pour être efficace, il convient d'utiliser les raccourcis clavier 'A' et flèche de droite. On passe rapidement sur les corrections en les refusant ou en les validant, et si une correction est refusée trop vite, on utilise la flèche gauche pour revenir sur la proposition.
 
-= Options : Film, résolution =
+== Options : Film, résolution ==
 
 Les options sont :
   * *Type de film type :* parmi : 
@@ -105,7 +127,7 @@ Le films couleurs ou noir et blancs sont détectés automatiquement. Les paramè
 http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Options.png
 
 
-= Mode "confiance" =
+== Mode "confiance" ==
 
 Le mode "confiance" permet d'accélérer la tâche de correction en validant automatiquement les corrections qui sont jugées comme très bonnes par le logiciel. Les corrections sont indiquées en vert sur la vue générale.
 
