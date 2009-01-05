@@ -291,6 +291,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QComboBox" name="typeComboBox">
+              <property name="focusPolicy">
+               <enum>Qt::TabFocus</enum>
+              </property>
               <property name="toolTip">
                <string>Film type : positive (from digital cameras or slides) or negative</string>
               </property>
@@ -313,6 +316,9 @@
             </item>
             <item>
              <widget class="QComboBox" name="dpiComboBox">
+              <property name="focusPolicy">
+               <enum>Qt::TabFocus</enum>
+              </property>
               <property name="toolTip">
                <string>Scan resolution, used to guess the size on minimal dust</string>
               </property>

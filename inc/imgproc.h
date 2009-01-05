@@ -187,9 +187,7 @@ public:
 	/** @brief Mark a former correction proposal as refused by user*/
 	int skipCorrection(t_correction correction);
 
-	/** @brief Set block size */
-	int setBlocSize(int bw, int bh);
-	
+
 	/** @brief Get progress in %age */
 	int getProgress();
 	
@@ -230,7 +228,7 @@ public:
 	int setBlockSize(int w, int h);
 
 	/** @brief Return the display (crop) block size, used for display and processing */
-	CvSize getDisplayCropSize() { return displayCropSize; };
+	CvSize getDisplayCropSize();
 
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };

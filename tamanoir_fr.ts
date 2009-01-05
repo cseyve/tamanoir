@@ -39,12 +39,12 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="542"/>
+        <location filename="ui/tamanoir_simple.ui" line="548"/>
         <source>Automatically correct the whole image</source>
         <translation>Correction automatique de toute l&apos;image</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="545"/>
+        <location filename="ui/tamanoir_simple.ui" line="551"/>
         <source>Auto</source>
         <translation></translation>
     </message>
@@ -84,72 +84,72 @@
         <translation type="obsolete">&lt;b&gt;Type de film :&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="295"/>
+        <location filename="ui/tamanoir_simple.ui" line="298"/>
         <source>Film type : positive (from digital cameras or slides) or negative</source>
         <translation>Type de film : positif (numérique ou diapos) ou négatif</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="324"/>
+        <location filename="ui/tamanoir_simple.ui" line="330"/>
         <source>Undefined</source>
         <translation>Indéfini</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="304"/>
+        <location filename="ui/tamanoir_simple.ui" line="307"/>
         <source>Negative</source>
         <translation>Négatif</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="309"/>
+        <location filename="ui/tamanoir_simple.ui" line="312"/>
         <source>Positive</source>
         <translation>Positif</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="317"/>
+        <location filename="ui/tamanoir_simple.ui" line="323"/>
         <source>Scan resolution, used to guess the size on minimal dust</source>
         <translation>Résolution du scanner (détermine la taille minimale des poussières)</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="329"/>
+        <location filename="ui/tamanoir_simple.ui" line="335"/>
         <source>600 dpi</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="334"/>
+        <location filename="ui/tamanoir_simple.ui" line="340"/>
         <source>1200 dpi</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="339"/>
+        <location filename="ui/tamanoir_simple.ui" line="345"/>
         <source>2400 dpi</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="344"/>
+        <location filename="ui/tamanoir_simple.ui" line="350"/>
         <source>3200 dpi</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="349"/>
+        <location filename="ui/tamanoir_simple.ui" line="355"/>
         <source>4800 dpi</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="357"/>
+        <location filename="ui/tamanoir_simple.ui" line="363"/>
         <source>Trust small dusts with very good correction proposal</source>
         <translation>Remplacer les poussières qui ont a priori une correction très bonne</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="360"/>
+        <location filename="ui/tamanoir_simple.ui" line="366"/>
         <source>Trust mode</source>
         <translation>Confiance</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="611"/>
+        <location filename="ui/tamanoir_simple.ui" line="617"/>
         <source>Enable hot pixels removal, e.g. very small light points</source>
         <translation>Active la détection des pixels chauds (points lumineux isolés)</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="614"/>
+        <location filename="ui/tamanoir_simple.ui" line="620"/>
         <source>Hot pixels</source>
         <translation>Pixels chauds</translation>
     </message>
@@ -164,7 +164,7 @@
         <translation type="obsolete">Originale (extrait)</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="495"/>
+        <location filename="ui/tamanoir_simple.ui" line="501"/>
         <source>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</source>
         <translation>Déplacer le rectangle vert pour changer l&apos;origine du clonage. </translation>
     </message>
@@ -174,7 +174,7 @@
         <translation type="obsolete">Outil clonage : dessiner manuellement la correction</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="461"/>
+        <location filename="ui/tamanoir_simple.ui" line="467"/>
         <source>Clone</source>
         <translation>Clonage</translation>
     </message>
@@ -224,17 +224,17 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="397"/>
+        <location filename="ui/tamanoir_simple.ui" line="403"/>
         <source>After</source>
         <translation>Après</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="577"/>
+        <location filename="ui/tamanoir_simple.ui" line="583"/>
         <source>TextLabel</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="558"/>
+        <location filename="ui/tamanoir_simple.ui" line="564"/>
         <source>Loading</source>
         <translation>Chargement de </translation>
     </message>
@@ -259,7 +259,7 @@
         <translation>Affiche la progression du chargment ou des traitements</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="662"/>
+        <location filename="ui/tamanoir_simple.ui" line="668"/>
         <source>Left</source>
         <translation></translation>
     </message>
@@ -274,52 +274,52 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="363"/>
+        <location filename="ui/tamanoir_simple.ui" line="369"/>
         <source>T</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="452"/>
+        <location filename="ui/tamanoir_simple.ui" line="458"/>
         <source>Before / Original image</source>
         <translation>Avant / originale</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="458"/>
+        <location filename="ui/tamanoir_simple.ui" line="464"/>
         <source>Linear correction: draw the trajectory of correction in &quot;Original&quot; display. Mouse left button set the destination point, right button set the source position.</source>
         <translation>Outil de clonage : corriger par copier/coller dans l&apos;affichage original. Le bouton gauche de la souris déplace la destination du clonage, le bouton droit fixe l&apos;origine du clonage.</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="464"/>
+        <location filename="ui/tamanoir_simple.ui" line="470"/>
         <source>C</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="624"/>
+        <location filename="ui/tamanoir_simple.ui" line="630"/>
         <source>topleft</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="627"/>
+        <location filename="ui/tamanoir_simple.ui" line="633"/>
         <source>Home</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="634"/>
+        <location filename="ui/tamanoir_simple.ui" line="640"/>
         <source>down</source>
-        <translation></translation>
+        <translation>Préc</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="637"/>
+        <location filename="ui/tamanoir_simple.ui" line="643"/>
         <source>PgDown</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="644"/>
+        <location filename="ui/tamanoir_simple.ui" line="650"/>
         <source>page up</source>
-        <translation>PagePrécédente</translation>
+        <translation>Suivant</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="647"/>
+        <location filename="ui/tamanoir_simple.ui" line="653"/>
         <source>PgUp</source>
         <translation></translation>
     </message>

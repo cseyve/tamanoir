@@ -1239,7 +1239,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
 
 #define spmax 576*2
 
-void tmGrowRegion(unsigned char * growIn, unsigned char * growOut, 
+void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	int swidth, int sheight, 
 	int c, int r, 
 	unsigned char threshold,

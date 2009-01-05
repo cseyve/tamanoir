@@ -488,8 +488,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
 			__func__, __LINE__);
 		grayImage = tmFastConvertToGrayscale(originalImage);
-		m_progress = 20;
 
+		m_progress = 20;
 	}
 	
 	
@@ -539,9 +539,10 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	}
 	m_progress = 25;
 	
-	if(displaySize.width > 0)
+	if(displaySize.width > 0) {
 		setDisplaySize(displaySize.width, displaySize.height);
-	
+	}
+
 	m_lock = false;
 	
 	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
@@ -614,11 +615,12 @@ int TamanoirImgProc::preProcessImage() {
 	case FILM_NEGATIVE:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n", 
 			__func__, __LINE__);
+		int orig_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
+
 		if(!origBlurredImage) {
 			origBlurredImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 				originalImage->depth, originalImage->nChannels);
 			
-			int orig_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
 
 			// First, blur the color image
 			cvSmooth( originalImage, origBlurredImage,
@@ -636,8 +638,8 @@ int TamanoirImgProc::preProcessImage() {
 		
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-			m_smooth_size, m_smooth_size );
-		/*
+			orig_smooth_size, orig_smooth_size); //	m_smooth_size, m_smooth_size );
+		/* // CSE : test 2009-01-°04 : with open instead of smooth
 		tmOpenImage(
 			grayImage,  // => src 
 			medianImage, // => dest
@@ -716,7 +718,8 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
-//unused	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
+	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
+	unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
 	int width = diffImage->widthStep;
 	int height = diffImage->height;
 	int pos;
@@ -738,12 +741,20 @@ int TamanoirImgProc::preProcessImage() {
 		for(pos=0; pos<width*height; pos++) 
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
-			
+			// Try with signal/noise approach
+			/* verison with absolute difference threshold *
 			if( (diff >= m_threshold ) ) // Opaque pixels are whiter that median
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
 			else
 				if(diff >= tmmax(3, m_threshold-2))
 					diffImageBuffer[pos] = DIFF_CONTOUR;
+					*/
+			//if( diff >= tmmax(3, m_threshold-2) ) // Opaque pixels are whiter that median
+			{
+				if( diff >= (u8)tmmax(2.f, ((float)medianImageBuffer[pos] /8.f) ) ) { // Opaque pixels are whiter that median
+					diffImageBuffer[pos] = DIFF_THRESHVAL;
+				}
+			}
 		}
 
 		}break;
@@ -765,11 +776,13 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 70;
 	
 	// Do a close operation on diffImage
-	tmCloseImage(diffImage, medianImage, grayImage, 1);
-		// For debug, save image in temporary directory
-		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
-	memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
-	
+	if(0) {
+		tmCloseImage(diffImage, medianImage, grayImage, 1);
+			// For debug, save image in temporary directory
+			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
+		memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
+	}
+
 	m_progress = 80;
 	
 	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n", 
@@ -1072,6 +1085,15 @@ int TamanoirImgProc::setBlockSize(int w, int h) {
 	firstDust();
 
 	return 0;
+}
+CvSize TamanoirImgProc::getDisplayCropSize() {
+
+	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
+		return displayCropSize;
+	}
+
+	// Else return default size for analysis
+	return processingSize;
 }
 
 /* @brief Get progress in %age */
@@ -1473,6 +1495,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			if(force_search) {
 				connect_width = pcorrection->copy_width;
 				connect_height = pcorrection->copy_height;
+				// Maybe not a good ideao to limit position of search
+				// because this point can be at the border of the dust
+				// so the search rectangle may be too small
 				connect_center_x = x - crop_x;
 				connect_center_y = y - crop_y;
 			}
