@@ -297,6 +297,8 @@ void TamanoirApp::moveBlock() {
 			m_nav_y_block = 0;
 			m_nav_x_block++;
 		} else { // nothing to do, we'are already at bottom-right of image
+			// just prevent y to be larger than image
+			m_nav_y_block = origImage->height/blockSize.height;
 		}
 	}
 
@@ -1181,7 +1183,11 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 		__func__, __LINE__, i);
 	statusBar()->showMessage( tr("Changed film type: please wait...") );
 	statusBar()->update();
-	
+
+	if(m_options.filmType != i) {
+		skipped_list.clear();
+	}
+
 	m_options.filmType = i;
 	
 	if(m_pProcThread) {
@@ -1189,7 +1195,6 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 		refreshTimer.start(250);
 	} else m_curCommand = PROTH_NOTHING;
 	
-
 	
 	saveOptions();
 }
@@ -1709,7 +1714,15 @@ int TamanoirThread::setOptions(tm_options options) {
 		return 0;
 	if(!m_run)
 		start();
-	
+
+	// If something changed, clear already known dusts
+	if(m_options.filmType != options.filmType) {
+		dust_list.clear();
+	}
+	if(m_options.dpi != options.dpi) {
+		dust_list.clear();
+	}
+
 	int ret = req_command = PROTH_OPTIONS;
 	
 	// Unlock thread 

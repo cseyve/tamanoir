@@ -5,6 +5,8 @@ TEMPLATE = app
 
 TARGET = Tamanoir
 
+CONFIG      += designer
+
 DEPENDPATH += . \
     inc \
     src \
@@ -52,8 +54,12 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
 linux-g++:DEFINES += LINUX
 LIBS_EXT = dylib
 linux-g++:LIBS_EXT = so
-message( "Installation directory = $(PWD) ")
-LIBS = 
+
+message( "Current directory = $(PWD) ")
+message( "OpenCV configuration =================================================")
+
+# Reset libraries
+LIBS =
 DYN_LIBS = 
 STATIC_LIBS = 
 unix: { 
@@ -158,6 +164,12 @@ unix: {
         DYN_LIBS += -lopencv
         STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/libopencv.a
     }
+    message( "")
+
+
+
+    message( "Installation configuration =================================================")
+
     INSTALL_DUSTHOOVER = $(DUSTHOOVER_DIR)
     message( Reading installation directory : '$$INSTALL_DUSTHOOVER')
     count( $$INSTALL_DUSTHOOVER , 0 ):message("Installation directory is undefined !! Installing in '/usr/local/tamanoir'.")
@@ -167,6 +179,7 @@ unix: {
         message( defines : $$DEFINES )
     }
 }
+
 DYN_LIBS += -lcvaux \
     -lhighgui \
     -ltiff
@@ -186,8 +199,38 @@ else {
     # Dynamic libraries version
     LIBS = $$DYN_LIBS
 }
+
+OTHER_FILES += build_mac_bundle.sh \
+    build_mac_dmg.py
+
+#CONFIG(debug, debug|release) {
+macx {
+    message("MacOS X specific options =================================================")
+    TARGET = $$join(TARGET,,,_debug)
+    DEFINES += "TRANSLATION_DIR=Tamanoir.app/Contents/"
+}
+unix {
+    message("Unix specific options =================================================")
+    DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
+}
+win32:{
+    TARGET = $$join(TARGET,,d)
+}
+#}
+CONFIG += build_all
+
+## INSTALATION
+target.path = /usr/local/tamanoir
+
+INSTALLS += target
+
+# FINAL CONFIGURATION ==================================================
+message( "")
+message( "")
+message( "FINAL CONFIGURATION ================================================== ")
 message( "Configuration : ")
 message( " defs : $$DEFINES ")
 message( " libs : $$LIBS ")
-OTHER_FILES += build_mac_bundle.sh \
-    build_mac_dmg.py
+message( "FINAL CONFIGURATION ================================================== ")
+message( "")
+message( "")

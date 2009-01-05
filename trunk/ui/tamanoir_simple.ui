@@ -467,7 +467,7 @@
             <string>Clone</string>
            </property>
            <property name="shortcut">
-            <string>C</string>
+            <string>Up, Up</string>
            </property>
           </widget>
          </item>
