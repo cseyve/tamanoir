@@ -28,56 +28,56 @@
 unsigned char g_debug_QImageDisplay = 0;
 
 QImageDisplay::QImageDisplay(QWidget * l_parent)
-    : QLabel(l_parent) {
-    setMouseTracking(false);
+	: QLabel(l_parent) {
+	setMouseTracking(false);
 }
 
 void QImageDisplay::mousePressEvent(QMouseEvent * e)
 {
-    if(g_debug_QImageDisplay)
-	fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
-    emit signalMousePressEvent(e);
+	if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+	emit signalMousePressEvent(e);
 }
 
 void QImageDisplay::mouseReleaseEvent(QMouseEvent * e)
 {
-    if(g_debug_QImageDisplay)
-	fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
-    emit signalMouseReleaseEvent(e);
+	if(g_debug_QImageDisplay)
+			fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+	emit signalMouseReleaseEvent(e);
 }
 
 void QImageDisplay::mouseMoveEvent(QMouseEvent * e)
 {
-    if(g_debug_QImageDisplay)
-	fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
-    emit signalMouseMoveEvent(e);
+	if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+	emit signalMouseMoveEvent(e);
 }
 
 void QImageDisplay::wheelEvent(QWheelEvent * e)
 {
-    if(e) {	
+	if(e) {
 		int numDegrees = e->delta() / 8;
 		int numSteps = numDegrees / 15;
-			
+
 		if(g_debug_QImageDisplay) {
-            fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n", 
-                            __func__, __LINE__, e, e->delta());
+			fprintf(stderr, "QImageDisplay::%s:%d : Wheel event e=%p delta=%d\n",
+					__func__, __LINE__, e, e->delta());
 			fprintf(stderr, "\tDeplacement :\t%d steps = %d degrees\n",
-                    numSteps, numDegrees );
-            fprintf(stderr, "\tOrientation :\t");
-            switch(e->orientation()) {
-            case Qt::Horizontal:
-                    fprintf(stderr, "Qt::Horizontal\n");
-                    break;
-            case Qt::Vertical:
-                    fprintf(stderr, "Qt::Vertical\n");
-                    break;
-            default:
-                    fprintf(stderr, "Unknown\n");
-                    break;
-            }
-        }
-    }
+					numSteps, numDegrees );
+			fprintf(stderr, "\tOrientation :\t");
+			switch(e->orientation()) {
+			case Qt::Horizontal:
+				fprintf(stderr, "Qt::Horizontal\n");
+				break;
+			case Qt::Vertical:
+				fprintf(stderr, "Qt::Vertical\n");
+				break;
+			default:
+				fprintf(stderr, "Unknown\n");
+				break;
+			}
+		}
+	}
 	
-    emit signalWheelEvent(e);
+	emit signalWheelEvent(e);
 }

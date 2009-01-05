@@ -1139,6 +1139,7 @@ int TamanoirImgProc::nextDust() {
 	m_lock = true;
 	
 	
+	int pitch = diffImage->widthStep;
 	int width = diffImage->width;
 	int height = diffImage->height;
 	
@@ -1153,16 +1154,16 @@ int TamanoirImgProc::nextDust() {
 	
 	memset(&m_lastDustComp, 0, sizeof(CvConnectedComp));
 	
-        m_correct.copy_width = -1; // Clear stored correction
+	m_correct.copy_width = -1; // Clear stored correction
 	
 	
 	for(y = m_seed_y; y<height-1; y++) {
-		pos = y * diffImage->widthStep + m_seed_x;
+		pos = y * pitch + m_seed_x;
 		for(x = m_seed_x; x<width-1; x++, pos++) {
 			
 			if(diffImageBuffer[pos] == DIFF_THRESHVAL && !growImageBuffer[pos]) {
 				// Grow region here if the region is big enough
-				if(diffImageBuffer[pos+1] == DIFF_THRESHVAL || m_hotPixels)
+				if(diffImageBuffer[pos+pitch] == DIFF_THRESHVAL || m_hotPixels)
 	//			|| diffImageBuffer[pos+diffImage->widthStep]==DIFF_THRESHVAL)
 				{
 					int return_now = findDust(x,y);
@@ -1172,6 +1173,9 @@ int TamanoirImgProc::nextDust() {
 						return return_now;
 					}
 				}
+			} // else clear diffimage because this is not a dust
+			else {
+				diffImageBuffer[pos] = 0;
 			}
 		}
 		
