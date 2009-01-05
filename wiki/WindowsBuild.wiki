@@ -1,0 +1,65 @@
+#summary This page explains how to build Tamanoir on Windows.
+
+= Introduction =
+
+This page explains how to build Tamanoir on Windows.
+
+
+= Details =
+
+Building Tamanoir on Windows.
+
+You need :
+- OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+- Qt4 for Mac
+- an IDE/... : you should try QtCreator, because the installer package provides Qt4, MinGW compiler and the IDE.
+    
+
+----
+==QtCreator==
+
+Download : http://trolltech.com/developer/qt-creator/qt-creator
+Then install :
+
+----
+== OpenCV ==
+
+=== OpenCV *without* 16bit TIFF support ===
+
+
+=== OpenCV *with* 16bit TIFF support ===
+Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
+
+I don't now how to compile it for Windows.
+
+----
+== Qt4 (if not using QtCreator) ==
+
+Download : [http://trolltech.com/downloads/opensource]
+Install Qt4. For example: 
+{{{
+apt-get install qt4-dev
+}}}
+
+----
+== Tamanoir ==
+
+Download snapshot : 
+{{{
+# Non-members may check out a read-only working copy anonymously over HTTP.
+svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
+}}}
+
+Compile Tamanoir :
+  * with QtCreator : open the Tamanoir.pro project file, then build and run.
+
+=Debian package=
+
+Tamanoir use the "native Debian packagin" model, where the debian/ foler and its control files are maintained in the upstream repository. Instructions to build a Debian package should work on any Debian-based distribution (Ubuntu for instance):
+{{{
+$ svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
+$ cd tamanoir
+$ dpkg-buildpackage -uc -us -rfakeroot
+}}}
+
+Binary packages for Debian Lenny i386 are available, see http://zerodeux.net/debian/
