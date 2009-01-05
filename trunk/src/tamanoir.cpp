@@ -170,10 +170,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			switch(m_curCommand) {
 			default:
 				break;
-                        case PROTH_LOAD_FILE:
-                                #ifdef SIMPLE_VIEW
-                                ui.correctPixmapLabel->resize(ui.cropPixmapLabel->size().width(), ui.centralwidget->height());
-                                #endif
+			case PROTH_LOAD_FILE:
+				#ifdef SIMPLE_VIEW
+				ui.correctPixmapLabel->resize(ui.cropPixmapLabel->size().width(), ui.centralwidget->height());
+				#endif
 
 				refreshMainDisplay();
 				updateDisplay();
@@ -280,13 +280,17 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 void TamanoirApp::moveBlock() {
 	if(!m_pImgProc) return;
-	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d\n", __func__, __LINE__,
-			m_nav_x_block, m_nav_y_block);
 	CvSize blockSize = m_pImgProc->getDisplayCropSize();
+	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d / blocks of size %dx%d\n", __func__, __LINE__,
+			m_nav_x_block, m_nav_y_block,
+			blockSize.width, blockSize.height
+			);
 	if(blockSize.width <= 0 || blockSize.height <= 0) return;
 
 	IplImage * origImage = m_pImgProc->getGrayscale();
 	if(!origImage) return;
+
+
 	if(blockSize.height * m_nav_y_block > origImage->height) {
 		// move to right
 		if((m_nav_x_block+1)*blockSize.width < origImage->width) {
@@ -1440,8 +1444,19 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	
 	if(iplImage->nChannels == 1) {
 		qImage.setNumColors(256);
-		for(int c=0; c<256; c++) 
+
+		for(int c=0; c<256; c++) {
+			/* False colors
+			int R=c, G=c, B=c;
+			if(c<128) B = (255-2*c); else B = 0;
+			if(c>128) R = 2*(c-128); else R = 0;
+			G = abs(128-c)*2;
+
+			qImage.setColor(c, qRgb(R,G,B));
+			*/
 			qImage.setColor(c, qRgb(c,c,c));
+
+		}
 	}
 	return qImage;
 }
@@ -1496,7 +1511,7 @@ void TamanoirApp::updateDisplay()
 				mainImage.setNumColors(256);
 				for(int c=0; c<256; c++) 
 					mainImage.setColor(c, qRgb(c,c,c));
-			
+
 				mainImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
 				mainImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
 				mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
@@ -1538,7 +1553,7 @@ void TamanoirApp::updateDisplay()
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
 				grayQImage,
-					QPixmap::Color);
+				QPixmap::Color);
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
 		}
@@ -1550,9 +1565,17 @@ void TamanoirApp::updateDisplay()
 			
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage);
+			if(curImage->nChannels == 1) {
+				grayQImage.setNumColors(256);
+				for(int c=0; c<255; c++)
+					grayQImage.setColor(c, qRgb(c,c,c));
+
+				grayQImage.setColor(255, qRgb(0,255,0));
+			}
+
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
-				grayQImage.scaledToWidth(pLabel->width()),
+				grayQImage, //.scaledToWidth(pLabel->width()),
 				QPixmap::Color);
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
@@ -1569,15 +1592,15 @@ void TamanoirApp::updateDisplay()
 				QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
 				if(curImage->nChannels == 1) {
 					grayQImage.setNumColors(256);
-					for(int c=0; c<255; c++) 
+					for(int c=0; c<255; c++)
 						grayQImage.setColor(c, qRgb(c,c,c));
-					
+
 					grayQImage.setColor(255, qRgb(255,0,0));
 				}
 				
 				QPixmap pixmap;
-				pixmap.convertFromImage( 
-						grayQImage,
+				pixmap.convertFromImage(
+						grayQImage,//.smoothScale(pLabel->width(),pLabel->height()),
 						QPixmap::Color);
 				pLabel->setPixmap(pixmap);
 				pLabel->repaint();
@@ -1610,9 +1633,24 @@ void TamanoirApp::updateDisplay()
 
 				// Display in frame
 				QImage grayQImage = iplImageToQImage(curImage);
+				if(curImage->nChannels == 1) {
+					grayQImage.setNumColors(256);
+					for(int c=0; c<256; c++) {
+						int R=c, G=c, B=c;
+						// False colors
+						if(c<128) B = (255-2*c); else B = 0;
+						if(c>128) R = 2*(c-128); else R = 0;
+						G = 256 - abs(128-c)*2; if(G>255) G = 255;
+
+						grayQImage.setColor(c, qRgb(R,G,B));
+					//	grayQImage.setColor(c, qRgb(c,c,c));
+					}
+				}
+
 				QPixmap pixmap;
-				pixmap.convertFromImage( grayQImage.smoothScale(pLabel->width(),pLabel->height()),
-					QPixmap::Color);
+				pixmap.convertFromImage(
+						grayQImage, //.smoothScale(pLabel->width(),pLabel->height()),
+						QPixmap::Color);
 				pLabel->setPixmap(pixmap);
 				pLabel->repaint();
 			}

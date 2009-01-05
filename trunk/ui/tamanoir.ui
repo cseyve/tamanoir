@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1003</width>
-    <height>723</height>
+    <width>1007</width>
+    <height>682</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -257,6 +257,9 @@
          <height>26</height>
         </rect>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <property name="toolTip">
         <string>Film type : positive (from digital cameras or slides) or negative</string>
        </property>
@@ -284,6 +287,9 @@
          <width>120</width>
          <height>26</height>
         </rect>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
        </property>
        <property name="toolTip">
         <string>Scan resolution, used to guess the size on minimal dust</string>
@@ -595,7 +601,10 @@
       <pixmap/>
      </property>
      <property name="scaledContents">
-      <bool>true</bool>
+      <bool>false</bool>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
      <property name="wordWrap">
       <bool>false</bool>
