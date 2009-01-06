@@ -1174,7 +1174,7 @@ int TamanoirImgProc::nextDust() {
 					}
 				}
 			} // else clear diffimage because this is not a dust
-			else {
+			else if(!growImageBuffer[pos]) {
 				diffImageBuffer[pos] = 0;
 			}
 		}
