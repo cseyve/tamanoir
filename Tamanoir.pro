@@ -7,9 +7,11 @@ DEPENDPATH += . \
     inc \
     src \
     ui
+
 INCLUDEPATH += . \
     inc \
     ui
+
 OBJECTS_DIR = .obj-simple
 DEFINES += QT3_SUPPORT \
     SIMPLE_VIEW
@@ -61,7 +63,9 @@ win32: {
     INCLUDEPATH += "C:\Program Files\OpenCV\cv\include"
     INCLUDEPATH += "C:\Program Files\OpenCV\cvaux\include"
     INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
-    DYN_LIBS += -L"C:\Program Files\OpenCV\lib" -lcxcore -lcv
+    DYN_LIBS += -L"C:\Program Files\OpenCV\lib" \
+        -L"C:\Program Files\OpenCV\bin" \
+        -lcxcore -lcv
 }
 
 unix: { 
@@ -189,13 +193,13 @@ contains(BUILD_STATIC, true) {
     message("Building static version of binary :")
     
     # Test for building releases
-    LIBS = $$STATIC_LIBS
+    LIBS += $$STATIC_LIBS
 }
 else { 
     message("Building dynamic libraries version of binary :")
     
     # Dynamic libraries version
-    LIBS = $$DYN_LIBS
+    LIBS += $$DYN_LIBS
 }
 
 OTHER_FILES += build_mac_bundle.sh \
