@@ -27,6 +27,14 @@
 #define IMGUTILS_H
 
 
+#ifdef WIN32
+#define tmsleep(s)	Sleep((s)*1000)
+#define strcasestr	strstr
+#else // Unix
+#define tmsleep(s)  sleep((s))
+#endif
+
+
 // For Open CV Functions
 #include <cv.h>
 #include <cv.hpp>
