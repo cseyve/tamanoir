@@ -2,11 +2,7 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
-
 TARGET = Tamanoir
-
-CONFIG      += designer
-
 DEPENDPATH += . \
     inc \
     src \
@@ -14,16 +10,15 @@ DEPENDPATH += . \
 INCLUDEPATH += . \
     inc \
     ui
-
 OBJECTS_DIR = .obj-simple
-
 DEFINES += QT3_SUPPORT \
     SIMPLE_VIEW
-
 TRANSLATIONS = tamanoir_fr.ts
 
 # icon
-RC_FILE = icon/Tamanoir.icns
+# reference : file:///usr/share/qt4/doc/html/appicon.html
+mac::ICON = icon/Tamanoir.icns
+win32::RC_FILE = icon/tamanoir.rc
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 
 # Input
@@ -31,13 +26,14 @@ HEADERS = inc/imgproc.h \
     inc/imgutils.h \
     inc/tamanoir.h \
     inc/qimagedisplay.h
+
 FORMS = ui/tamanoir_simple.ui
+
 SOURCES = src/imgproc.cpp \
     src/imgutils.cpp \
     src/main.cpp \
     src/tamanoir.cpp \
     src/qimagedisplay.cpp
-
 linux-g++:TMAKE_CXXFLAGS += -Wall \
     -O2 \
     -g \
@@ -50,23 +46,29 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
     -Wuninitialized \
     -Wparentheses \
     -Wpointer-arith
-
 linux-g++:DEFINES += LINUX
 LIBS_EXT = dylib
 linux-g++:LIBS_EXT = so
+win32:LIBS_EXT = lib
 
-message( "Current directory = $(PWD) ")
-message( "OpenCV configuration =================================================")
-
-# Reset libraries
-LIBS =
+message( "Installation directory = $(PWD) ")
+LIBS = 
 DYN_LIBS = 
 STATIC_LIBS = 
+win32: { 
+    message("Win32 specific paths : OpenCV must be installed in C:\Program Files\OpenCV")
+    INCLUDEPATH += "C:\Program Files\OpenCV\cxcore\include"
+    INCLUDEPATH += "C:\Program Files\OpenCV\cv\include"
+    INCLUDEPATH += "C:\Program Files\OpenCV\cvaux\include"
+    INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
+    DYN_LIBS += -L"C:\Program Files\OpenCV\lib" -lcxcore -lcv
+}
+
 unix: { 
     # Test if libtiff is installed
     exists( /usr/local/include/tiffio.h ) { 
         INCLUDEPATH += /usr/local/include
-        DYN_LIBS += -L/usr/local/lib
+        DYN_LIBS += -L/usr/local/lib -ltiff
         SOURCES += src/cv2tiff.cpp
         DEFINES += HAVE_LIBTIFF
         STATIC_LIBS += /usr/local/lib/libtiff.a
@@ -74,7 +76,7 @@ unix: {
     else { 
         exists( /opt/local/include/tiffio.h ) { 
             INCLUDEPATH += /opt/local/include
-            DYN_LIBS += -L/opt/local/lib
+            DYN_LIBS += -L/opt/local/lib -ltiff
             SOURCES += src/cv2tiff.cpp
             DEFINES += HAVE_LIBTIFF
             STATIC_LIBS += /opt/local/lib/libtiff.a
@@ -82,14 +84,15 @@ unix: {
         else { 
             exists( /sw/include/tiffio.h ) { 
                 INCLUDEPATH += /sw/include
-                DYN_LIBS += -L/sw/lib
+                DYN_LIBS += -L/sw/lib -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
+
                 STATIC_LIBS += /sw/lib/libtiff.a
             }
             else:exists( /usr/include/tiffio.h ) { 
                 INCLUDEPATH += /usr/include
-                DYN_LIBS += -L/usr/lib
+                DYN_LIBS += -L/usr/lib -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
                 STATIC_LIBS += /usr/lib/libtiff.a
@@ -164,12 +167,6 @@ unix: {
         DYN_LIBS += -lopencv
         STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/libopencv.a
     }
-    message( "")
-
-
-
-    message( "Installation configuration =================================================")
-
     INSTALL_DUSTHOOVER = $(DUSTHOOVER_DIR)
     message( Reading installation directory : '$$INSTALL_DUSTHOOVER')
     count( $$INSTALL_DUSTHOOVER , 0 ):message("Installation directory is undefined !! Installing in '/usr/local/tamanoir'.")
@@ -181,11 +178,12 @@ unix: {
 }
 
 DYN_LIBS += -lcvaux \
-    -lhighgui \
-    -ltiff
+    -lhighgui
+
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
     $$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
     $$OPENCV_STATIC_LIBDIR/lib_highgui.a
+
 BUILD_STATIC = $$(BUILD_STATIC)
 contains(BUILD_STATIC, true) { 
     message("Building static version of binary :")
@@ -205,7 +203,7 @@ OTHER_FILES += build_mac_bundle.sh \
 
 #CONFIG(debug, debug|release) {
 macx {
-    message("MacOS X specific options =================================================")
+    message("MacOS X specific options  =================================================")
     TARGET = $$join(TARGET,,,_debug)
     DEFINES += "TRANSLATION_DIR=Tamanoir.app/Contents/"
 }
