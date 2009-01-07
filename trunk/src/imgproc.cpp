@@ -114,6 +114,7 @@ void TamanoirImgProc::init() {
 	grayImage = NULL;
 	medianImage = NULL;
 	diffImage = NULL;
+	varianceImage = NULL;
 	growImage = NULL;
 	
 	// Working images : cropped
@@ -188,6 +189,7 @@ void TamanoirImgProc::purge() {
 	if(origBlurredImage) tmReleaseImage(&origBlurredImage); origBlurredImage = NULL;
 	if(medianImage) tmReleaseImage(&medianImage);  medianImage = NULL;
 	if(diffImage) 	tmReleaseImage(&diffImage);  diffImage = NULL;
+	if(varianceImage) 	tmReleaseImage(&varianceImage);  varianceImage = NULL;
 	if(growImage) 	tmReleaseImage(&growImage);  growImage = NULL;
 
 	// purge display and processing buffers
@@ -221,13 +223,13 @@ void TamanoirImgProc::purgeDisplay() {
 
 void TamanoirImgProc::setDisplaySize(int w, int h) {
 	if(!//medianImage // is forst created when loading gray image
-		grayImage
-	) {
+	   grayImage
+	   ) {
 		displaySize = cvSize(w, h);
 		return;
-        }
+	}
 
-        if(w == 0 || h == 0) return;
+	if(w == 0 || h == 0) return;
 
 	if(displayImage) { return; }
 	
@@ -257,8 +259,8 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 	// use lower factor
 	float factor = std::min(scale_x, scale_y);
-        if(factor>1.f) factor = 1.f;
-        scaled_width = (int)(factor*grayImage->width);
+	if(factor>1.f) factor = 1.f;
+	scaled_width = (int)(factor*grayImage->width);
 	scaled_height = (int)(factor*grayImage->height);
 
 	fprintf(stderr, "TamanoirImgProc::%s:%d : factor=%g => scaled size %dx%d\n", __func__, __LINE__,
@@ -280,16 +282,21 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		cvConvertImage(originalImage, tmpDisplayImage );
 		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
 		tmReleaseImage(&tmpDisplayImage);
+
+
 	} else {
 		cvResize(originalImage, new_displayImage, CV_INTER_LINEAR );
 	}
+
+	// update size, because it may change in cvResize
+	displaySize = cvSize(new_displayImage->width, new_displayImage->height);
 
 	// Main display image (with permanent modification)
 	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
 
 	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
 		__func__, __LINE__,
-		grayImage->width, grayImage->height,
+		originalImage->width, originalImage->height,
 		new_displayImage->width, new_displayImage->height
 		);
 	
@@ -592,6 +599,10 @@ int TamanoirImgProc::preProcessImage() {
 		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	}
+	if(!varianceImage) {
+		varianceImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+			IPL_DEPTH_32F, 1);
+	}
 
 	m_progress = 30;
 	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
@@ -604,8 +615,8 @@ int TamanoirImgProc::preProcessImage() {
 
 	switch(m_FilmType) {
 	default: {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : smoothing input image as medianImage...\n", 
-			__func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : smoothing input image as medianImage (smooth size:%d)...\n",
+			__func__, __LINE__, m_smooth_size);
 		
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
@@ -621,7 +632,6 @@ int TamanoirImgProc::preProcessImage() {
 			origBlurredImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 				originalImage->depth, originalImage->nChannels);
 			
-
 			// First, blur the color image
 			cvSmooth( originalImage, origBlurredImage,
 				CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
@@ -638,7 +648,8 @@ int TamanoirImgProc::preProcessImage() {
 		
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-			orig_smooth_size, orig_smooth_size); //	m_smooth_size, m_smooth_size );
+//			orig_smooth_size, orig_smooth_size); //
+		m_smooth_size, m_smooth_size );
 		/* // CSE : test 2009-01-°04 : with open instead of smooth
 		tmOpenImage(
 			grayImage,  // => src 
@@ -666,7 +677,7 @@ int TamanoirImgProc::preProcessImage() {
 	unsigned long diffHisto[256];
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
 	
-	processDiff(m_FilmType, grayImage, medianImage, diffImage, diffHisto);
+	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto);
 	
 	// Process difference histogram analysis : 
 	unsigned long maxHisto = 0;
@@ -709,7 +720,7 @@ int TamanoirImgProc::preProcessImage() {
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 		
-		processDiff(m_FilmType, grayImage, medianImage, diffImage, diffHisto2);
+		processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2);
 	}
 	m_progress = 60;
 	
@@ -725,16 +736,29 @@ int TamanoirImgProc::preProcessImage() {
 	int pos;
 	
 	switch(m_FilmType) {
-	default: 
-		for(pos=0; pos<width*height; pos++) 
-		{
-			u8 diff = (u8)diffImageBuffer[pos];
-		
-			if(diff >= m_threshold) 
-				diffImageBuffer[pos] = DIFF_THRESHVAL;
-			else
-				if(diff >= tmmax(3, m_threshold-2))
-					diffImageBuffer[pos] = DIFF_CONTOUR;
+	default:
+		for(int r=0;r<height; r++) {
+			pos = r * width;
+			int posmax = pos + diffImage->width;
+			float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
+			for( ; pos < posmax; pos++, variance++) {
+
+				u8 diff = (u8)diffImageBuffer[pos];
+				float snr = (float)diff / (float)medianImageBuffer[pos];
+
+				if( //snr > 0.05f &&
+					diff > m_threshold &&
+					1//diff > (2.f * (*variance))
+						) { // Opaque pixels are whiter that median
+						diffImageBuffer[pos] = DIFF_THRESHVAL;
+				}
+				else
+					diffImageBuffer[pos] = (*variance);
+				/*else if(diff >= tmmax(3, m_threshold-2)) {
+						diffImageBuffer[pos] = DIFF_CONTOUR;
+					} else diffImageBuffer[pos] = 0;
+					*/
+			}
 		}
 		break;
 	case FILM_NEGATIVE: {
@@ -751,8 +775,10 @@ int TamanoirImgProc::preProcessImage() {
 					*/
 			//if( diff >= tmmax(3, m_threshold-2) ) // Opaque pixels are whiter that median
 			{
-				if( diff >= (u8)tmmax(2.f, ((float)medianImageBuffer[pos] /8.f) ) ) { // Opaque pixels are whiter that median
+				if( diff >= (u8)tmmax(m_threshold, ((float)medianImageBuffer[pos] /8.f) ) ) { // Opaque pixels are whiter that median
 					diffImageBuffer[pos] = DIFF_THRESHVAL;
+				} else if(diff >= tmmax(3, m_threshold-2)) {
+					diffImageBuffer[pos] = DIFF_CONTOUR;
 				}
 			}
 		}
@@ -776,7 +802,7 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 70;
 	
 	// Do a close operation on diffImage
-	if(0) {
+	if(1) {
 		tmCloseImage(diffImage, medianImage, grayImage, 1);
 			// For debug, save image in temporary directory
 			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
@@ -1160,22 +1186,22 @@ int TamanoirImgProc::nextDust() {
 	for(y = m_seed_y; y<height-1; y++) {
 		pos = y * pitch + m_seed_x;
 		for(x = m_seed_x; x<width-1; x++, pos++) {
-			
-			if(diffImageBuffer[pos] == DIFF_THRESHVAL && !growImageBuffer[pos]) {
-				// Grow region here if the region is big enough
-				if(diffImageBuffer[pos+pitch] == DIFF_THRESHVAL || m_hotPixels)
-	//			|| diffImageBuffer[pos+diffImage->widthStep]==DIFF_THRESHVAL)
-				{
-					int return_now = findDust(x,y);
+			if(!growImageBuffer[pos]) {
+				if(diffImageBuffer[pos] == DIFF_THRESHVAL ) {
+					// Grow region here if the region is big enough
+					if(diffImageBuffer[pos+pitch] == DIFF_THRESHVAL || m_hotPixels)
+					{
+						int return_now = findDust(x,y);
 
-					if(return_now > 0) {
-						m_lock = false;
-						return return_now;
+						if(return_now > 0) {
+							m_lock = false;
+							return return_now;
+						}
 					}
+				} // else clear diffimage because this is not a dust
+				else {
+					//diffImageBuffer[pos] = 0;
 				}
-			} // else clear diffimage because this is not a dust
-			else if(!growImageBuffer[pos]) {
-				diffImageBuffer[pos] = 0;
 			}
 		}
 		

@@ -225,19 +225,18 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 }
 
 /** Allocate a morphology structural element */
-IplConvKernel * createStructElt()
+IplConvKernel * createStructElt(int size)
 {
 	IplConvKernel *elt;
-	int size = 7;
-	int shape = 2;
+	int shape = 1;
 	CvElementShape shapes[3] = { CV_SHAPE_RECT, //a rectangular element;
-                                                        CV_SHAPE_CROSS, //a cross-shaped element;
-                                                        CV_SHAPE_ELLIPSE};
-                    
+								 CV_SHAPE_CROSS, //a cross-shaped element;
+								 CV_SHAPE_ELLIPSE};
+
 	elt = cvCreateStructuringElementEx (
-                (int)size, (int)size,
-                (int)(size/2), (int)(size/2),
-                shapes[shape], NULL);
+			(int)size, (int)size,
+			(int)(size/2), (int)(size/2),
+			shapes[shape], NULL);
 	return elt;
 }
 
@@ -246,21 +245,21 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 	IplConvKernel *elt = createStructElt();
 
 	// perform open
-        cvMorphologyEx (src, dst, tmp, elt,
-		CV_MOP_OPEN,
-		iterations);
+	cvMorphologyEx (src, dst, tmp, elt,
+					CV_MOP_OPEN,
+					iterations);
 
 	cvReleaseStructuringElement(&elt);
 }
 
 void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations) {
 
-	IplConvKernel *elt = createStructElt();
+	IplConvKernel *elt = createStructElt(3);
 
 	// perform open
 	cvMorphologyEx (src, dst, tmp, elt,
-		CV_MOP_CLOSE,
-		iterations);
+					CV_MOP_CLOSE,
+					iterations);
 
 	cvReleaseStructuringElement(&elt);
 }
@@ -1178,26 +1177,62 @@ int tmSearchBestCorrelation(
 
 
 
-int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  IplImage * diffImage, unsigned long * diffHisto) 
+int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
+				IplImage * diffImage, IplImage * varianceImage,
+				unsigned long * diffHisto)
 {
 	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	unsigned char * blurImageBuffer = (unsigned char *)medianImage->imageData;
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
+
+	int size = 3;
 	int width = medianImage->widthStep;
 	int height = medianImage->height;
-	
+	int w= medianImage->width;
+
+	for(int r=0; r<grayImage->height; r++) {
+		int pos = grayImage->widthStep * r;
+		int posmax = pos + grayImage->widthStep;
+		float * var = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
+		for(int c=0 ; pos<posmax; pos++, c++, var++)
+		{
+			// compute variance
+			float sum_mean = 0.;
+			float sum_val2 = 0.;
+			int sum_nb = 0;
+			for(int l_r = tmmax(0, r-size); l_r<tmmin(height, r+size); l_r++) {
+				int l_pos_min = tmmax(0, c-size) + l_r*width;
+				int l_pos_max = tmmin(w, c+size) + l_r*width;
+
+				for(int l_pos = l_pos_min; l_pos < l_pos_max; l_pos++) {
+					sum_val2 += (float)grayImageBuffer[l_pos]*(float)grayImageBuffer[l_pos];
+					sum_mean += (float)grayImageBuffer[l_pos];
+					sum_nb++;
+				}
+			}
+
+			if(sum_nb>0) {
+				float mean = (sum_mean/(float)sum_nb);
+				*var = ( sum_val2/(float)sum_nb - mean*mean);
+			}
+
+		}
+	}
+
 	switch(l_FilmType) {
 	default:
-	case FILM_UNDEFINED: /* dust can be darker or brighter => absolute value */
+	case FILM_UNDEFINED: { /* dust can be darker or brighter => absolute value */
 		fprintf(logfile, "[imgutils] %s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n", 
 			__func__, __LINE__);
-		for(int pos=0; pos<width*height; pos++) 
+		for(int pos=0; pos<width*height; pos++)
 		{
-			u8 diff = diffImageBuffer[pos] = (u8)abs((long)grayImageBuffer[pos] 
-					- (long)blurImageBuffer[pos]);
-			diffHisto[diff]++;
+			if(grayImageBuffer[pos] > blurImageBuffer[pos])
+			{
+				u8 diff = diffImageBuffer[pos] = abs((long)grayImageBuffer[pos] - (long)blurImageBuffer[pos]);
+				diffHisto[diff]++;
+			}
 		}
-		break;
+		}break;
 	case FILM_NEGATIVE: /* dust must be brighter => gray - median */
 		fprintf(logfile, "[imgutils] %s:%d : NEGATIVE film type : looking for diffImage = Grayscaled-Blurred ...\n", 
 			__func__, __LINE__);

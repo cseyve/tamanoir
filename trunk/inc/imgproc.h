@@ -316,6 +316,7 @@ private:
 	IplImage * grayImage;
 	IplImage * medianImage;
 	IplImage * diffImage;
+	IplImage * varianceImage;
 	IplImage * growImage;
 	
 	/// image buffer for display
