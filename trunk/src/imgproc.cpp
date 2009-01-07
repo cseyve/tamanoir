@@ -676,8 +676,10 @@ int TamanoirImgProc::preProcessImage() {
 	// Difference histogram
 	unsigned long diffHisto[256];
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
-	
-	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto);
+
+	int var_size = 1 + 2*(2 * m_dpi/2400);
+	if(var_size < 3) var_size = 3;
+	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
 	
 	// Process difference histogram analysis : 
 	unsigned long maxHisto = 0;
