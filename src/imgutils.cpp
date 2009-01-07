@@ -1179,13 +1179,12 @@ int tmSearchBestCorrelation(
 
 int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 				IplImage * diffImage, IplImage * varianceImage,
-				unsigned long * diffHisto)
+				unsigned long * diffHisto, int size)
 {
 	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	unsigned char * blurImageBuffer = (unsigned char *)medianImage->imageData;
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
 
-	int size = 3;
 	int width = medianImage->widthStep;
 	int height = medianImage->height;
 	int w= medianImage->width;

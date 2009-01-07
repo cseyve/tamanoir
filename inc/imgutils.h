@@ -181,6 +181,6 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 */
 int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
 	IplImage * diffImage, IplImage * varianceImage,
-	unsigned long * diffHisto);
+	unsigned long * diffHisto, int var_size = 3);
 
 #endif
