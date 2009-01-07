@@ -34,6 +34,8 @@
 #define tmsleep(s)  sleep((s))
 #endif
 
+#include <stdint.h>
+
 
 // For Open CV Functions
 #include <cv.h>
@@ -56,7 +58,7 @@
 #endif
 
 typedef unsigned char u8;
-typedef unsigned short u16;
+typedef uint16_t u16;
 
 #ifdef IMGUTILS_CPP
 #define IMGUTILS_EXTERN
@@ -72,7 +74,7 @@ typedef unsigned short u16;
 #define COLORMARK_CURRENT	255
 
 
-#define DIFF_CONTOUR    92
+#define DIFF_CONTOUR    192
 #define DIFF_NEUTRALIZE 64
 #define DIFF_THRESHVAL  250
 
@@ -157,7 +159,7 @@ void tmMarkFailureRegion(IplImage * origImage,
 	int x, int orig_y, int w, int h, unsigned char color = 127);
 
 /** @brief Allocate a morphology structural element */
-IplConvKernel * createStructElt();
+IplConvKernel * createStructElt(int size=3);
 
 /** @brief Process a close morphology operation */
 void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations);
@@ -174,10 +176,11 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 \param original (input) image 
 \param blurred image 
 \param difference image = output
+\param variance image = output
 \param diffHisto difference histogram (may be NULL)
 */
 int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
-	IplImage * diffImage, 
+	IplImage * diffImage, IplImage * varianceImage,
 	unsigned long * diffHisto);
 
 #endif

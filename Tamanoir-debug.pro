@@ -15,7 +15,7 @@ DEFINES += QT3_SUPPORT
 TRANSLATIONS = tamanoir_fr.ts
 
 #icon
-RC_FILE = icon/Tamanoir.icns
+mac::ICON = icon/Tamanoir.icns
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 
