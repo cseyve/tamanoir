@@ -1424,6 +1424,152 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 
 
+
+void tmEraseRegion(
+	IplImage * grownImage,
+	IplImage * diffImage,
+	int c, int r,
+	unsigned char fillValue)
+{
+	int pile_x[spmax];
+	int pile_y[spmax];
+	int swidth = grownImage->widthStep;
+	int sheight = grownImage->height;
+
+	int x,y,xi,xf;
+
+	// init stack
+	int pile_sp = 0;
+	pile_x[0] = c;
+	pile_y[0] = r;
+
+	if(c<0 || c>=swidth) return;
+	if(r<0 || r>=sheight) return;
+
+	int surf = 1;
+	int rmin = 0;
+	int rmax = sheight-1;
+	int cmin = 0;
+	int cmax = swidth-1;
+
+	if(fillValue==0)
+		fillValue=1;
+
+
+	// reinit growXMin, ...
+	int growXMin = c;
+	int growXMax = c;
+	int growYMin = r;
+	int growYMax = r;
+	u8 * growIn = (u8 *)grownImage->imageData;
+	u8 * diffOut = (u8 *)diffImage->imageData;
+
+	if(growIn[c+r * swidth] != fillValue)
+		return;
+
+	while(pile_sp != -1)
+	{
+		// determinate extreme abscisses xi and xf
+		y = pile_y[pile_sp];
+		int row = y * swidth;
+
+		//looking for right extremity
+		x = pile_x[pile_sp]+1;
+
+		if(x<=cmax) {
+			while(
+				growIn[x+row]== fillValue && x<cmax) {
+				x++;
+			}
+			xf = x-1;
+		}
+		else
+			xf = cmax;
+
+		// idem for left
+		x = pile_x[pile_sp]-1;
+
+		if(x>cmin) {
+			while( growIn[x+row]== fillValue && x>cmin) {
+				x--;
+			}
+			xi = x+1;
+		}
+		else
+			xi = cmin;
+
+		// reset the line
+		int w = xf - xi + 1;
+		memset(growIn + row+xi, 0, w);
+		// And neutralize diffImage
+		memset(diffOut + row+xi, DIFF_NEUTRALIZE, w);
+		surf += w;
+
+		if(xi<growXMin) growXMin = xi;
+		if(xf>growXMax) growXMax = xf;
+		if(y<growYMin) growYMin = y;
+		if(y>growYMax) growYMax = y;
+
+
+		// we look for new seed
+		pile_sp --;
+
+//#define CON_8
+		// line under current seed
+		if( y < rmax -1) {
+			if(xf < cmax - 1)
+				x = xf + 1; // 8con
+			else
+				x = xf;
+			if(xi <= 0) xi = 1;
+			int row2 = row + swidth;
+
+			while(x>=xi-1) {
+				while( (growIn[x+row2] != fillValue)
+						&& (x>=xi-1)) 	x--; // 8-connexity
+				if( (x>=xi-1) && growIn[x+row2]== fillValue) {
+					if(pile_sp < spmax-1)
+					{
+						pile_sp++;
+						pile_x[pile_sp] = x;
+						pile_y[pile_sp] = y+1;
+					}
+				}
+				while( growIn[x+row2]== fillValue && (x>=xi-1)) // 8-con
+					x--;
+			}
+		}
+
+		// line above current line
+		if( y > rmin) {
+			if(xf < cmax - 1)
+				x = xf + 1; // 8con
+			else
+				x = xf;
+			if(xi <= 0) xi = 1;
+			int row3 = row - swidth;
+
+			while(x>xi) { // 8-con
+				while( (growIn[x+row3]!= fillValue)
+						&& (x>=xi-1)) x--;
+				if( (x>=xi-1) &&  (growIn[x+row3]== fillValue)) {
+					if(pile_sp < spmax-1)
+					{
+						pile_sp++;
+						pile_x[pile_sp] = x;
+						pile_y[pile_sp] = y-1;
+					}
+				}
+
+				while( growIn[x+row3]== fillValue
+						&& (x>=xi-1)) // 8-con
+					x--;
+			}
+		}
+	}
+}
+
+
 extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);
 
 

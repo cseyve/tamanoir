@@ -107,6 +107,12 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	unsigned char threshold,
 	unsigned char fillValue,
 	CvConnectedComp * areaOut);
+/** @brief Erase a previoulsy grown region starting from a seed */
+void tmEraseRegion(
+	IplImage * grownImage,
+	IplImage * diffImage,
+	int c, int r,
+	unsigned char fillValue);
 
 /** @brief Crop an IplImage around a point in another IplImage */
 void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int center_y);

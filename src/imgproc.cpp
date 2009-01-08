@@ -1807,7 +1807,13 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			}
 		}
 	}
-	
+	else {
+		// Clear grown region with neutral mask
+		tmEraseRegion( growImage, diffImage,
+			x, y,
+			255 );
+
+	}
 	
 	return 0;
 }
