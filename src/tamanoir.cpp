@@ -251,8 +251,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		float scale_x = (float)origImage->width / (float)scaled_width;
 		float scale_y = (float)origImage->height / (float)scaled_height;
 		
-		fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%gx%g\n", __func__, __LINE__,
-				e->pos().x(), e->pos().y(), scale_x, scale_y);
+		//fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%gx%g\n", __func__, __LINE__,
+		//		e->pos().x(), e->pos().y(), scale_x, scale_y);
 		
 		// Create a fake dust in middle
 		int crop_w = m_blockSize.width; //ui.cropPixmapLabel->size().width()-2;

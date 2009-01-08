@@ -669,7 +669,8 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	// ********* DIFFERENCE BETWEEN ORIGINAL AND BLURRED ****************
-	fprintf(logfile, "TamanoirImgProc::%s:%d : difference processing image...\n", 
+	// Also compute variance image
+	fprintf(logfile, "TamanoirImgProc::%s:%d : difference processing image...\n",
 		__func__, __LINE__);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 	
@@ -677,7 +678,7 @@ int TamanoirImgProc::preProcessImage() {
 	unsigned long diffHisto[256];
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
 
-	int var_size = 1 + 2*(2 * m_dpi/2400);
+	int var_size = 1 + 2*(4 * m_dpi/2400);
 	if(var_size < 3) var_size = 3;
 	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
 	
@@ -722,7 +723,7 @@ int TamanoirImgProc::preProcessImage() {
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 		
-		processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2);
+		processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
 	}
 	m_progress = 60;
 	
@@ -751,11 +752,12 @@ int TamanoirImgProc::preProcessImage() {
 				if( //snr > 0.05f &&
 					diff > m_threshold &&
 					1//diff > (2.f * (*variance))
-						) { // Opaque pixels are whiter that median
-						diffImageBuffer[pos] = DIFF_THRESHVAL;
+					) { // Opaque pixels are whiter that median
+					diffImageBuffer[pos] = DIFF_THRESHVAL;
+				} else {
+					u8 var_pix = (u8) ( (*variance) / (float)medianImageBuffer[pos] * 64.f);
+				//	diffImageBuffer[pos] = var_pix;
 				}
-				else
-					diffImageBuffer[pos] = (*variance);
 				/*else if(diff >= tmmax(3, m_threshold-2)) {
 						diffImageBuffer[pos] = DIFF_CONTOUR;
 					} else diffImageBuffer[pos] = 0;
@@ -1191,12 +1193,14 @@ int TamanoirImgProc::nextDust() {
 			if(!growImageBuffer[pos]) {
 				if(diffImageBuffer[pos] == DIFF_THRESHVAL ) {
 					// Grow region here if the region is big enough
-					if(diffImageBuffer[pos+pitch] == DIFF_THRESHVAL || m_hotPixels)
+					if(//diffImageBuffer[pos+pitch] == DIFF_THRESHVAL
+							1 || m_hotPixels)
 					{
 						int return_now = findDust(x,y);
 
 						if(return_now > 0) {
 							m_lock = false;
+
 							return return_now;
 						}
 					}
@@ -1257,7 +1261,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		int lpitch = growImage->widthStep;
 		int lh = growImage->height;
 		
-		// search a dust for region growing
+		// search a dust for region growing in
 		int xleft = x - pcorrection->copy_width/2;
 		if(xleft<0) xleft = 0; 
 		else if(xleft >= lw) return 0;
@@ -1304,6 +1308,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		}
 	}
 	
+
+
 	// Process a region growing 
 	tmGrowRegion( diffImageBuffer, growImageBuffer, 
 		diffImage->widthStep, diffImage->height, 
@@ -1325,11 +1331,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	}
 
 	//if(connect.area <=0) return 0;
-	
-	if( (connect.area >= m_dust_area_min &&
-	   connect.area < m_dust_area_max) 
+	bool is_a_dust = ( (connect.area >= m_dust_area_min &&
+	   connect.area < m_dust_area_max)
 	   || force_search
-	   )
+	   );
+
+
+	// Crop image and search for a dust on cropped images
+	if( is_a_dust )
 	{
 		int connect_area = (int)connect.area;
 		int connect_width = connect.rect.width;
@@ -1459,14 +1468,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				cropImage, 
 				crop_x, crop_y);
 			
-
 			
 			// => this dilated image will be used as mask for correlation search
 			// but we have to fill the center of the dust 
 			//	A full circle will only give us a empty circle : O
 			unsigned char * dilateImageBuffer = (unsigned char *)dilateImage->imageData;
 			unsigned char * correctImageBuffer = (unsigned char *)correctImage->imageData;
-			
+			unsigned char * cropGrayBuffer = (unsigned char *)correctImage->imageData;
+
 			// Crop median image
 			tmCropImage(medianImage, 
 				tmpCropImage, 
@@ -1477,8 +1486,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			tmDilateImage(correctImage, dilateImage);
 			
 			
-			int r,c, histoDiff[512];
+			int r,c, histoDiff[512], histoNeighbour[512];
 			memset(histoDiff, 0, 512*sizeof(int));
+			memset(histoNeighbour, 0, 512*sizeof(int));
+
 			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
 				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
 				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width;
@@ -1487,18 +1498,41 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						// Difference between image and median
 						//int dif = (int)correctImageBuffer[crop_pos]-(int)tmpCropImageBuffer[crop_pos];
 						histoDiff[ (int)correctImageBuffer[crop_pos] ]++;
+					} else {
+						histoNeighbour[ (int)cropGrayBuffer[crop_pos] ]++;
 					}
 				}
 			}
-			
+			// get min/max of pixel values
 			int min_dif = 255;
 			int max_dif = -255;
-			for(int h=0; h<256; h++) 
+			for(int h=0; h<256; h++) {
 				if(histoDiff[h])
 				{
 					if(h<min_dif) min_dif=h;
 					if(h>max_dif) max_dif=h;
 				}
+			}
+
+			// Check if this region is not the film grain by cheching the local
+			// variance and difference
+			if(process_local_search
+			   && !force_search ) {
+				int min_neighbour = 255;
+				int max_neighbour = -255;
+				for(int h=0; h<256; h++) {
+					if(histoDiff[h]) {
+						if( h < min_neighbour ) min_neighbour = h;
+						if( h > max_neighbour ) max_neighbour = h;
+					}
+				}
+
+				// test if colour is different enough
+
+			}
+
+
+
 			
 			//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
 			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
@@ -1808,11 +1842,12 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		}
 	}
 	else {
+		fprintf(stderr, "TamanoirImgProc::%s:%d : not a seed @ %d,%d area=%g\n", __func__, __LINE__,
+				x, y, connect.area);
 		// Clear grown region with neutral mask
 		tmEraseRegion( growImage, diffImage,
 			x, y,
 			255 );
-
 	}
 	
 	return 0;
