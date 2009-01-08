@@ -167,6 +167,7 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 			__func__, __LINE__, 
 			img->width, img->height, img->depth, img->nChannels);
 	}
+
 	return img;
 }
 
@@ -1423,8 +1424,9 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 }
 
 
-
-
+/*
+ * Erase a region filled with @param fillValue in @param grownImage, and neutralize diffImage at the same place
+ */
 void tmEraseRegion(
 	IplImage * grownImage,
 	IplImage * diffImage,
@@ -1443,14 +1445,15 @@ void tmEraseRegion(
 	pile_x[0] = c;
 	pile_y[0] = r;
 
+
 	if(c<0 || c>=swidth) return;
 	if(r<0 || r>=sheight) return;
-
+	// Clip image search
 	int surf = 1;
 	int rmin = 0;
 	int rmax = sheight-1;
 	int cmin = 0;
-	int cmax = swidth-1;
+	int cmax = grownImage->width-1;
 
 	if(fillValue==0)
 		fillValue=1;
@@ -1464,8 +1467,11 @@ void tmEraseRegion(
 	u8 * growIn = (u8 *)grownImage->imageData;
 	u8 * diffOut = (u8 *)diffImage->imageData;
 
-	if(growIn[c+r * swidth] != fillValue)
+	if(growIn[c+r * swidth] != fillValue) {
+		fprintf(stderr, "[imgutils] %s:%d : not a seed @ %d,%d\n", __func__, __LINE__,
+				c, r);
 		return;
+	}
 
 	while(pile_sp != -1)
 	{
@@ -1504,7 +1510,9 @@ void tmEraseRegion(
 		// And neutralize diffImage
 		memset(diffOut + row+xi, DIFF_NEUTRALIZE, w);
 		surf += w;
-
+		fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
+				__func__, __LINE__,
+				xi, y, w);
 		if(xi<growXMin) growXMin = xi;
 		if(xf>growXMax) growXMax = xf;
 		if(y<growYMin) growYMin = y;
@@ -1514,7 +1522,6 @@ void tmEraseRegion(
 		// we look for new seed
 		pile_sp --;
 
-//#define CON_8
 		// line under current seed
 		if( y < rmax -1) {
 			if(xf < cmax - 1)
