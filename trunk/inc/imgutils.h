@@ -76,6 +76,7 @@ typedef uint16_t u16;
 
 #define DIFF_CONTOUR    192
 #define DIFF_NEUTRALIZE 64
+#define DIFF_NOT_DUST 128
 #define DIFF_THRESHVAL  250
 
 IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_NULL;

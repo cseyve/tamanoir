@@ -610,7 +610,7 @@ int TamanoirImgProc::preProcessImage() {
 	if(m_smooth_size < 3)
 		m_smooth_size = 3;
 	
-	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image ... size %d x %d\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image => median image... size %d x %d\n",
 		__func__, __LINE__, m_smooth_size, m_smooth_size);
 
 	switch(m_FilmType) {
@@ -649,7 +649,7 @@ int TamanoirImgProc::preProcessImage() {
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 //			orig_smooth_size, orig_smooth_size); //
-		m_smooth_size, m_smooth_size );
+			m_smooth_size, m_smooth_size );
 		/* // CSE : test 2009-01-°04 : with open instead of smooth
 		tmOpenImage(
 			grayImage,  // => src 
@@ -704,11 +704,10 @@ int TamanoirImgProc::preProcessImage() {
 	fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g threshold=%d\n",
 			__func__, __LINE__, cdgH, (int)m_threshold);
 	
-	
 	m_progress = 45;
 	
 	// If image is really noisy, for example with B&W grain (or High sensitivity films), pre-process a 3x3 blur filter
-	if( cdgH >= 3.0 ) {
+	if( cdgH >= /*3.0*/ 2.8 ) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
 			__func__, __LINE__);
 		cvSmooth(grayImage, diffImage, 
@@ -1404,7 +1403,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 		// ------- Cropped images are used to lower the memory needs / and for GUI display of correction proposals
 		// Re-greow region in cropped image
-		tmCropImage(diffImage, cropImage, 
+		tmCropImage(diffImage, cropImage,
 					crop_x, crop_y);
 		if(g_debug_savetmp) {
 			tmSaveImage(TMP_DIRECTORY "a-diffImage" IMG_EXTENSION, 
@@ -1412,14 +1411,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		}
 		
 		// clear grow buffer
-		memset(correctImage->imageData, 0, 
+		memset(correctImage->imageData, 0,
 			correctImage->widthStep * correctImage->height);
 		
 		// Grow again region in cropped image
 		CvConnectedComp crop_connect;
 		tmGrowRegion(
-			(u8 *)cropImage->imageData, 
-			(u8 *)correctImage->imageData, 
+			(u8 *)cropImage->imageData,
+			(u8 *)correctImage->imageData,
 			cropImage->widthStep, cropImage->height, 
 			crop_center_x, crop_center_y, 
 			DIFF_THRESHVAL,
@@ -1463,89 +1462,147 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			//	cvSobel(correctImage, sobelImage, 1, 0, 5);
 			//else
 			//	cvSobel(correctImage, sobelImage, 0, 1, 5);
-			
+
+			// Crop gray image into cropImage
 			tmCropImage(grayImage, 
-				cropImage, 
+				tmpCropImage,
 				crop_x, crop_y);
 			
-			
+			// Do a dilatation around the grown
+			tmDilateImage(l_cropGrownImage, dilateImage);
+
 			// => this dilated image will be used as mask for correlation search
 			// but we have to fill the center of the dust 
 			//	A full circle will only give us a empty circle : O
 			unsigned char * dilateImageBuffer = (unsigned char *)dilateImage->imageData;
-			unsigned char * correctImageBuffer = (unsigned char *)correctImage->imageData;
-			unsigned char * cropGrayBuffer = (unsigned char *)correctImage->imageData;
+			unsigned char * cropGrayBuffer = (unsigned char *)tmpCropImage->imageData;
 
-			// Crop median image
-			tmCropImage(medianImage, 
-				tmpCropImage, 
-				crop_x, crop_y);
-			
-			
-			// Do a dilatation around the grown 
-			tmDilateImage(correctImage, dilateImage);
-			
-			
-			int r,c, histoDiff[512], histoNeighbour[512];
-			memset(histoDiff, 0, 512*sizeof(int));
-			memset(histoNeighbour, 0, 512*sizeof(int));
+			int r,c, histoDust[512];
+			memset(histoDust, 0, 512*sizeof(int));
 
-			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
-				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
-				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width;
+			int neighbour_rmin = tmmax(crop_connect.rect.y - 8, 0);
+			int neighbour_rmax = tmmin(crop_connect.rect.y+crop_connect.rect.height + 8, dilateImage->height);
+			int neighbour_cmin = tmmax(crop_connect.rect.x - 8, 0);
+			int neighbour_cmax = tmmin(crop_connect.rect.x+crop_connect.rect.width + 8, dilateImage->width);
+
+			for(r=neighbour_rmin;r<neighbour_rmax; r++) {
+				int crop_pos = r*dilateImage->widthStep + neighbour_cmin;
+				for(c=neighbour_cmin; c<neighbour_cmax;
 						c++,crop_pos++) {
-					if(dilateImageBuffer[crop_pos]) {
+					int gray = (int)cropGrayBuffer[crop_pos];
+					if( dilateImageBuffer[crop_pos] ) {
 						// Difference between image and median
-						//int dif = (int)correctImageBuffer[crop_pos]-(int)tmpCropImageBuffer[crop_pos];
-						histoDiff[ (int)correctImageBuffer[crop_pos] ]++;
-					} else {
-						histoNeighbour[ (int)cropGrayBuffer[crop_pos] ]++;
+						histoDust[ gray ]++;
 					}
 				}
 			}
+
 			// get min/max of pixel values
-			int min_dif = 255;
-			int max_dif = -255;
+			int min_dust = 255;
+			int max_dust = -255;
+			double sum_dust = 0.;
+			int nb_dust = 0;
 			for(int h=0; h<256; h++) {
-				if(histoDiff[h])
+				if(histoDust[h]>2)
 				{
-					if(h<min_dif) min_dif=h;
-					if(h>max_dif) max_dif=h;
+					sum_dust += (double)(histoDust[h]*h);
+					nb_dust += histoDust[h];
+					if(h<min_dust) min_dust=h;
+					if(h>max_dust) max_dust=h;
 				}
 			}
-
-			// Check if this region is not the film grain by cheching the local
-			// variance and difference
-			if(process_local_search
-			   && !force_search ) {
-				int min_neighbour = 255;
-				int max_neighbour = -255;
-				for(int h=0; h<256; h++) {
-					if(histoDiff[h]) {
-						if( h < min_neighbour ) min_neighbour = h;
-						if( h > max_neighbour ) max_neighbour = h;
-					}
-				}
-
-				// test if colour is different enough
-
+			if(nb_dust>0) {
+				sum_dust /= (double)nb_dust;
 			}
-
-
-
-			
+			// Fill the center of the dust
 			//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
 			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
 				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
 				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width; c++,crop_pos++) {
-					if(correctImageBuffer[crop_pos]>=min_dif
-						&& correctImageBuffer[crop_pos]<=max_dif) {
+					if(cropGrayBuffer[crop_pos]>=min_dust
+						&& cropGrayBuffer[crop_pos]<=max_dust) {
 						dilateImageBuffer[crop_pos] = 255;
 					}
 				}
 			}
+
+			
+			// Check if this region is not the film grain by cheching the local
+			// variance and difference
+			if(is_a_dust
+//			   && !force_search
+			   ) {
+				int histoNeighbour[512];
+				// Update dust info
+				memset(histoNeighbour, 0, 512*sizeof(int));
+				memset(histoDust, 0, 512*sizeof(int));
+				for(r=neighbour_rmin;r<neighbour_rmax; r++) {
+					int crop_pos = r*dilateImage->widthStep + neighbour_cmin;
+					for(c=neighbour_cmin; c<neighbour_cmax;
+							c++,crop_pos++) {
+						int gray = (int)cropGrayBuffer[crop_pos];
+						if(dilateImageBuffer[crop_pos]) {
+							// Difference between image and median
+							histoDust[ gray ]++;
+						} else {
+							histoNeighbour[ gray ]++;
+						}
+					}
+				}
+
+
+				min_dust = 255;
+				max_dust = -255;
+				sum_dust = 0.;
+				nb_dust = 0;
+				for(int h=0; h<256; h++) {
+					if(histoDust[h]>0)
+					{
+						sum_dust += (double)(histoDust[h]*h);
+						nb_dust += histoDust[h];
+						if(h<min_dust) { min_dust=h; }
+						if(h>max_dust) { max_dust=h; }
+					}
+				}
+				if(nb_dust>0) {
+					sum_dust /= (double)nb_dust;
+				}
+				
+				int min_neighbour = 255;
+				int max_neighbour = -255;
+				double sum_neighbour = 0.;
+				int nb_neighbour = 0;
+				for(int h=0; h<256; h++) {
+					if(histoNeighbour[h]>0) {
+						sum_neighbour += (double)(histoNeighbour[h]*h);
+						nb_neighbour += histoNeighbour[h];
+						if( h < min_neighbour ) min_neighbour = h;
+						if( h > max_neighbour ) max_neighbour = h;
+					}
+				}
+				if(nb_neighbour>0) {
+					sum_neighbour /= (double)nb_neighbour;
+				}
+
+				fprintf(stderr, "::%s:%d : Dust : min/max/mean = %d / %d / %g\n",
+						__func__, __LINE__, min_dust, max_dust, sum_dust);
+				fprintf(stderr, " Neighbour : min/max/mean = %d / %d / %g / threshold=%d\n",
+						min_neighbour, max_neighbour, sum_neighbour, m_threshold);
+
+				// test if colour is different enough
+				if(!force_search && fabs(sum_neighbour - sum_dust) <= m_threshold) {
+					// not a dust
+					is_a_dust = false;
+				}
+			}
 			
 			
+			// Crop median image
+			tmCropImage(medianImage,
+				tmpCropImage,
+				crop_x, crop_y);
+			unsigned char * tmpCropImageBuffer = (unsigned char *)tmpCropImage->imageData;
+
 			
 			// Process search around the dust in original image
 			// Use center x,y - width,height
@@ -1841,9 +1898,12 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			}
 		}
 	}
-	else {
-		fprintf(stderr, "TamanoirImgProc::%s:%d : not a seed @ %d,%d area=%g\n", __func__, __LINE__,
-				x, y, connect.area);
+
+
+
+	if(!is_a_dust) {
+		/*fprintf(stderr, "TamanoirImgProc::%s:%d : not a dust @ %d,%d area=%g\n", __func__, __LINE__,
+				x, y, connect.area);*/
 		// Clear grown region with neutral mask
 		tmEraseRegion( growImage, diffImage,
 			x, y,

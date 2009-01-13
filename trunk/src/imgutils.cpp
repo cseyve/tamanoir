@@ -902,7 +902,7 @@ float tmCorrelation(
 			for(int dx=0; dx<w; dx++) {
 				// Don't compute if there is a doubt about this image (dust presence)
 				// Compute only if mask is 0
-				if(*maskpos == 0) {
+				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
 						if(l_diff > maxdiff)
@@ -953,7 +953,7 @@ float tmCorrelation(
 				//	return 5000;
 				
 				// Compute only if mask is 0
-				if(*maskpos == 0) {
+				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
 						if(l_diff > maxdiff)
@@ -1190,6 +1190,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	int height = medianImage->height;
 	int w= medianImage->width;
 
+	if(0)
 	for(int r=0; r<grayImage->height; r++) {
 		int pos = grayImage->widthStep * r;
 		int posmax = pos + grayImage->widthStep;
@@ -1508,16 +1509,12 @@ void tmEraseRegion(
 		int w = xf - xi + 1;
 		memset(growIn + row+xi, 0, w);
 		// And neutralize diffImage
-		memset(diffOut + row+xi, DIFF_NEUTRALIZE, w);
+		memset(diffOut + row+xi, DIFF_NOT_DUST, w);
 		surf += w;
-		fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
+		/*fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
 				__func__, __LINE__,
 				xi, y, w);
-		if(xi<growXMin) growXMin = xi;
-		if(xf>growXMax) growXMax = xf;
-		if(y<growYMin) growYMin = y;
-		if(y>growYMax) growYMax = y;
-
+		*/
 
 		// we look for new seed
 		pile_sp --;
