@@ -1469,7 +1469,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				crop_x, crop_y);
 			
 			// Do a dilatation around the grown
-			tmDilateImage(l_cropGrownImage, dilateImage);
+			tmDilateImage(correctImage, dilateImage);
 
 			// => this dilated image will be used as mask for correlation search
 			// but we have to fill the center of the dust 
