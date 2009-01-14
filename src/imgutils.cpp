@@ -1461,10 +1461,6 @@ void tmEraseRegion(
 
 
 	// reinit growXMin, ...
-	int growXMin = c;
-	int growXMax = c;
-	int growYMin = r;
-	int growYMax = r;
 	u8 * growIn = (u8 *)grownImage->imageData;
 	u8 * diffOut = (u8 *)diffImage->imageData;
 
