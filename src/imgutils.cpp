@@ -54,13 +54,13 @@ int tmByteDepth(IplImage * iplImage) {
 		byte_depth *= sizeof(char);
 		break;
 	case IPL_DEPTH_16U: 
-		byte_depth *= sizeof(unsigned short);
+		byte_depth *= sizeof(u16);
 		break;
 	case IPL_DEPTH_16S: 
-		byte_depth *= sizeof(short);
+		byte_depth *= sizeof(i16);
 		break;
 	case IPL_DEPTH_32S: 
-		byte_depth *= sizeof(long);
+		byte_depth *= sizeof(i32);
 		break;
 	case IPL_DEPTH_32F: 
 		byte_depth *= sizeof(float);
@@ -1059,8 +1059,8 @@ int tmSearchBestCorrelation(
 	int best_offset_y = 0;
 	
 	float least_worst  = 255.f;
-	float best_dist = 9.f; // 5 / 255 
-	float best_best = 1.f; // 3 / 255 
+	float best_dist = 9.f;
+	float best_best = 1.f;
 	
 	float depth_coef = 1.f;
 	switch(origImage->depth) {
@@ -1086,9 +1086,10 @@ int tmSearchBestCorrelation(
 	best_dist *= depth_coef;
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
-	
-	int difftolerance = (int)best_dist;
-	
+//Do not work with image with grain : 	int difftolerance = (int)best_dist;
+//	int difftolerance = (int)(depth_coef*100.f);
+	int difftolerance = (int)((*best_correl)*depth_coef);
+
 	for(int dy = -search_height; dy < search_height; dy++) {
 		// We look only if the regions cannot touch 
 		if(dy+seed_y > 0 && dy+seed_y+correl_height<origImage->height)
@@ -1227,7 +1228,7 @@ int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 			__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++)
 		{
-			if(grayImageBuffer[pos] > blurImageBuffer[pos])
+			//if(grayImageBuffer[pos] > blurImageBuffer[pos])
 			{
 				u8 diff = diffImageBuffer[pos] = abs((long)grayImageBuffer[pos] - (long)blurImageBuffer[pos]);
 				diffHisto[diff]++;
@@ -1654,7 +1655,7 @@ void tmSaveImage(const char * filename, IplImage * src) {
 			int rmid = (int)(height / 2) + 1;
 			int cmid = (int)(width / 2);
 			
-			unsigned short * buffer = (unsigned short *)(src->imageData 
+			u16 * buffer = (u16 *)(src->imageData
 						+ rmid * src->widthStep + cmid * byte_per_sample);
 			for(int iter=0; iter<4*3; iter++, buffer++) {
 				fprintf(stderr, "%04x ", *buffer);

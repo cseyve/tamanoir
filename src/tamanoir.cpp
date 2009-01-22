@@ -346,9 +346,6 @@ void TamanoirApp::on_pageUpButton_clicked() {
 
 
 void TamanoirApp::on_linearButton_toggled(bool state) {
-	
-	
-	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(m_draw_on != state) {
 		m_draw_on = state;
 		
@@ -601,10 +598,12 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				g_debug_correlation = old_correlation;
 				
 				if(ret > 0) {
+					/*
 					fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
 							current_dust.crop_x+current_dust.rel_seed_x , 
 							current_dust.crop_y+current_dust.rel_seed_y , 
 							ret);
+							*/
 					current_dust = search_correct;
 						
 					//m_pImgProc->applyCorrection(search_correct, true);

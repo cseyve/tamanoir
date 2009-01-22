@@ -615,9 +615,9 @@ int TamanoirImgProc::preProcessImage() {
 
 	switch(m_FilmType) {
 	default: {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : smoothing input image as medianImage (smooth size:%d)...\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d : default type: smoothing input image as medianImage (smooth size:%d)...\n",
 			__func__, __LINE__, m_smooth_size);
-		
+
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 			m_smooth_size, m_smooth_size );
@@ -1279,7 +1279,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		if(ybottom<0) return 0; 
 		else if(ybottom >= lh) ybottom = lh-1;
 		
-		if( diffImageBuffer[y * diffImage->widthStep + x] == 0) {
+		if( diffImageBuffer[y * diffImage->widthStep + x] != DIFF_THRESHVAL) {
 			// No difference at this point
 			// return 0;
 			int closest_dist = 20*20 ;
@@ -1489,8 +1489,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				int crop_pos = r*dilateImage->widthStep + neighbour_cmin;
 				for(c=neighbour_cmin; c<neighbour_cmax;
 						c++,crop_pos++) {
-					int gray = (int)cropGrayBuffer[crop_pos];
 					if( dilateImageBuffer[crop_pos] ) {
+						int gray = (int)cropGrayBuffer[crop_pos];
 						// Difference between image and median
 						histoDust[ gray ]++;
 					}
@@ -1503,7 +1503,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			double sum_dust = 0.;
 			int nb_dust = 0;
 			for(int h=0; h<256; h++) {
-				if(histoDust[h]>2)
+				if(histoDust[h]>0)
 				{
 					sum_dust += (double)(histoDust[h]*h);
 					nb_dust += histoDust[h];
@@ -1526,7 +1526,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 			}
 
-			
+			int best_correl = 100;
 			// Check if this region is not the film grain by cheching the local
 			// variance and difference
 			if(is_a_dust
@@ -1584,10 +1584,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					sum_neighbour /= (double)nb_neighbour;
 				}
 
+				best_correl = max_neighbour - min_neighbour;
+
+				/*
 				fprintf(stderr, "::%s:%d : Dust : min/max/mean = %d / %d / %g\n",
 						__func__, __LINE__, min_dust, max_dust, sum_dust);
 				fprintf(stderr, " Neighbour : min/max/mean = %d / %d / %g / threshold=%d\n",
 						min_neighbour, max_neighbour, sum_neighbour, m_threshold);
+				*/
 
 				// test if colour is different enough
 				if(!force_search && fabs(sum_neighbour - sum_dust) <= m_threshold) {
@@ -1637,7 +1641,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			int copy_dest_x, copy_dest_y,
 				copy_src_x, copy_src_y,
 				copy_width, copy_height;
-			int best_correl = 10000;
+
 			
 			
 			// Crop original image
