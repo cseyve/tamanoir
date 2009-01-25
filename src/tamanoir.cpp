@@ -1279,9 +1279,10 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	
 	case IPL_DEPTH_8U: {
 		if(!rgb24_to_bgr32) {
-			for(int r=0; r<iplImage->height; r++)
-				memcpy(qImage.bits() + r*orig_width, 
+			for(int r=0; r<iplImage->height; r++) // Limit to
+				memcpy(qImage.bits() + r*orig_width,
 					iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
+
 		}
 		else {
 			// RGB24 to BGR32
@@ -1357,7 +1358,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					if(buffershort[pos]>valmax)
 						valmax = buffershort[pos];
 				
-				if(valmax>0)
+				if(valmax>0) {
 					for(int r=0; r<iplImage->height; r++)
 					{
 						short * buffer3 = (short *)(iplImage->imageData 
@@ -1371,6 +1372,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 							buffer4[pos4] = (u8)val;
 						}
 					}
+				}
 			}
 		}
 		}break;
@@ -1459,7 +1461,6 @@ QImage iplImageToQImage(IplImage * iplImage) {
 			qImage.setColor(c, qRgb(R,G,B));
 			*/
 			qImage.setColor(c, qRgb(c,c,c));
-
 		}
 	}
 	return qImage;
@@ -1571,10 +1572,10 @@ void TamanoirApp::updateDisplay()
 			QImage grayQImage = iplImageToQImage(curImage);
 			if(curImage->nChannels == 1) {
 				grayQImage.setNumColors(256);
-				for(int c=0; c<255; c++)
+				for(int c=0; c<256; c++)
 					grayQImage.setColor(c, qRgb(c,c,c));
 
-				grayQImage.setColor(255, qRgb(0,255,0));
+				//grayQImage.setColor(255, qRgb(0,255,0));
 			}
 
 			QPixmap pixmap;

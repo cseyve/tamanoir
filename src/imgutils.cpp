@@ -1087,8 +1087,10 @@ int tmSearchBestCorrelation(
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
 //Do not work with image with grain : 	int difftolerance = (int)best_dist;
-//	int difftolerance = (int)(depth_coef*100.f);
-	int difftolerance = (int)((*best_correl)*depth_coef);
+	int difftolerance = (int)(depth_coef*50.f);
+	//int difftolerance = (int)((*best_correl)*depth_coef);
+	best_dist = (*best_correl) * depth_coef;
+
 
 	for(int dy = -search_height; dy < search_height; dy++) {
 		// We look only if the regions cannot touch 
@@ -1172,7 +1174,7 @@ int tmSearchBestCorrelation(
 		*best_correl = (int)least_worst;
 	return retval;
 }
-	
+
 
 
 
