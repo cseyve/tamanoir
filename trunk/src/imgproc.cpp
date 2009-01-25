@@ -1480,16 +1480,15 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			int r,c, histoDust[512];
 			memset(histoDust, 0, 512*sizeof(int));
 
-			int neighbour_rmin = tmmax(crop_connect.rect.y - 8, 0);
-			int neighbour_rmax = tmmin(crop_connect.rect.y+crop_connect.rect.height + 8, dilateImage->height);
-			int neighbour_cmin = tmmax(crop_connect.rect.x - 8, 0);
-			int neighbour_cmax = tmmin(crop_connect.rect.x+crop_connect.rect.width + 8, dilateImage->width);
+			int neighbour_rmin = tmmax(crop_connect.rect.y - crop_connect.rect.height, 0);
+			int neighbour_rmax = tmmin(crop_connect.rect.y+2*crop_connect.rect.height, dilateImage->height);
+			int neighbour_cmin = tmmax(crop_connect.rect.x - crop_connect.rect.width, 0);
+			int neighbour_cmax = tmmin(crop_connect.rect.x+2*crop_connect.rect.width, dilateImage->width);
 
-			for(r=neighbour_rmin;r<neighbour_rmax; r++) {
-				int crop_pos = r*dilateImage->widthStep + neighbour_cmin;
-				for(c=neighbour_cmin; c<neighbour_cmax;
-						c++,crop_pos++) {
-					if( dilateImageBuffer[crop_pos] ) {
+			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
+				int crop_pos = r*tmpCropImage->widthStep + crop_connect.rect.x;
+				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width; c++,crop_pos++) {
+					if( dilateImageBuffer[crop_pos] == 255) {
 						int gray = (int)cropGrayBuffer[crop_pos];
 						// Difference between image and median
 						histoDust[ gray ]++;
@@ -1517,7 +1516,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			// Fill the center of the dust
 			//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
 			for(r=crop_connect.rect.y;r<crop_connect.rect.y+crop_connect.rect.height; r++) {
-				int crop_pos = r*dilateImage->widthStep + crop_connect.rect.x;
+				int crop_pos = r*tmpCropImage->widthStep + crop_connect.rect.x;
 				for(c=crop_connect.rect.x; c<crop_connect.rect.x+crop_connect.rect.width; c++,crop_pos++) {
 					if(cropGrayBuffer[crop_pos]>=min_dust
 						&& cropGrayBuffer[crop_pos]<=max_dust) {
@@ -1536,8 +1535,19 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// Update dust info
 				memset(histoNeighbour, 0, 512*sizeof(int));
 				memset(histoDust, 0, 512*sizeof(int));
+
+				if(force_search) {
+					fprintf(stderr, "::%s:%d : Dust : %d,%d + %dx%d\n",
+							__func__, __LINE__,
+							(int)crop_connect.rect.x, (int)crop_connect.rect.y,
+							(int)crop_connect.rect.width, (int)crop_connect.rect.height
+							);
+					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g\n",
+							min_dust, max_dust, sum_dust);
+				}
+
 				for(r=neighbour_rmin;r<neighbour_rmax; r++) {
-					int crop_pos = r*dilateImage->widthStep + neighbour_cmin;
+					int crop_pos = r*tmpCropImage->widthStep + neighbour_cmin;
 					for(c=neighbour_cmin; c<neighbour_cmax;
 							c++,crop_pos++) {
 						int gray = (int)cropGrayBuffer[crop_pos];
@@ -1586,12 +1596,12 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 				best_correl = max_neighbour - min_neighbour;
 
-				/*
-				fprintf(stderr, "::%s:%d : Dust : min/max/mean = %d / %d / %g\n",
-						__func__, __LINE__, min_dust, max_dust, sum_dust);
-				fprintf(stderr, " Neighbour : min/max/mean = %d / %d / %g / threshold=%d\n",
-						min_neighbour, max_neighbour, sum_neighbour, m_threshold);
-				*/
+				if(force_search) {
+					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g\n",
+							min_dust, max_dust, sum_dust);
+					fprintf(stderr, "\t Neighbour : min/max/mean = %d / %d / %g / tolerance=%d\n",
+							min_neighbour, max_neighbour, sum_neighbour, best_correl);
+				}
 
 				// test if colour is different enough
 				if(!force_search && fabs(sum_neighbour - sum_dust) <= m_threshold) {
@@ -1620,13 +1630,30 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			
 			// If the search if forced, limit search to input size
 			if(force_search) {
-				connect_width = pcorrection->copy_width;
-				connect_height = pcorrection->copy_height;
-				// Maybe not a good ideao to limit position of search
-				// because this point can be at the border of the dust
-				// so the search rectangle may be too small
-				connect_center_x = x - crop_x;
-				connect_center_y = y - crop_y;
+				if( (x-crop_x) < connect_center_x-connect_width/2
+					|| (x-crop_x) > connect_center_x+connect_width/2
+					|| (y-crop_y) < connect_center_y-connect_height/2
+					|| (y-crop_y) > connect_center_y+connect_height/2
+					) {
+					fprintf(stderr, "::%s:%d : Dust moving center  %d, %d +%dx%d => ",
+							__func__, __LINE__,
+							connect_center_x, connect_center_y,
+							connect_width, connect_height
+							);
+					// FIXME : Maybe not a good ideao to limit position of search
+					// because this point can be at the border of the dust
+					// so the search rectangle may be too small
+					connect_center_x = x - crop_x;
+					connect_center_y = y - crop_y;
+					connect_width = pcorrection->copy_width;
+					connect_height = pcorrection->copy_height;
+
+					fprintf(stderr, "%d, %d +%dx%d\n",
+							connect_center_x, connect_center_y,
+							connect_width, connect_height
+							);
+
+				}
 			}
 			
 			while(connect_width < 5 
@@ -1638,11 +1665,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				connect_height += 2;
 			}
 			
-			int copy_dest_x, copy_dest_y,
-				copy_src_x, copy_src_y,
-				copy_width, copy_height;
 
-			
 			
 			// Crop original image
 			switch(m_FilmType) {
@@ -1664,7 +1687,11 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						crop_x, crop_y);
 				break;
 			}
-			
+			int copy_dest_x=0, copy_dest_y=0,
+				copy_src_x=0, copy_src_y=0,
+				copy_width=0, copy_height=0;
+
+
 			// Find best proposal in originalImage
 			int ret = tmSearchBestCorrelation(
 				correctColorImage, dilateImage, 
@@ -1674,10 +1701,13 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				&copy_src_x, &copy_src_y,
 				&copy_width, &copy_height,
 				&best_correl);
-			if(g_debug_imgverbose > 1) {
-				fprintf(stderr, "\tTamanoirImgProc::%s:%d : ret=%d best_correl=%d\n", 
-					__func__, __LINE__,
-					ret, best_correl);
+			if(g_debug_imgverbose > 1 || force_search) {
+				fprintf(stderr, "\tTamanoirImgProc::%s:%d : center:%d,%d+%dx%d "
+						"\t=> ret=%d best_correl=%d copy from %d,%d\n\n",
+					__func__, __LINE__,connect_center_x, connect_center_y,
+					connect_width, connect_height,
+					ret, best_correl,
+					copy_src_x, copy_src_y);
 			}
 			if(ret>0) {
 				m_lastDustComp = connect; 
@@ -2049,7 +2079,14 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
 	cvCopy(disp_cropColorImage, disp_correctColorImage);
-	
+
+	// For grayscaled images, limit color to 251
+	for(int r=0; r<disp_cropColorImage->height; r++) {
+		u8 * buf = (u8 *)(disp_cropColorImage->imageData + disp_cropColorImage->widthStep * r);
+		for(int c=0; c<disp_cropColorImage->width; c++)
+			if(buf[c]>251) buf[c]=251;
+	}
+
 	// Clone image region 
 	tmCloneRegion(disp_cropColorImage, 
 		correction.rel_dest_x, correction.rel_dest_y, // dest
