@@ -1087,7 +1087,7 @@ int tmSearchBestCorrelation(
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
 //Do not work with image with grain : 	int difftolerance = (int)best_dist;
-	int difftolerance = (int)(depth_coef*50.f);
+	int difftolerance = (int)(depth_coef*1000.f);
 	//int difftolerance = (int)((*best_correl)*depth_coef);
 	best_dist = (*best_correl) * depth_coef;
 

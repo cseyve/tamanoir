@@ -30,8 +30,11 @@
 
 #include "imgutils.h"
 
-
-
+#ifndef WIN32
+#include <pthread.h>
+#else
+FIXME
+#endif
 
 
 #define STATS_MAX_SURF	1000
@@ -250,8 +253,12 @@ private:
 	
 	/** Lock flag for long tasks (such as load and save) */
 	bool m_lock;
-	
-        /** @brief Purge allocated buffers */
+
+	/** Mutex to prevent clone search to perturbate normal background search */
+	pthread_mutex_t mutex;
+
+
+	/** @brief Purge allocated buffers */
 	void purge();
 	/** @brief Purge display buffers */
 	void purgeDisplay();
