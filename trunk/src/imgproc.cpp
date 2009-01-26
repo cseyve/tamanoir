@@ -106,6 +106,10 @@ void TamanoirImgProc::init() {
 	/** Processed imge size */
 	processingSize = cvSize(0,0);
 
+#ifndef WIN32
+	pthread_mutex_init(&mutex, NULL);
+#endif
+
 	// Image buffers
 	originalImage = NULL;
 	origBlurredImage = NULL;
@@ -1222,7 +1226,14 @@ int TamanoirImgProc::findDust(int x, int y) {
 
 	return findDust(x,y, &m_correct);
 }
-
+#ifndef WIN32
+#define MUTEX_LOCK(m) pthread_mutex_lock(m)
+#define MUTEX_UNLOCK(m) pthread_mutex_unlock(m)
+#else
+// FIXME
+#define MUTEX_LOCK(m)
+#define MUTEX_UNLOCK(m)
+#endif
 
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	if(!growImage) return -1; // Loading is not finished
@@ -1231,6 +1242,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	   || y<0 || y>=diffImage->height ) {
 		return -1;
 	}
+
+	MUTEX_LOCK(&mutex);
 
 	CvConnectedComp connect;
 	memset(&connect, 0, sizeof(CvConnectedComp));
@@ -1542,8 +1555,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 							(int)crop_connect.rect.x, (int)crop_connect.rect.y,
 							(int)crop_connect.rect.width, (int)crop_connect.rect.height
 							);
-					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g\n",
-							min_dust, max_dust, sum_dust);
+					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g (nb=%d)\n",
+							min_dust, max_dust, sum_dust, nb_dust);
 				}
 
 				for(r=neighbour_rmin;r<neighbour_rmax; r++) {
@@ -1579,7 +1592,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 				
 				int min_neighbour = 255;
-				int max_neighbour = -255;
+				int max_neighbour = 0;
 				double sum_neighbour = 0.;
 				int nb_neighbour = 0;
 				for(int h=0; h<256; h++) {
@@ -1597,15 +1610,17 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				best_correl = max_neighbour - min_neighbour;
 
 				if(force_search) {
-					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g\n",
-							min_dust, max_dust, sum_dust);
+					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g (nb=%d)\n",
+							min_dust, max_dust, sum_dust, nb_dust);
 					fprintf(stderr, "\t Neighbour : min/max/mean = %d / %d / %g / tolerance=%d\n",
 							min_neighbour, max_neighbour, sum_neighbour, best_correl);
 				}
 
 				// test if colour is different enough
-				if(!force_search && fabs(sum_neighbour - sum_dust) <= m_threshold) {
-					// not a dust
+				if(!force_search
+				   && fabs(sum_neighbour - sum_dust) <= 10 //m_threshold
+				   ) {
+					// no difference visible ->  not a dust
 					is_a_dust = false;
 				}
 			}
@@ -1615,9 +1630,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			tmCropImage(medianImage,
 				tmpCropImage,
 				crop_x, crop_y);
-			unsigned char * tmpCropImageBuffer = (unsigned char *)tmpCropImage->imageData;
 
-			
 			// Process search around the dust in original image
 			// Use center x,y - width,height
 			connect_width = crop_connect.rect.width;
@@ -1635,7 +1648,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					|| (y-crop_y) < connect_center_y-connect_height/2
 					|| (y-crop_y) > connect_center_y+connect_height/2
 					) {
-					fprintf(stderr, "::%s:%d : Dust moving center  %d, %d +%dx%d => ",
+					fprintf(stderr, "::%s:%d : FORCE => moving center  %d, %d +%dx%d => ",
 							__func__, __LINE__,
 							connect_center_x, connect_center_y,
 							connect_width, connect_height
@@ -1687,6 +1700,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						crop_x, crop_y);
 				break;
 			}
+
 			int copy_dest_x=0, copy_dest_y=0,
 				copy_src_x=0, copy_src_y=0,
 				copy_width=0, copy_height=0;
@@ -1702,12 +1716,27 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				&copy_width, &copy_height,
 				&best_correl);
 			if(g_debug_imgverbose > 1 || force_search) {
-				fprintf(stderr, "\tTamanoirImgProc::%s:%d : center:%d,%d+%dx%d "
-						"\t=> ret=%d best_correl=%d copy from %d,%d\n\n",
-					__func__, __LINE__,connect_center_x, connect_center_y,
+
+				int maxdiff = 0;
+				float l_dist = tmCorrelation(correctColorImage, correctColorImage,
+						dilateImage,
+						connect_center_x, connect_center_y,
+						pcorrection->rel_src_x, pcorrection->rel_src_y,
+						connect_width, connect_height,
+						100,
+						&maxdiff
+						);
+
+				fprintf(stderr, "\tTamanoirImgProc::%s:%d : grown:%d,%d+%dx%d "
+						"=> ret=%d best_correl=%d copy from %d,%d => to %d,%d \n"
+						"\tdiff (force) : dist=%g / maxdiff-%d\n",
+					__func__, __LINE__,
+					connect_center_x, connect_center_y,
 					connect_width, connect_height,
 					ret, best_correl,
-					copy_src_x, copy_src_y);
+					copy_src_x, copy_src_y,
+					copy_dest_x, copy_dest_y,
+					l_dist, maxdiff);
 			}
 			if(ret>0) {
 				m_lastDustComp = connect; 
@@ -1751,13 +1780,20 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 				
 				// Store correction in full image buffer
-				if(!force_search) {
+#ifdef SIMPLE_VIEWER
+				if(!force_search)
+#else
+				if(1)
+#endif
+				{
 //					pcorrection->dest_x = crop_x + copy_dest_x;
 //					pcorrection->dest_y = crop_y + copy_dest_y;
 					
 					pcorrection->copy_width = copy_width;
 					pcorrection->copy_height = copy_height;
 				} else {
+
+
 					// Force copy dest to be where we forced the seed
 					// Centered dest determined by correlation
 					int centered_dest_x = copy_dest_x - copy_width/2; 
@@ -1854,6 +1890,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					}
 					
 					//fprintf(stderr, "[imgproc] %s:%d : return 1\n", __func__, __LINE__);
+					MUTEX_UNLOCK(&mutex);
 					return 1;
 				}
 			} else {
@@ -1908,6 +1945,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				
 				tmCropImage(originalImage, cropColorImage, 
 						crop_x, crop_y);
+				MUTEX_UNLOCK(&mutex);
 				return 1;
 			}
 			// END OF DEBUG FUNCTIONS
@@ -1943,7 +1981,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			x, y,
 			255 );
 	}
-	
+	MUTEX_UNLOCK(&mutex);
 	return 0;
 }
 
