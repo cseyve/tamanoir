@@ -835,7 +835,8 @@ float tmCorrelation(
 	int x2, int y2,
 	int w, int h,
 	int difftolerance,
-	int * pmaxdiff) 
+	int * pmaxdiff,
+	int * pnbdiff)
 {
 	// Don't process on borders
 	if(x1<0 || y1<0 || x1+w>img1->width || y1+h>=img1->height) 
@@ -855,7 +856,8 @@ float tmCorrelation(
 	*pmaxdiff = 1000;
 	long diff = 0;
 	long nbpix = 0;
-	
+	long nbdiff = 0;
+
 	int pitch1 = img1->widthStep;
 	int pitch2 = img2->widthStep;
 	int pitchmask = maskImage->widthStep;
@@ -866,7 +868,7 @@ float tmCorrelation(
 	//int w_x_channels = w * channels;
 	int x1_x_depth = x1 * tmByteDepth(img1); // e.g. nChannel * pixel byte depth
 	int x2_x_depth = x2 * tmByteDepth(img2);
-	
+	int wxh_4 = w*h/4;
 	long maxdiff = 0;
 	
 	switch(img1->depth) {
@@ -905,6 +907,11 @@ float tmCorrelation(
 				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
+						if(l_diff > VISIBLE_DIFF) {
+							nbdiff++;
+							if(nbdiff>wxh_4) // Too many pixels different / surface of object
+								return maxdiff;
+						}
 						if(l_diff > maxdiff)
 						{
 							maxdiff = l_diff;
@@ -956,6 +963,11 @@ float tmCorrelation(
 				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
+						if(l_diff > VISIBLE_DIFF) {
+							nbdiff++;
+							if(nbdiff>wxh_4) // Too many pixels different / surface of object
+								return maxdiff;
+						}
 						if(l_diff > maxdiff)
 						{
 							maxdiff = l_diff;
@@ -985,11 +997,21 @@ float tmCorrelation(
 	
 	if(nbpix == 0) 
 		return 5000.f;
-	
+	if(nbdiff > nbpix/4) {
+		// Too many different pixels / surface of search rectangle
+		return maxdiff;
+	}
+	if(nbdiff > (w*h-nbpix)/2) {
+		// Too many different pixels / surface of dust
+		return maxdiff;
+	}
 	// Return worst case
 	if(pmaxdiff)
 		*pmaxdiff = maxdiff;
-	
+	if(pnbdiff)
+		*pnbdiff = nbdiff;
+
+
 	// Return best 
 	return (float)((float)diff / (float)nbpix);
 }
@@ -1100,14 +1122,15 @@ int tmSearchBestCorrelation(
 			if(dy < -correl_height || dy >= correl_height 
 				|| dx < -correl_width || dx >= correl_width) {
 				
-				int maxdiff = 0;
+				int maxdiff = 0, nbdiff = 0;
 				float l_dist = tmCorrelation(origImage, origImage,
 						maskImage, 
 						seed_x, seed_y,
 						seed_x + dx, seed_y + dy,
 						correl_width, correl_height,
 						difftolerance,
-						&maxdiff
+						&maxdiff,
+						&nbdiff
 						);
 				
 				if(l_dist < least_worst) 

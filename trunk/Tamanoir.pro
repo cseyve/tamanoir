@@ -13,8 +13,8 @@ INCLUDEPATH += . \
     ui
 
 OBJECTS_DIR = .obj-simple
-DEFINES += QT3_SUPPORT \
-    SIMPLE_VIEW
+DEFINES +=  SIMPLE_VIEW QT3_SUPPORT
+
 TRANSLATIONS = tamanoir_fr.ts
 
 # icon
@@ -209,13 +209,13 @@ OTHER_FILES += build_mac_bundle.sh \
 macx {
     message("MacOS X specific options  =================================================")
     TARGET = $$join(TARGET,,,_debug)
-    DEFINES += "TRANSLATION_DIR=Tamanoir.app/Contents/"
+    DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 }
-unix {
-    message("Unix specific options =================================================")
+linux-g++ {
+    message("Linux specific options =================================================")
     DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
-win32:{
+win32 {
     TARGET = $$join(TARGET,,d)
 }
 #}
