@@ -910,7 +910,7 @@ float tmCorrelation(
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
 							if(nbdiff>wxh_4) // Too many pixels different / surface of object
-								return maxdiff;
+								return 1000.f;
 						}
 						if(l_diff > maxdiff)
 						{
@@ -966,7 +966,7 @@ float tmCorrelation(
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
 							if(nbdiff>wxh_4) // Too many pixels different / surface of object
-								return maxdiff;
+								return 1000.f;
 						}
 						if(l_diff > maxdiff)
 						{

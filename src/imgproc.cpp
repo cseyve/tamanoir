@@ -814,16 +814,17 @@ int TamanoirImgProc::preProcessImage() {
 		pos = r * width;
 		int posmax = pos + diffImage->width;
 		//float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
-		for( ; pos < posmax; pos++//, variance++
-			 ) {
+		for( ; pos < posmax; pos++ ) {
 
 			u8 diff = (u8)diffImageBuffer[pos];
 
-			if(diff > m_threshold)
+			if(diff > m_threshold) {
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
-			else
-				if(diff >= tmmax(3, m_threshold-2))
+			} else {
+				if(diff >= tmmax(3, m_threshold-2)) {
 					diffImageBuffer[pos] = DIFF_CONTOUR;
+				}
+			}
 		}
 	}
 #endif
@@ -1640,11 +1641,28 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 
 				// test if colour is different enough
-				if(!force_search
-				   && fabs(sum_neighbour - sum_dust) <= 10 //m_threshold
-				   ) {
-					// no difference visible ->  not a dust
-					is_a_dust = false;
+				if(!force_search) {
+					switch(m_FilmType) {
+					default:
+					case FILM_UNDEFINED:
+						if(fabs(sum_neighbour - sum_dust) <= 10 ) { //m_threshold
+							// no difference visible => not a dust
+							is_a_dust = false;
+						}
+						break;
+					case FILM_POSITIVE:
+						if( sum_dust > sum_neighbour - 10 ) { //m_threshold
+							// not darker than neighbourhood  => not a dust
+							is_a_dust = false;
+						}
+						break;
+					case FILM_NEGATIVE:
+						if( sum_dust < sum_neighbour + 10 ) { //m_threshold
+							// not lighter than neighbourhood  => not a dust
+							is_a_dust = false;
+						}
+						break;
+					}
 				}
 			}
 			
@@ -1704,24 +1722,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 			
 			// Crop original image
-			switch(m_FilmType) {
-			default:
-			case FILM_POSITIVE:
-				tmCropImage(originalImage, 
-						correctColorImage, 
-						crop_x, crop_y);
-				break;
-			case FILM_UNDEFINED:
-			case FILM_NEGATIVE:
-				if(origBlurredImage) 
-					tmCropImage(origBlurredImage, 
-						correctColorImage, 
-						crop_x, crop_y);
-				else
-					tmCropImage(originalImage, 
-						correctColorImage, 
-						crop_x, crop_y);
-				break;
+			if(origBlurredImage) { // If original is grainy it has been blurred
+				tmCropImage(origBlurredImage,
+					correctColorImage,
+					crop_x, crop_y);
+			} else {
+				tmCropImage(originalImage,
+					correctColorImage,
+					crop_x, crop_y);
 			}
 
 			int copy_dest_x=0, copy_dest_y=0,
@@ -1740,19 +1748,20 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				&best_correl);
 			if(g_debug_imgverbose > 1 || force_search) {
 
-				int maxdiff = 0;
+				int maxdiff = 0, nbdiff =  0;
 				float l_dist = tmCorrelation(correctColorImage, correctColorImage,
 						dilateImage,
 						connect_center_x, connect_center_y,
 						pcorrection->rel_src_x, pcorrection->rel_src_y,
 						connect_width, connect_height,
 						100,
-						&maxdiff
+						&maxdiff,
+						&nbdiff
 						);
 
 				fprintf(stderr, "\tTamanoirImgProc::%s:%d : grown:%d,%d+%dx%d "
 						"=> ret=%d best_correl=%d copy from %d,%d => to %d,%d \n"
-						"\tdiff (force) : dist=%g / maxdiff-%d\n",
+						"\tdiff (force) : dist=%g / maxdiff=²%d\n",
 					__func__, __LINE__,
 					connect_center_x, connect_center_y,
 					connect_width, connect_height,
