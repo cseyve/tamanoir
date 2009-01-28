@@ -35,6 +35,8 @@ MacOS X :
 /Developer/Tools/Qt/qmake -spec /usr/local/Qt4.3/mkspecs/darwin-g++  -macx Tamanoir.pro
 OR :
 /Developer/Tools/Qt/qmake -macx Tamanoir.pro
+
+OR even easier : use QtCreator :)
 */
 
 
