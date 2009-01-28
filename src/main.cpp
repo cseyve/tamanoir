@@ -22,6 +22,7 @@
  */
 
 #include <QApplication>
+#include <QLocale>
 
 #include "tamanoir.h"
 
@@ -118,9 +119,13 @@ int main(int argc, char *argv[])
 
   	// set the location where your .qm files are in load() below as the last parameter instead of "."
   	// for development, use "/" to use the english original as
-  	// .qm files are stored in the base project directory.
-  	tor.load( QString("tamanoir_") + QTextCodec::locale() + QString(".qm"), 
-		"." );
+	// .qm files are stored in the base project directory.
+	QLocale localLang;
+	tor.load( QString("tamanoir_") +
+//			  QTextCodec::locale() +
+			  localLang.languageToString(localLang.language()) +
+			  QString(".qm"),
+				QString(".") );
 	
  	a.installTranslator( &tor );
 	

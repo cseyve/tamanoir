@@ -645,11 +645,11 @@ int TamanoirImgProc::preProcessImage() {
 		m_progress = 35;
 		
 		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image (Open)...\n", 
-			__func__, __LINE__);
 		int open_iter = m_dpi / 2400;
 		if(open_iter < 1) open_iter = 1;
-		
+		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image (Smooth %dx%d x %d times)...\n",
+			__func__, __LINE__, m_smooth_size, m_smooth_size,1);
+
 		cvSmooth(grayImage, medianImage, 
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 //			orig_smooth_size, orig_smooth_size); //
@@ -735,36 +735,41 @@ int TamanoirImgProc::preProcessImage() {
 	
 	
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
-	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
+//	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
 	int width = diffImage->widthStep;
 	int height = diffImage->height;
 	int pos;
-	
+
+#if 0 // OLD VERSION WITH SEPAATE CRITERIONS => REPLACED WITH 1 CRITERION ONLY
+	// THRESHOLD DIFF IMAGE
 	switch(m_FilmType) {
 	default:
 		for(int r=0;r<height; r++) {
 			pos = r * width;
 			int posmax = pos + diffImage->width;
-			float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
-			for( ; pos < posmax; pos++, variance++) {
+			//float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
+			for( ; pos < posmax; pos++//, variance++
+				 ) {
 
 				u8 diff = (u8)diffImageBuffer[pos];
-				float snr = (float)diff / (float)medianImageBuffer[pos];
+				//float snr = (float)diff / (float)medianImageBuffer[pos];
 
 				if( //snr > 0.05f &&
-					diff > m_threshold &&
-					1//diff > (2.f * (*variance))
+					diff > m_threshold
+					//  &&diff > (2.f * (*variance))
 					) { // Opaque pixels are whiter that median
 					diffImageBuffer[pos] = DIFF_THRESHVAL;
 				} else {
-					u8 var_pix = (u8) ( (*variance) / (float)medianImageBuffer[pos] * 64.f);
+					if(diff >= tmmax(3, m_threshold-2))
+						diffImageBuffer[pos] = DIFF_CONTOUR;
+				//	u8 var_pix = (u8) ( (*variance) / (float)medianImageBuffer[pos] * 64.f);
 				//	diffImageBuffer[pos] = var_pix;
 				}
-				/*else if(diff >= tmmax(3, m_threshold-2)) {
-						diffImageBuffer[pos] = DIFF_CONTOUR;
-					} else diffImageBuffer[pos] = 0;
-					*/
+				//else if(diff >= tmmax(3, m_threshold-2)) {
+				//		diffImageBuffer[pos] = DIFF_CONTOUR;
+				//	} else diffImageBuffer[pos] = 0;
+
 			}
 		}
 		break;
@@ -782,7 +787,7 @@ int TamanoirImgProc::preProcessImage() {
 					*/
 			//if( diff >= tmmax(3, m_threshold-2) ) // Opaque pixels are whiter that median
 			{
-				if( diff >= (u8)tmmax(m_threshold, ((float)medianImageBuffer[pos] /8.f) ) ) { // Opaque pixels are whiter that median
+				if( diff >= m_thrshold) {// (u8)tmmax(m_threshold, ((float)medianImageBuffer[pos] /8.f) ) ) { // Opaque pixels are whiter that median
 					diffImageBuffer[pos] = DIFF_THRESHVAL;
 				} else if(diff >= tmmax(3, m_threshold-2)) {
 					diffImageBuffer[pos] = DIFF_CONTOUR;
@@ -804,6 +809,24 @@ int TamanoirImgProc::preProcessImage() {
 		}
 		break;
 	}
+#else // NEW CRITERION
+	for(int r=0;r<height; r++) {
+		pos = r * width;
+		int posmax = pos + diffImage->width;
+		//float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
+		for( ; pos < posmax; pos++//, variance++
+			 ) {
+
+			u8 diff = (u8)diffImageBuffer[pos];
+
+			if(diff > m_threshold)
+				diffImageBuffer[pos] = DIFF_THRESHVAL;
+			else
+				if(diff >= tmmax(3, m_threshold-2))
+					diffImageBuffer[pos] = DIFF_CONTOUR;
+		}
+	}
+#endif
 		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage" IMG_EXTENSION, diffImage);
 	m_progress = 70;

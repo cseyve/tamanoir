@@ -134,6 +134,8 @@ IplImage * tmAddBorder4x(IplImage * originalImage);
 /** @brief Return correlation image */
 IplImage * getCorrelationImage();
 
+#define VISIBLE_DIFF	10
+
 /** @brief Return correlation between 2 images */
 float tmCorrelation(
 	IplImage * img1, IplImage * img2,
@@ -142,7 +144,9 @@ float tmCorrelation(
 	int x2, int y2,
 	int w, int h,
 	int difftolerance,
-	int * pmaxdiff) ;
+	int * pmaxdiff,
+	int * pnbdiff = NULL
+	) ;
 
 /** @brief Find a neighbour region to copy on the dust */
 int tmSearchBestCorrelation(
