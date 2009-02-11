@@ -208,8 +208,8 @@ OTHER_FILES += build_mac_bundle.sh \
 #CONFIG(debug, debug|release) {
 macx {
     message("MacOS X specific options  =================================================")
-    TARGET = $$join(TARGET,,,_debug)
-    DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
+    #TARGET = $$join(TARGET,,,_debug)
+    #DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 }
 linux-g++ {
     message("Linux specific options =================================================")
@@ -219,12 +219,12 @@ win32 {
     TARGET = $$join(TARGET,,d)
 }
 #}
-CONFIG += build_all
+#CONFIG += qt warn_on debug release build_all
 
 ## INSTALATION
-target.path = /usr/local/tamanoir
+#target.path = /usr/local/tamanoir
 
-INSTALLS += target
+#INSTALLS += target
 
 # FINAL CONFIGURATION ==================================================
 message( "")

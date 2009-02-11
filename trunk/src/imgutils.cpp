@@ -410,7 +410,29 @@ void tmFillRegion(IplImage * origImage,
 /*
  * Clone copy rectangle -> orig rectangle
  */
-void tmCloneRegion(IplImage * origImage, 
+void tmCloneRegion(IplImage * origImage,
+	int dest_x, int dest_y,
+	int src_x, int src_y,
+	int copy_width, int copy_height,
+	IplImage * destImage ) {
+
+	// Compute top-left corner coordinates
+	dest_x -= copy_width/2;
+	src_x -= copy_width/2;
+	dest_y -= copy_height/2;
+	src_y -= copy_height/2;
+
+	// Then call the top-left value
+	tmCloneRegionTopLeft(origImage,
+		dest_x, dest_y,
+		src_x, src_y,
+		copy_width, copy_height,
+		destImage );
+}
+/*
+ * Clone copy rectangle -> orig rectangle
+ */
+void tmCloneRegionTopLeft(IplImage * origImage,
 	int dest_x, int dest_y,
 	int src_x, int src_y, 
 	int copy_width, int copy_height,
@@ -775,22 +797,23 @@ void tmMarkCloneRegion(IplImage * origImage,
 	// Debug : original (=bad) as red, copy source (=good) in green
 	if(mark) {
 		cvRectangle(origImage, 
-					cvPoint(orig_x, orig_y+copy_height),
-					cvPoint(orig_x+copy_width, orig_y),
+					cvPoint(orig_x-copy_width/2, orig_y-copy_height/2),
+					cvPoint(orig_x+copy_width/2, orig_y+copy_height/2),
 					CV_RGB(255,0,0),
 					1);
 	}
 	
 	cvRectangle(origImage, 
-				cvPoint(copy_x, copy_y+copy_height),
-				cvPoint(copy_x+copy_width, copy_y),
+				cvPoint(copy_x-copy_width/2, copy_y-copy_height/2),
+				cvPoint(copy_x+copy_width/2, copy_y+copy_height/2),
 				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
 				1);
+
 	// Copy vector
-	int copy_center_x = copy_x+copy_width/2;
-	int copy_center_y = copy_y+copy_height/2;
-	int src_center_x = orig_x+copy_width/2;
-	int src_center_y = orig_y+copy_height/2;
+	int copy_center_x = copy_x;
+	int copy_center_y = copy_y;
+	int src_center_x = orig_x;
+	int src_center_y = orig_y;
 	int copy_vector_x = copy_center_x - src_center_x;
 	int copy_vector_y = copy_center_y - src_center_y;
 	
@@ -904,14 +927,18 @@ float tmCorrelation(
 			for(int dx=0; dx<w; dx++) {
 				// Don't compute if there is a doubt about this image (dust presence)
 				// Compute only if mask is 0
-				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
+				if(*maskpos == 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
-							if(nbdiff>wxh_4) // Too many pixels different / surface of object
-								return 1000.f;
+							if(nbdiff>wxh_4) {// Too many pixels different / surface of object
+								if(pnbdiff)
+									*pnbdiff = nbdiff;
+								return 1001.f;
+							}
 						}
+
 						if(l_diff > maxdiff)
 						{
 							maxdiff = l_diff;
@@ -960,13 +987,16 @@ float tmCorrelation(
 				//	return 5000;
 				
 				// Compute only if mask is 0
-				if(*maskpos != DIFF_THRESHVAL) {//== 0) {
+				if(*maskpos == 0) {
 					for(int d=0; d<channels; d++) {
 						long l_diff = abs( (long)*img1pos - (long)*img2pos);
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
-							if(nbdiff>wxh_4) // Too many pixels different / surface of object
-								return 1000.f;
+							if(nbdiff>wxh_4) {// Too many pixels different / surface of object
+								if(pnbdiff)
+									*pnbdiff = nbdiff;
+								return 1002.f;
+							}
 						}
 						if(l_diff > maxdiff)
 						{
@@ -994,9 +1024,13 @@ float tmCorrelation(
 		}
 		break;
 	}
-	
+	// Return worst case
+	if(pmaxdiff)
+		*pmaxdiff = maxdiff;
+	if(pnbdiff)
+		*pnbdiff = nbdiff;
 	if(nbpix == 0) 
-		return 5000.f;
+		return 4999.f;
 	if(nbdiff > nbpix/4) {
 		// Too many different pixels / surface of search rectangle
 		return maxdiff;
@@ -1005,11 +1039,6 @@ float tmCorrelation(
 		// Too many different pixels / surface of dust
 		return maxdiff;
 	}
-	// Return worst case
-	if(pmaxdiff)
-		*pmaxdiff = maxdiff;
-	if(pnbdiff)
-		*pnbdiff = nbdiff;
 
 
 	// Return best 
@@ -1025,7 +1054,7 @@ IplImage * getCorrelationImage() { return correlationImage; };
 /** Find a neighbour region to copy on the dust */
 int tmSearchBestCorrelation(
 	IplImage * origImage, IplImage * maskImage, 
-	int seed_x, int seed_y, 
+	int seed_center_x, int seed_center_y,
 	int seed_width, int seed_height,
 
 	// Output 
@@ -1068,8 +1097,11 @@ int tmSearchBestCorrelation(
 	// Try out with only 2x size (half size on both side)
 	int correl_width  = 2 * seed_width;
 	int correl_height = 2 * seed_height;
-	seed_x -= correl_width/2; if(seed_x<0) seed_x = 0;
-	seed_y -= correl_height/2;if(seed_y<0) seed_y = 0;
+
+
+	// Wa use top-left for correlation (fewer computations in tmCorrelation)
+	int seed_x = seed_center_x - correl_width/2; if(seed_x<0) seed_x = 0;
+	int seed_y = seed_center_y - correl_height/2;if(seed_y<0) seed_y = 0;
 	
 	
 	int search_width  = 3 * correl_width;
@@ -1109,74 +1141,78 @@ int tmSearchBestCorrelation(
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
 //Do not work with image with grain : 	int difftolerance = (int)best_dist;
-	int difftolerance = (int)(depth_coef*1000.f);
+	int difftolerance = (int)(depth_coef*100.f);
 	//int difftolerance = (int)((*best_correl)*depth_coef);
+
 	best_dist = (*best_correl) * depth_coef;
 
+	// Try with fix value, not depending on input best_correl
+	best_dist = tmmin(40.f, tmmax(9.f,  (float)(*best_correl))) * depth_coef;
 
 	for(int dy = -search_height; dy < search_height; dy++) {
-		// We look only if the regions cannot touch 
-		if(dy+seed_y > 0 && dy+seed_y+correl_height<origImage->height)
-		for(int dx = -search_width; dx < search_width; dx++) {
-			if(dx+seed_x > 0 && dx+seed_x+correl_width<origImage->width)
-			if(dy < -correl_height || dy >= correl_height 
-				|| dx < -correl_width || dx >= correl_width) {
-				
-				int maxdiff = 0, nbdiff = 0;
-				float l_dist = tmCorrelation(origImage, origImage,
-						maskImage, 
-						seed_x, seed_y,
-						seed_x + dx, seed_y + dy,
-						correl_width, correl_height,
-						difftolerance,
-						&maxdiff,
-						&nbdiff
-						);
-				
-				if(l_dist < least_worst) 
-					least_worst = l_dist;
-				
-				if(g_debug_correlation) {
-					fprintf(logfile, "\timgutils %s:%d : (+%d,+%d) = %f / difftol=%d maxdiff=%d\n", 
-							__func__, __LINE__,	dx, dy, l_dist, difftolerance, maxdiff); 
-					u8 * correlationImageBuffer = (u8 *)correlationImage->imageData;
-					correlationImageBuffer[ correlationImage->widthStep * (seed_y + dy)
-											+ seed_x + dx] = (u8)l_dist;
-				}
-				
-				
-				if(l_dist < best_dist) {
-					
-					best_dist = l_dist;
-					if(maxdiff < difftolerance)
-						difftolerance = maxdiff;
-					
-					best_offset_x = dx;
-					best_offset_y = dy;
-					
-					
-					retval = 1;
-					if(g_debug_imgverbose || g_debug_correlation)
-						fprintf(logfile, "\timgutils %s:%d : current best = "
-							"(+%d,+%d) = %f / %d  (%dx%d)\n", 
-							__func__, __LINE__,
-							dx, dy, l_dist, difftolerance,
-							correl_width, correl_height
+		if(dy+seed_y > 0 && dy+seed_y+correl_height<origImage->height) {
+			for(int dx = -search_width; dx < search_width; dx++) {
+				if(dx+seed_x > 0 && dx+seed_x+correl_width<origImage->width)
+				// We look only if the regions cannot touch
+				if(dy < -correl_height || dy >= correl_height
+					|| dx < -correl_width || dx >= correl_width) {
+
+					int maxdiff = 0, nbdiff = 0;
+					float l_dist = tmCorrelation(origImage, origImage,
+							maskImage,
+							seed_x, seed_y,
+							seed_x + dx, seed_y + dy,
+							correl_width, correl_height,
+							difftolerance,
+							&maxdiff,
+							&nbdiff
 							);
-				
-					// Top quality correlation : exist asap
-					if(l_dist < best_best) {
-						*copy_dest_x = seed_x;
-						*copy_dest_y = seed_y;
-						*copy_src_x = seed_x + best_offset_x;
-						*copy_src_y = seed_y + best_offset_y;
-						*copy_width = correl_width;
-						*copy_height = correl_height;
-						
-						if(best_correl) 
-							*best_correl = (int)least_worst;
-						
-						return 1;
+
+					if(l_dist < least_worst)
+						least_worst = l_dist;
+
+					if(g_debug_correlation) {
+						fprintf(logfile, "\timgutils %s:%d : (+%d,+%d) = %f / difftol=%d maxdiff=%d\n",
+								__func__, __LINE__,	dx, dy, l_dist, difftolerance, maxdiff);
+						u8 * correlationImageBuffer = (u8 *)correlationImage->imageData;
+						correlationImageBuffer[ correlationImage->widthStep * (seed_center_y + dy)
+												+ seed_center_x + dx] = (u8)l_dist;
+					}
+
+
+					if(l_dist < best_dist) {
+
+						best_dist = l_dist;
+						if(maxdiff < difftolerance)
+							difftolerance = maxdiff;
+
+						best_offset_x = dx;
+						best_offset_y = dy;
+
+
+						retval = 1;
+						if(g_debug_imgverbose || g_debug_correlation)
+							fprintf(logfile, "\timgutils %s:%d : current best = "
+								"(+%d,+%d) = %f / %d  (%dx%d)\n",
+								__func__, __LINE__,
+								dx, dy, l_dist, difftolerance,
+								correl_width, correl_height
+								);
+
+						// Top quality correlation : exist asap
+						if(l_dist < best_best) {
+							*copy_dest_x = seed_center_x;
+							*copy_dest_y = seed_center_y;
+							*copy_src_x = seed_center_x + best_offset_x;
+							*copy_src_y = seed_center_y + best_offset_y;
+							*copy_width = correl_width;
+							*copy_height = correl_height;
+
+							if(best_correl)
+								*best_correl = (int)least_worst;
+
+							return 1;
+						}
 					}
 				}
 			}
@@ -1184,14 +1220,13 @@ int tmSearchBestCorrelation(
 	}
 	
 	if(retval) {
-		*copy_dest_x = seed_x;
-		*copy_dest_y = seed_y;
-		*copy_src_x = seed_x + best_offset_x;
-		*copy_src_y = seed_y + best_offset_y;
+		*copy_dest_x = seed_center_x;
+		*copy_dest_y = seed_center_y;
+		*copy_src_x = seed_center_x + best_offset_x;
+		*copy_src_y = seed_center_y + best_offset_y;
 		*copy_width = correl_width;
 		*copy_height = correl_height;
 	}
-	
 	
 	if(best_correl) 
 		*best_correl = (int)least_worst;
