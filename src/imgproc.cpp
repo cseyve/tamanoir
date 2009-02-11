@@ -594,10 +594,11 @@ int TamanoirImgProc::preProcessImage() {
 	originalSize = cvSize(originalImage->width, originalImage->height);
 	
 	// Blurred grayscaled image (Gaussian blur) 
-	if(!medianImage) 
+	if(!medianImage) {
 		medianImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
-	
+	}
+
 	// Difference (allocated here because it may be used for Open filter 
 	if(!diffImage) {
 		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
@@ -1300,20 +1301,29 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		// search a dust for region growing in
 		int xleft = x - pcorrection->copy_width/2;
 		if(xleft<0) xleft = 0; 
-		else if(xleft >= lw) return 0;
-		
+		else if(xleft >= lw) {
+			MUTEX_UNLOCK(&mutex); return 0;
+		}
 		int xright = xleft + pcorrection->copy_width;
-		if(xright<0) return 0; 
+		if(xright<0) {
+			MUTEX_UNLOCK(&mutex); return 0;
+		}
 		else if(xright >= lw) xright = lw-1;
 		
-		if(xright <= xleft) return 0;
+		if(xright <= xleft) {
+			MUTEX_UNLOCK(&mutex); return 0;
+		}
 		
 		int ytop  = y - pcorrection->copy_height/2;
 		if(ytop<0) ytop = 0; 
-		else if(ytop >= lh) return 0;
+		else if(ytop >= lh) {
+			MUTEX_UNLOCK(&mutex); return 0;
+		}
 		
 		int ybottom = y + pcorrection->copy_height/2;
-		if(ybottom<0) return 0; 
+		if(ybottom<0) {
+			MUTEX_UNLOCK(&mutex); return 0;
+		}
 		else if(ybottom >= lh) ybottom = lh-1;
 		
 		if( diffImageBuffer[y * diffImage->widthStep + x] != DIFF_THRESHVAL) {
@@ -1631,10 +1641,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					sum_neighbour /= (double)nb_neighbour;
 				}
 
-				best_correl = max_neighbour - min_neighbour;
+				best_correl = 5 + max_neighbour - min_neighbour;
 
 				if(force_search) {
-					fprintf(stderr, "\tDust : min/max/mean = %d / %d / %g (nb=%d)\n",
+					fprintf(stderr, "\tDust(2) : min/max/mean = %d / %d / %g (nb=%d)\n",
 							min_dust, max_dust, sum_dust, nb_dust);
 					fprintf(stderr, "\t Neighbour : min/max/mean = %d / %d / %g / tolerance=%d\n",
 							min_neighbour, max_neighbour, sum_neighbour, best_correl);
@@ -1746,30 +1756,38 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				&copy_src_x, &copy_src_y,
 				&copy_width, &copy_height,
 				&best_correl);
-			if(g_debug_imgverbose > 1 || force_search) {
 
-				int maxdiff = 0, nbdiff =  0;
+			if(g_debug_imgverbose > 1
+#ifndef SIMPLE_VIEWER
+				|| force_search
+#endif
+				) {
+
+				int maxdiff = 100, nbdiff =  0;
 				float l_dist = tmCorrelation(correctColorImage, correctColorImage,
 						dilateImage,
 						connect_center_x, connect_center_y,
 						pcorrection->rel_src_x, pcorrection->rel_src_y,
-						connect_width, connect_height,
+						connect_width*2, connect_height*2,
 						100,
 						&maxdiff,
 						&nbdiff
 						);
 
 				fprintf(stderr, "\tTamanoirImgProc::%s:%d : grown:%d,%d+%dx%d "
-						"=> ret=%d best_correl=%d copy from %d,%d => to %d,%d \n"
-						"\tdiff (force) : dist=%g / maxdiff=²%d\n",
+						"=> ret=%d best_correl=%d copy from %d,%d => to %d,%d %d x %d\n"
+						"\tdiff (force) : dist=%g / maxdiff= %d / nbdiff=%d\n",
 					__func__, __LINE__,
 					connect_center_x, connect_center_y,
 					connect_width, connect_height,
 					ret, best_correl,
 					copy_src_x, copy_src_y,
 					copy_dest_x, copy_dest_y,
-					l_dist, maxdiff);
+					copy_width, copy_height,
+					l_dist, maxdiff, nbdiff);
 			}
+
+
 			if(ret>0) {
 				m_lastDustComp = connect; 
 				u8 return_now = 1;
@@ -1828,8 +1846,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 					// Force copy dest to be where we forced the seed
 					// Centered dest determined by correlation
-					int centered_dest_x = copy_dest_x - copy_width/2; 
-					int centered_dest_y = copy_dest_y - copy_height/2; 
+					int centered_dest_x = copy_dest_x;
+					int centered_dest_y = copy_dest_y;
 					
 					// We forced connect_width and connect_height
 					// => the copy_dest_x are top-left of a region of size copy_width x copy_height
@@ -1868,10 +1886,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				
 				if(m_trust && return_now) {
 					// Check if correction area is in diff image
-					int left = tmmin(copy_src_x, copy_dest_x);
-					int right = tmmax(copy_src_x + copy_width, copy_dest_x + copy_width);
-					int top = tmmin(copy_src_y, copy_dest_y);
-					int bottom = tmmax(copy_src_y + copy_height, copy_dest_y + copy_height);
+					int left =   tmmin(copy_src_x - copy_width/2, copy_dest_x - copy_width/2);
+					int right =  tmmax(copy_src_x + copy_width/2, copy_dest_x + copy_width/2);
+					int top =    tmmin(copy_src_y - copy_height/2, copy_dest_y - copy_height/2);
+					int bottom = tmmax(copy_src_y + copy_height/2, copy_dest_y + copy_height);
 					
 					float fill_failure = tmNonZeroRatio(diffImage,
 						crop_x + left, crop_y + top,
@@ -1898,7 +1916,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					
 				}
 				
-					
+				// If we must return from this function now, we store the dust in statistics array
 				if(return_now) {
 					
 					if(g_evaluate_mode) {
@@ -2183,9 +2201,18 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	
 	
 	// Main windows
-	if(displayBlockImage) {
-		cvCopy(displayImage, displayBlockImage);
+	if(displayBlockImage && displayImage) {
+		if(displayBlockImage->width == displayImage->width
+			&& displayBlockImage->height == displayImage->height
+			) {
+			cvCopy(displayImage, displayBlockImage);
+		} else {
+			fprintf(stderr, "TamanoirImgProc::%s:%d : error : different image size : displayImage %dx%d != displayBlockImage %dx%d\n",
+					__func__, __LINE__,
+					displayImage->width, displayImage->height,
+					displayBlockImage->width, displayBlockImage->height);
 
+		}
 		// Return when we can propose something for correction
 		// Mark current on displayImage
 		int disp_x = (correction.crop_x + correction.rel_dest_x) * displayImage->width / grayImage->width;
@@ -2219,23 +2246,10 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 		fprintf(stderr, "[imgproc] %s:%d : rel_x=%d rel_y=%d  %dx%d\n", __func__, __LINE__,
 			rel_x, rel_y, cropImage->width, cropImage->height);
 	
-	
-	// update center of source 
-	int x = rel_x - pcorrection->copy_width / 2;
-	int y = rel_y - pcorrection->copy_height / 2;
-	
-	
+
 	// Store correction in full image buffer
-	pcorrection->rel_src_x = x;
-	pcorrection->rel_src_y = y;
-//	pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
-//	pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
-
-
-	// Update absolute dest if changed
-//	pcorrection->dest_x = pcorrection->crop_x + pcorrection->rel_dest_x;
-//	pcorrection->dest_y = pcorrection->crop_y + pcorrection->rel_dest_y;
-
+	pcorrection->rel_src_x = rel_x;
+	pcorrection->rel_src_y = rel_y;
 
 	// Update display must be requested by the GUI !
 }
@@ -2251,7 +2265,7 @@ int TamanoirImgProc::skipCorrection(t_correction correction) {
 	m_progress = (int)(100 * y / grayImage->height);
 	
 	memcpy(&m_last_correction, &correction, sizeof(t_correction));
-	
+
 	// Mark skip action on displayImage
 	if(displayImage) {
 		int disp_x = (correction.crop_x + correction.rel_dest_x ) * displayImage->width / grayImage->width;
@@ -2372,14 +2386,14 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	if(g_debug_imgoutput) {
 
 		tmMarkCloneRegion(originalImage, 
-                                        correction_dest_x, correction_dest_y,
-                                        correction_src_x, correction_src_y,
+					correction_dest_x, correction_dest_y,
+					correction_src_x, correction_src_y,
 					correction.copy_width, correction.copy_height);
 	}
 	
 	
 	memset(&correction, 0, sizeof(t_correction));
-        correction.copy_width = -1;
+	correction.copy_width = -1;
 	return 0;
 }
 

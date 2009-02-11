@@ -1,5 +1,5 @@
 /***************************************************************************
- *           imgutils - Basic utilities for image processing 
+ *  imgutils - Basic utilities / image processing for dust detection
  *
  *  Sun Oct 28 14:10:56 2007
  *  Copyright  2007  Christophe Seyve 
@@ -49,6 +49,7 @@
 #define tmmax(a,b) ((a)>(b)?(a):(b))
 #endif
 
+// DEBUG IMAGES DIRECTORY AND EXTENSION
 #ifdef LINUX //not __X11_DARWIN__
 #define TMP_DIRECTORY	"/dev/shm/"
 #define IMG_EXTENSION	".pgm"
@@ -57,6 +58,7 @@
 #define IMG_EXTENSION	".jpg"
 #endif
 
+// TYPEDEFS FOR MULTIPLE ARCHITECTURE TYPES (32bit, 64bit...)
 #ifndef u8
 typedef unsigned char u8;
 typedef uint16_t u16;
@@ -73,18 +75,32 @@ typedef int32_t i32;
 #define IMGUTILS_NULL
 #endif
 
+//
 #define COLORMARK_FAILED	252
 #define COLORMARK_REFUSED	253
 #define COLORMARK_CORRECTED	254
 #define COLORMARK_CURRENT	255
 
+// Difference image fill values
 
+/// Difference image value for contour areas (a little different)
 #define DIFF_CONTOUR    192
+
+/// Difference image value for preventing from region growing (force copy)
 #define DIFF_NEUTRALIZE 64
+
+/// Difference image value for regions which have been considered as not being a dust
 #define DIFF_NOT_DUST 128
+
+/// Difference image value for regions which ARE considered as being a dust
 #define DIFF_THRESHVAL  250
 
+/// Flag to save debug images in @see TMP_DIRECTORY (activated with argument '-save')
 IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_NULL;
+
+// Gray level difference for _very_ visually different pixels
+#define VISIBLE_DIFF	40
+
 
 /** @brief Print image properties */
 void tmPrintProperties(IplImage * img);
@@ -113,6 +129,7 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	unsigned char threshold,
 	unsigned char fillValue,
 	CvConnectedComp * areaOut);
+
 /** @brief Erase a previoulsy grown region starting from a seed */
 void tmEraseRegion(
 	IplImage * grownImage,
@@ -125,8 +142,8 @@ void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int c
 
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h,
-                int exclu_x, int exclu_y, int exclu_w, int exclu_h,
-                u8 threshold = DIFF_THRESHVAL);
+			int exclu_x, int exclu_y, int exclu_w, int exclu_h,
+			u8 threshold = DIFF_THRESHVAL);
 
 /** @brief Add a border to image to reach a 4x size */
 IplImage * tmAddBorder4x(IplImage * originalImage);
@@ -134,9 +151,23 @@ IplImage * tmAddBorder4x(IplImage * originalImage);
 /** @brief Return correlation image */
 IplImage * getCorrelationImage();
 
-#define VISIBLE_DIFF	10
+/** @brief Return correlation between 2 images
+	@param[in] img1 input image 1
+	@param[in] img2 input image 2
+	@param[in] maskImage mask image 1
+	@param[in] x1 input top-left corner in img 1
+	@param[in] y1 input top-left corner in img 1
+	@param[in] x2 input top-left corner in img 2
+	@param[in] y2 input top-left corner in img 2
+	@param[in] width width of correlation rectangle
+	@param[in] height height of correlation rectangle
+	@param[in] difftolerance maximum difference between images 1 and 2 : if difference > difftolerance, function returns with huge value
 
-/** @brief Return correlation between 2 images */
+	@param[out] pmaxdiff maximum difference (mean difference)
+	@param[out] pnbdiff number of pixels with visible difference (difference > VISIBLE_DIFF)
+
+	@return correlation value (the smaller, the better)
+*/
 float tmCorrelation(
 	IplImage * img1, IplImage * img2,
 	IplImage * maskImage,
@@ -148,30 +179,78 @@ float tmCorrelation(
 	int * pnbdiff = NULL
 	) ;
 
-/** @brief Find a neighbour region to copy on the dust */
+/** @brief Find a neighbour region to copy on the dust
+
+	@param[in] origImage original image
+	@param[in] maskImage dust growing mask image. If pixels of the mask have DIFF_THRESHVAL value, pixels are not considered.
+	@param[in] orig_x center of the dust
+	@param[in] orig_y center of the dust
+	@param[in] orig_width width of the dust
+	@param[in] orig_height width of the dust
+
+	@param[out] copy_dest_x center of destination of copy
+	@param[out] copy_dest_y center of destination of copy
+	@param[out] copy_src_x center of source of copy
+	@param[out] copy_src_y center of source of copy
+	@param[out] copy_width width of copy
+	@param[out] copy_height height of copy
+	@param[out] best_correlation best correlation between source and destination
+
+	@return 1 if found, 0 if no matching region found
+*/
 int tmSearchBestCorrelation(
 	IplImage * origImage, IplImage * maskImage, 
 	int orig_x, int orig_y, 
 	int orig_width, int orig_height,
-	// Output 
+	// Outputs
 	int * copy_dest_x, int * copy_dest_y,
 	int * copy_src_x, int * copy_src_y,
 	int * copy_width, int * copy_height,
 	int * best_correlation
 	);
 
-/** @brief Copy a part of an image into itself ('clone tool') */
+/** @brief Copy a part of an image into itself ('clone tool')
+	@param[in] origImage original image
+	@param[in] dest_x center of destination of copy
+	@param[in] dest_y center of destination of copy
+	@param[in] src_x center of source of copy
+	@param[in] src_y center of source of copy
+	@param[in] copy_width width of copy
+	@param[in] copy_height height of copy
+
+	@param[out] destImage destination image, if NULL, the destination is the same as origin
+*/
 void tmCloneRegion(IplImage * origImage, 
 	int dest_x, int dest_y, 
 	int src_x, int src_y,
 	int copy_width, int copy_height,
 	IplImage * destImage = NULL);
 
-/** @brief Clear a part of an image ('erase tool') */
+/** @brief Copy a part of an image into itself ('clone tool')
+	@param[in] origImage original image
+	@param[in] dest_x top-left corner of destination of copy
+	@param[in] dest_y top-left corner of destination of copy
+	@param[in] src_x top-left corner of source of copy
+	@param[in] src_y top-left corner of source of copy
+	@param[in] copy_width width of copy
+	@param[in] copy_height height of copy
+
+	@param[out] destImage destination image, if NULL, the destination is the same as origin
+*/
+void tmCloneRegionTopLeft(IplImage * origImage,
+	int dest_x, int dest_y,
+	int src_x, int src_y,
+	int copy_width, int copy_height,
+	IplImage * destImage = NULL );
+
+
+/** @brief Clear a part of an image ('erase tool')
+
+*/
 void tmFillRegion(IplImage * origImage, 
 	int dest_x, int dest_y, 
 	int copy_width, int copy_height,
-        u8 fillValue);
+	u8 fillValue);
 
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
 void tmMarkCloneRegion(IplImage * origImage, 
