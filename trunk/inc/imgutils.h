@@ -113,6 +113,11 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels);
 /** @brief Release an image and clear pointer */
 void tmReleaseImage(IplImage ** img);
 
+
+/** @brief Copy an IplIMage into another */
+void tmpCopyImage(IplImage * img_src, IplImage * img_dest);
+
+
 /** @brief Fast conversion from color/16bit image to 8bit grayscale image */
 IplImage * tmFastConvertToGrayscale(IplImage * img);
 
@@ -151,6 +156,8 @@ IplImage * tmAddBorder4x(IplImage * originalImage);
 /** @brief Return correlation image */
 IplImage * getCorrelationImage();
 
+#define VISIBLE_DIFF	40
+
 /** @brief Return correlation between 2 images
 	@param[in] img1 input image 1
 	@param[in] img2 input image 2
@@ -177,7 +184,7 @@ float tmCorrelation(
 	int difftolerance,
 	int * pmaxdiff,
 	int * pnbdiff = NULL
-	) ;
+	);
 
 /** @brief Find a neighbour region to copy on the dust
 

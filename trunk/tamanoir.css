@@ -1,0 +1,72 @@
+<!--
+* {
+	color: black;
+}
+
+TamanoirApp {
+	background-color: qlineargradient(spread:pad,
+		x1:0, y1:0, x2:0, y2:1,
+		stop:0 rgba(32, 32, 32, 255),
+		stop:1 rgba(105, 105, 105, 255));/*background-color: #AAAAAA;*/
+/*	background-color: #505050;*/
+}
+
+QPushButton,QComboBox
+{  
+	background-color: qlineargradient(spread:pad,
+		x1:0, y1:0, x2:0, y2:1,
+		stop:0 rgba(32, 32, 32, 255),
+		stop:1 rgba(105, 105, 105, 255));/*background-color: #AAAAAA;*/
+}
+QComboBox{
+	selection-background-color: #505050;
+}
+
+
+
+QPushButton,QCheckBox,QComboBox,QStatusBar::title {
+	color: white;
+}
+
+QStatusBar {
+	background-color: #303030;
+	color: white;
+}
+
+QGroupBox {
+	background-color: #505050;
+	border: 1px solid #CCCCCC;
+}
+
+QGroupBox::title {
+	color: white;
+}
+
+QLabel::border {
+	border: 2pix solid #AAAAAA;
+}
+
+QLabel::border {
+	border-color: #AAAAAA;
+}
+
+QDialog,QFileDialog,QMessageBox {
+	background-color: #909090;
+	color: black;
+}
+
+QProgressBar::border {
+	border: 2px solid #F7F7F7;
+	border-radius: 5px;
+	background-color: #CCCCCC;
+}
+
+QProgressBar::chunk {
+	background-color: #AAAAAA;
+	width: 5 pix;
+}
+
+
+
+
+//-->
