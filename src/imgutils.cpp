@@ -208,6 +208,7 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 				cvSize( new_width, new_height),
 				originalImage->depth,
 				originalImage->nChannels);
+
 		for(int r = 0; r < originalImage->height; r++) {
 			memcpy( copyImage->imageData + r * copyImage->widthStep,
 			      originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
@@ -569,6 +570,25 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 		}
 	}		
 }
+
+/*
+ * Copy an image in another
+ */
+void tmpCopyImage(IplImage * img_src, IplImage * img_dest) {
+	if(img_dest->widthStep == img_src->widthStep && img_dest->height == img_src->height) {
+		memcpy(img_dest->imageData, img_src->imageData, img_src->widthStep*img_src->height);
+	}
+	else {
+		cvZero(img_dest); // prevent from using uninitialised pixels
+		int copy_width = tmmin(img_dest->widthStep, img_src->widthStep);
+		for(int r=0; r<tmmin(img_dest->height, img_src->height); r++) {
+			memcpy(img_dest->imageData + r*img_dest->widthStep,
+				   img_src->imageData + r*img_src->widthStep,
+				   copy_width);
+		}
+	}
+}
+
 /*
  * Convert a colored/16bit image to 8bit gray */
 IplImage * tmFastConvertToGrayscale(IplImage * img) {
@@ -583,7 +603,7 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 	case IPL_DEPTH_8U: // 8bit image as input
 		switch(img->nChannels) {
 		case 1:	// same size, image is already grayscaled
-			memcpy(grayImage->imageData, img->imageData, img->widthStep*img->height);
+			tmpCopyImage(grayImage, img);
 			break;
 		default: { // Use Green plane as grayscaled
 			int offset = 1; // green
@@ -643,6 +663,12 @@ void tmCropImage(IplImage * origImage,
 	if(xleft >= xright) return;
 	if(ytop >= ybottom) return;
 	
+	if((xright - xleft) < crop_width
+	   || (ytop - ybottom) < crop_height) {
+		// Clear destination buffer to prevent from using oudated values in region growing...
+		cvZero(cropImage);
+	}
+
 	// Copy buffer
 	int byte_depth = tmByteDepth(origImage);
 	int byte_depth2 = tmByteDepth(cropImage);
@@ -891,7 +917,7 @@ float tmCorrelation(
 	//int w_x_channels = w * channels;
 	int x1_x_depth = x1 * tmByteDepth(img1); // e.g. nChannel * pixel byte depth
 	int x2_x_depth = x2 * tmByteDepth(img2);
-	int wxh_4 = w*h/4;
+	int wxh_4 = w * h / 4;
 	long maxdiff = 0;
 	
 	switch(img1->depth) {
@@ -1012,8 +1038,8 @@ float tmCorrelation(
 					}
 					
 				} else {
-					img1pos+=channels;
-					img2pos+=channels;
+					img1pos += channels;
+					img2pos += channels;
 				} 
 				
 				img1pos++;
@@ -1024,6 +1050,7 @@ float tmCorrelation(
 		}
 		break;
 	}
+	
 	// Return worst case
 	if(pmaxdiff)
 		*pmaxdiff = maxdiff;
@@ -1031,6 +1058,7 @@ float tmCorrelation(
 		*pnbdiff = nbdiff;
 	if(nbpix == 0) 
 		return 4999.f;
+	
 	if(nbdiff > nbpix/4) {
 		// Too many different pixels / surface of search rectangle
 		return maxdiff;

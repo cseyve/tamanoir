@@ -206,9 +206,14 @@ void TamanoirImgProc::purgeCropped() {
 	if(cropImage) tmReleaseImage(&cropImage);  cropImage = NULL;
 	if(cropColorImage)	tmReleaseImage(&cropColorImage); cropColorImage = NULL;
 	if(dilateImage) 	tmReleaseImage(&dilateImage);  		dilateImage = NULL;
-	if(correctImage) 	tmReleaseImage(&correctImage);  	correctImage = NULL;
 	if(tmpCropImage) 	tmReleaseImage(&tmpCropImage);  	tmpCropImage = NULL;
 	if(sobelImage) 		tmReleaseImage(&sobelImage);  	sobelImage = NULL;
+	bool purge_correctColorImage = (correctColorImage != correctImage);
+	if(purge_correctColorImage) {
+		tmReleaseImage(&correctColorImage);
+	}
+	if(correctImage) 	tmReleaseImage(&correctImage);  	correctImage = NULL;
+
 	processingSize = cvSize(0,0);
 }
 
@@ -281,13 +286,16 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 //	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
 	IplImage * new_displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
 	if(originalImage->depth != new_displayImage->depth) {
+		fprintf(stderr, "TamanoirImgProc::%s:%d converting depth: %d => %d...\n",
+			__func__, __LINE__,
+			originalImage->depth, new_displayImage->depth
+			);
 		IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
 			IPL_DEPTH_8U, originalImage->nChannels);
 		cvConvertImage(originalImage, tmpDisplayImage );
 		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
+
 		tmReleaseImage(&tmpDisplayImage);
-
-
 	} else {
 		cvResize(originalImage, new_displayImage, CV_INTER_LINEAR );
 	}
@@ -685,6 +693,7 @@ int TamanoirImgProc::preProcessImage() {
 
 	int var_size = 1 + 2*(4 * m_dpi/2400);
 	if(var_size < 3) var_size = 3;
+
 	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
 	
 	// Process difference histogram analysis : 
@@ -737,7 +746,7 @@ int TamanoirImgProc::preProcessImage() {
 	
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
 //	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
-	unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
+	//unused unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
 	int width = diffImage->widthStep;
 	int height = diffImage->height;
 	int pos;
@@ -896,15 +905,12 @@ void TamanoirImgProc::allocCropped() {
 	if(!cropColorImage) cropColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
 	if(!sobelImage) sobelImage = tmCreateImage(processingSize,IPL_DEPTH_16S, 1);
 	if(!dilateImage) dilateImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
-	if(!correctImage) correctImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
+	if(!correctImage) correctImage = tmCreateImage(processingSize, IPL_DEPTH_8U, 1);
 
 	if(originalImage->nChannels == 1) {
 		correctColorImage = correctImage;
 	} else {
-		if(correctColorImage != correctImage && correctColorImage) {
-			tmReleaseImage(&correctColorImage);
-		}
-		correctColorImage = tmCreateImage(processingSize,IPL_DEPTH_8U, originalImage->nChannels);
+		correctColorImage = tmCreateImage(processingSize, IPL_DEPTH_8U, originalImage->nChannels);
 	}
 }
 
@@ -1453,7 +1459,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		tmCropImage(diffImage, cropImage,
 					crop_x, crop_y);
 		if(g_debug_savetmp) {
-			tmSaveImage(TMP_DIRECTORY "a-diffImage" IMG_EXTENSION, 
+			tmSaveImage(TMP_DIRECTORY "crop1-diffImage" IMG_EXTENSION,
 						cropImage);
 		}
 		
@@ -1472,13 +1478,15 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			255,
 			&crop_connect);
 		
-		if(g_debug_imgverbose > 1)
+		if(g_debug_imgverbose > 1) {
 			fprintf(logfile, "TamanoirImgProc::%s:%d : => grown dust at %d,%d+%dx%d surf=%d.\n", 
 				__func__, __LINE__,
 				crop_connect.rect.x, crop_connect.rect.y,
 				crop_connect.rect.width, crop_connect.rect.height,
 				(int)crop_connect.area
 				);
+		}
+
 		if( (crop_connect.area >= m_dust_area_min &&
 		   crop_connect.area < m_dust_area_max)
 		   || ( force_search && crop_connect.area>0))
@@ -1514,9 +1522,16 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			tmCropImage(grayImage, 
 				tmpCropImage,
 				crop_x, crop_y);
-			
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "crop3-in" IMG_EXTENSION, cropImage);
+				tmSaveImage(TMP_DIRECTORY "crop4-grown" IMG_EXTENSION, correctImage);
+			}
+
 			// Do a dilatation around the grown
 			tmDilateImage(correctImage, dilateImage);
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "crop5-grown-dilated" IMG_EXTENSION, dilateImage);
+			}
 
 			// => this dilated image will be used as mask for correlation search
 			// but we have to fill the center of the dust 
@@ -1570,6 +1585,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						dilateImageBuffer[crop_pos] = 255;
 					}
 				}
+			}
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "crop6-dilate-filled" IMG_EXTENSION, dilateImage);
 			}
 
 			int best_correl = 100;
@@ -1720,6 +1738,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 			}
 			
+
 			while(connect_width < 5 
 				&& (connect_center_x+connect_width)<crop_width-3) {
 				connect_width += 2;
@@ -1787,7 +1806,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					l_dist, maxdiff, nbdiff);
 			}
 
-
+			// Il we found a good replacement
 			if(ret>0) {
 				m_lastDustComp = connect; 
 				u8 return_now = 1;
@@ -2128,12 +2147,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 					DIFF_THRESHVAL,
 					255,
 					&ext_connect);
-		// Top-right = dilatation image of dust
-		if(g_debug_savetmp)
-		{
-			tmSaveImage(TMP_DIRECTORY "b-dilateImage" IMG_EXTENSION,
-				disp_dilateImage);
-		}
+
 	}
 	
 	// Bottom-right: Diff image for display in GUI
@@ -2141,27 +2155,13 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		tmCropImage(diffImage,
 			disp_cropImage, 
 			correction.crop_x, correction.crop_y);
-		if(g_debug_savetmp)
-		{
-			tmSaveImage(TMP_DIRECTORY "z-diffImageGray" IMG_EXTENSION,
-				disp_cropImage);
-		}
+		// Top-right = dilatation image of dust
+
 	}
 	
 	// Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
 				correction.crop_x, correction.crop_y);
-	
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "a-cropImage" IMG_EXTENSION, 
-			disp_cropColorImage);
-		
-		
-		tmSaveImage(TMP_DIRECTORY "z-cropImageGray" IMG_EXTENSION,
-			disp_cropImage);
-	}
-	
 	
 	// Bottom-Left
 	// If we use a blurred version for searching,
@@ -2189,16 +2189,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		correction.copy_width, correction.copy_height,
 		false // mark move dest
 		);
-	
-	if(g_debug_savetmp)
-	{
-		tmSaveImage(TMP_DIRECTORY "c-correctImage" IMG_EXTENSION, 
-			disp_correctColorImage);
-	}
-	
 
-	
-	
 	
 	// Main windows
 	if(displayBlockImage && displayImage) {
