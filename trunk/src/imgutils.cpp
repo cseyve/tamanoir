@@ -741,8 +741,14 @@ void tmCropImage(IplImage * origImage,
 			unsigned char * cropImageBuffer = (unsigned char *)(cropImage->imageData);
 			
 			copywidth = (xright - xleft);
-			
-            int nchannels2 = cropImage->nChannels;
+			/*
+				fprintf(stderr, "[imgutils] %s:%d : 16U->8U : orig={%dx%d x %d, crop:x:%d-%d, bytedepth=%d}"
+					"\tcrop:{%dx%d x %d }\n",
+					__func__, __LINE__,
+					origImage->width, origImage->height, origImage->nChannels, xleft, xright, byte_depth,
+					cropImage->width, cropImage->height, cropImage->nChannels );
+			*/
+			int nchannels2 = cropImage->nChannels;
 			int ly = 0;
 			int orig_pix_offset = xleft * byte_depth;
 			
