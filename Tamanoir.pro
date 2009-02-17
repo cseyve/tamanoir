@@ -222,7 +222,8 @@ win32 {
     TARGET = $$join(TARGET,,d)
 }
 #}
-#CONFIG += qt warn_on debug release build_all
+
+CONFIG += qt warn_on debug release build_all
 
 ## INSTALATION
 #target.path = /usr/local/tamanoir

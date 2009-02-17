@@ -402,8 +402,8 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
 		int dist_to_src = tmmax( dx_src, dy_src );
 
-//fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
-//		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
+fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
+		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
 		switch(e->button()) {
 		case Qt::NoButton:
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
@@ -479,7 +479,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
 							current_dust.crop_x+current_dust.rel_seed_x , 
 							current_dust.crop_y+current_dust.rel_seed_y , 
-							ret);
+						0);
 						current_dust = search_correct;
 						
 					}
@@ -522,8 +522,9 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 }
 
 
+
 void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
-	
+
 	if(e && m_pProcThread && m_pImgProc) {
 		
 		int dist_to_border = 100;
@@ -556,7 +557,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		int dx_src = abs(e->pos().x() - current_dust.rel_src_x );
 		int dy_src = abs(e->pos().y() - current_dust.rel_src_y );
 		int dist_to_src = tmmax( dx_src, dy_src );
-
 
 
 
@@ -620,6 +620,12 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 			}break;
 		case Qt::LeftButton:
 			{
+			int dx = current_dust.rel_seed_x - current_dust.rel_src_x;
+			int dy = current_dust.rel_seed_y - current_dust.rel_src_y;
+fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+							current_dust.crop_x+current_dust.rel_seed_x ,
+							current_dust.crop_y+current_dust.rel_seed_y ,
+							0);
 			if(is_src_selected) {
 				// Move src
 				current_dust.rel_src_x = e->pos().x();
@@ -631,12 +637,15 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 			}
 			
 			if(m_draw_on) {
-				// Get move from last position 
-				current_dust.rel_seed_x = e->pos().x();
-				current_dust.rel_seed_y = e->pos().y();
-				
 
-				/* No search when moving with the button down 
+				// Get move from last position 
+				current_dust.rel_seed_x = current_dust.rel_dest_x = e->pos().x();
+				current_dust.rel_seed_y = current_dust.rel_dest_y = e->pos().y();
+
+				current_dust.rel_src_x = current_dust.rel_seed_x - dx;
+				current_dust.rel_src_y = current_dust.rel_seed_y - dy;
+
+				/* No search when moving with the button down
 				// Compute correction
 				t_correction search_correct = current_dust;
 					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
@@ -648,11 +657,12 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 					g_debug_imgverbose = old_debug;
 					g_debug_correlation = old_correlation;
 				
-					if(ret > 0) {
-						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+					if(ret > 0) {`*/
+				int ret=0;
+				fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
 							current_dust.crop_x+current_dust.rel_seed_x , 
 							current_dust.crop_y+current_dust.rel_seed_y , 
-							ret);
+							ret);/*
 						current_dust = search_correct;
 						
 						
@@ -1766,7 +1776,7 @@ TamanoirThread::~TamanoirThread() {
 		req_command = PROTH_NOTHING;
 		waitCond.wakeAll();
 		mutex.unlock();
-	
+
 		fprintf(stderr, "TmThread::%s:%d : waiting for thread to stop\n", 
 				__func__, __LINE__);
 		if(m_running)
