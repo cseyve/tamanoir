@@ -1692,6 +1692,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				float contrast = (sum_dust - sum_neighbour ) / (sum_neighbour + sum_dust);
 
 				if(force_search) {
+#ifdef SIMPLE_VIEWER
+					best_correl = 20;
+#endif
 					fprintf(stderr, "\tDust(Dil) : min/max/mean = %d / %d / %g (nb=%d)\n",
 							min_dustDil, max_dustDil, sum_dustDil, nb_dustDil);
 					fprintf(stderr, "\t Neighbour : min/max/mean = %d / %d / %g / tolerance=%d\n",
