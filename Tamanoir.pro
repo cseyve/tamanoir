@@ -7,23 +7,19 @@ DEPENDPATH += . \
     inc \
     src \
     ui
-
 INCLUDEPATH += . \
     inc \
     ui
-
 OBJECTS_DIR = .obj-simple
-DEFINES +=  SIMPLE_VIEW QT3_SUPPORT
-
+DEFINES += SIMPLE_VIEW \
+    QT3_SUPPORT
 TRANSLATIONS = tamanoir_fr.ts
 
 # icon
 # reference : file:///usr/share/qt4/doc/html/appicon.html
 mac::ICON = icon/Tamanoir.icns
 win32::RC_FILE = icon/tamanoir.rc
-
 linux-g++::ICON = icon/Tamanoir32.png
-
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 
 # Input
@@ -31,9 +27,7 @@ HEADERS = inc/imgproc.h \
     inc/imgutils.h \
     inc/tamanoir.h \
     inc/qimagedisplay.h
-
 FORMS = ui/tamanoir_simple.ui
-
 SOURCES = src/imgproc.cpp \
     src/imgutils.cpp \
     src/main.cpp \
@@ -55,7 +49,6 @@ linux-g++:DEFINES += LINUX
 LIBS_EXT = dylib
 linux-g++:LIBS_EXT = so
 win32:LIBS_EXT = lib
-
 message( "Installation directory = $(PWD) ")
 LIBS = 
 DYN_LIBS = 
@@ -68,14 +61,15 @@ win32: {
     INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
     DYN_LIBS += -L"C:\Program Files\OpenCV\lib" \
         -L"C:\Program Files\OpenCV\bin" \
-        -lcxcore -lcv
+        -lcxcore \
+        -lcv
 }
-
 unix: { 
     # Test if libtiff is installed
     exists( /usr/local/include/tiffio.h ) { 
         INCLUDEPATH += /usr/local/include
-        DYN_LIBS += -L/usr/local/lib -ltiff
+        DYN_LIBS += -L/usr/local/lib \
+            -ltiff
         SOURCES += src/cv2tiff.cpp
         DEFINES += HAVE_LIBTIFF
         STATIC_LIBS += /usr/local/lib/libtiff.a
@@ -83,7 +77,8 @@ unix: {
     else { 
         exists( /opt/local/include/tiffio.h ) { 
             INCLUDEPATH += /opt/local/include
-            DYN_LIBS += -L/opt/local/lib -ltiff
+            DYN_LIBS += -L/opt/local/lib \
+                -ltiff
             SOURCES += src/cv2tiff.cpp
             DEFINES += HAVE_LIBTIFF
             STATIC_LIBS += /opt/local/lib/libtiff.a
@@ -91,15 +86,16 @@ unix: {
         else { 
             exists( /sw/include/tiffio.h ) { 
                 INCLUDEPATH += /sw/include
-                DYN_LIBS += -L/sw/lib -ltiff
+                DYN_LIBS += -L/sw/lib \
+                    -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
-
                 STATIC_LIBS += /sw/lib/libtiff.a
             }
             else:exists( /usr/include/tiffio.h ) { 
                 INCLUDEPATH += /usr/include
-                DYN_LIBS += -L/usr/lib -ltiff
+                DYN_LIBS += -L/usr/lib \
+                    -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
                 STATIC_LIBS += /usr/lib/libtiff.a
@@ -183,14 +179,11 @@ unix: {
         message( defines : $$DEFINES )
     }
 }
-
 DYN_LIBS += -lcvaux \
     -lhighgui
-
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
     $$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
     $$OPENCV_STATIC_LIBDIR/lib_highgui.a
-
 BUILD_STATIC = $$(BUILD_STATIC)
 contains(BUILD_STATIC, true) { 
     message("Building static version of binary :")
@@ -204,32 +197,30 @@ else {
     # Dynamic libraries version
     LIBS += $$DYN_LIBS
 }
-
 OTHER_FILES += build_mac_bundle.sh \
     build_mac_dmg.py
 
-#CONFIG(debug, debug|release) {
-macx {
-    message("MacOS X specific options  =================================================")
-    #TARGET = $$join(TARGET,,,_debug)
-    #DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
-}
-linux-g++ {
+# CONFIG(debug, debug|release) {
+macx:message("MacOS X specific options =================================================")
+
+# TARGET = $$join(TARGET,,,_debug)
+# DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
+linux-g++ { 
     message("Linux specific options =================================================")
     DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
-win32 {
-    TARGET = $$join(TARGET,,d)
-}
-#}
+win32:TARGET = $$join(TARGET,,d)
 
-CONFIG += qt warn_on debug release build_all
+# }
+CONFIG += qt \
+    warn_on \
+    debug \
+    release \
+    build_all
 
-## INSTALATION
-#target.path = /usr/local/tamanoir
-
-#INSTALLS += target
-
+# # INSTALATION
+# target.path = /usr/local/tamanoir
+# INSTALLS += target
 # FINAL CONFIGURATION ==================================================
 message( "")
 message( "")
@@ -240,3 +231,4 @@ message( " libs : $$LIBS ")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "")
 message( "")
+RESOURCES += tamanoir.qrc

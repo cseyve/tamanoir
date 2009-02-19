@@ -825,7 +825,7 @@ void TamanoirApp::lockTools(bool lock) {
 /****************************** Button slots ******************************/
 void TamanoirApp::on_loadButton_clicked() 	
 {
-	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	QString s = QFileDialog::getOpenFileName(this,
 						tr("Tamanoir - Open a picture to be cleaned"),
 						m_options.currentDir,
@@ -836,7 +836,7 @@ void TamanoirApp::on_loadButton_clicked()
 		return;
 	}
 	
-        ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
+	ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
 	
 	loadFile( s);
 }

@@ -115,7 +115,7 @@ void tmReleaseImage(IplImage ** img);
 
 
 /** @brief Copy an IplIMage into another */
-void tmpCopyImage(IplImage * img_src, IplImage * img_dest);
+void tmCopyImage(IplImage * img_src, IplImage * img_dest);
 
 
 /** @brief Fast conversion from color/16bit image to 8bit grayscale image */
@@ -271,7 +271,7 @@ void tmMarkFailureRegion(IplImage * origImage,
 	int x, int orig_y, int w, int h, unsigned char color = 127);
 
 /** @brief Allocate a morphology structural element */
-IplConvKernel * createStructElt(int size=3);
+IplConvKernel * tmCreateStructElt(int size=3);
 
 /** @brief Process a close morphology operation */
 void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations);
@@ -291,7 +291,7 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 \param variance image = output
 \param diffHisto difference histogram (may be NULL)
 */
-int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,  
+int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	IplImage * diffImage, IplImage * varianceImage,
 	unsigned long * diffHisto, int var_size = 3);
 
