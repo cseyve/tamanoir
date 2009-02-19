@@ -549,7 +549,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		// convert full image to grayscale
 		grayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
 		fprintf(logfile, "TamanoirImgProc::%s:%d : created grayscaled "
-				"=> w=%d x h=%d x channels=%d => %d bytes per pixel\n",
+				"=> w=%d x h=%d x channels=%d => %d byte(s) per pixel\n",
 				__func__, __LINE__,
 				grayImage->width, grayImage->height, grayImage->nChannels,
 				tmByteDepth(originalImage));
@@ -559,7 +559,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		case 1:
 			fprintf(logfile, "TamanoirImgProc::%s:%d : copy to Grayscaled image...\n",
 				__func__, __LINE__);
-			memcpy(grayImage->imageData, originalImage->imageData, originalImage->widthStep * originalImage->height);
+			tmCopyImage(originalImage, grayImage);
 			break;
 		case 3:
 			fprintf(logfile, "TamanoirImgProc::%s:%d : convert RGB24 to Grayscaled image...\n",
@@ -712,7 +712,7 @@ int TamanoirImgProc::preProcessImage() {
 	int var_size = 1 + 2*(4 * m_dpi/2400);
 	if(var_size < 3) var_size = 3;
 
-	processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
+	tmProcessDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
 	
 	// Process difference histogram analysis : 
 	unsigned long maxHisto = 0;
@@ -754,7 +754,9 @@ int TamanoirImgProc::preProcessImage() {
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 		
-		processDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : process difference on blurred image ...\n",
+			__func__, __LINE__);
+		tmProcessDiff(m_FilmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
 	}
 	m_progress = 60;
 	
@@ -1613,11 +1615,11 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			}
 
 			int border = tmmax(tmmax(crop_connect.rect.width, crop_connect.rect.height),
-							8 * m_dpi / 2400);
+							16 * m_dpi / 2400);
 			int neighbour_rmin = tmmax(crop_connect.rect.y - border, 0);
-			int neighbour_rmax = tmmin(crop_connect.rect.y+border+crop_connect.rect.height, dilateImage->height);
+			int neighbour_rmax = tmmin(crop_connect.rect.y+crop_connect.rect.height+border, dilateImage->height);
 			int neighbour_cmin = tmmax(crop_connect.rect.x - border, 0);
-			int neighbour_cmax = tmmin(crop_connect.rect.x+border+crop_connect.rect.width, dilateImage->width);
+			int neighbour_cmax = tmmin(crop_connect.rect.x+crop_connect.rect.width+border, dilateImage->width);
 
 			int best_correl = 100;
 			// Check if this region is not the film grain by cheching the local

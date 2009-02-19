@@ -195,14 +195,14 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 	   || (originalImage->height % 4) > 0
 	   ) {
 		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : => Size %dx%d is odd\n",
+		fprintf(logfile, "[utils] %s:%d : => Size %dx%d is odd\n",
 				__func__, __LINE__, originalImage->width, originalImage->height);
 		int new_width = originalImage->width;
 		while( (new_width % 4)) new_width++;
 		int new_height = originalImage->height;
 		while( (new_height % 4)) new_height++;
 		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : => resize to %d x %d \n",
+		fprintf(logfile, "[utils] %s:%d : => resize to %d x %d \n",
 				__func__, __LINE__, new_width, new_height);
 		IplImage * copyImage = tmCreateImage(
 				cvSize( new_width, new_height),
@@ -211,23 +211,22 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 
 		for(int r = 0; r < originalImage->height; r++) {
 			memcpy( copyImage->imageData + r * copyImage->widthStep,
-			      originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
+				originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
 		}
 		
 		IplImage * oldImage = originalImage;
 		cvReleaseImage(&oldImage);
-		
-		
+
 		originalImage = copyImage;
 		
-		return originalImage;
+		return copyImage;
 	}
 	
 	return originalImage;
 }
 
 /** Allocate a morphology structural element */
-IplConvKernel * createStructElt(int size)
+IplConvKernel * tmCreateStructElt(int size)
 {
 	IplConvKernel *elt;
 	int shape = 1;
@@ -244,7 +243,7 @@ IplConvKernel * createStructElt(int size)
 
 void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations) {
 
-	IplConvKernel *elt = createStructElt();
+	IplConvKernel *elt = tmCreateStructElt();
 
 	// perform open
 	cvMorphologyEx (src, dst, tmp, elt,
@@ -256,7 +255,7 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 
 void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations) {
 
-	IplConvKernel *elt = createStructElt(3);
+	IplConvKernel *elt = tmCreateStructElt(3);
 
 	// perform open
 	cvMorphologyEx (src, dst, tmp, elt,
@@ -324,8 +323,9 @@ void tmMarkFailureRegion(IplImage * origImage,
 
 /** Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
-                int exclu_x, int exclu_y, int exclu_w, int exclu_h,
-                u8 threshval) {
+		int exclu_x, int exclu_y, int exclu_w, int exclu_h,
+		u8 threshval)
+{
 	int nbpixnon0 = 0;
 	
 	int orig_width = origImage->width;
@@ -362,9 +362,8 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
 void tmFillRegion(IplImage * origImage, 
 	int dest_x, int dest_y,
 	int copy_width, int copy_height,
-        u8 fillValue)
+	u8 fillValue)
 {
-
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
 
@@ -374,10 +373,10 @@ void tmFillRegion(IplImage * origImage,
 	// Clip destination
 	if(dest_x + copy_width >= orig_width)
 		copy_width = orig_width - dest_x;
-        
+
 	if(dest_y + copy_height >= orig_height)
 		copy_height = orig_height - dest_y;
-        
+
 	if(copy_width <= 0 || copy_height <= 0) {
 		fprintf(logfile, "imgutils : %s:%d : INVALID clear %dx%d +%d,%d\n", 
 			__func__, __LINE__, 
@@ -403,8 +402,8 @@ void tmFillRegion(IplImage * origImage,
 	// Raw clear
 	for(int y=0; y<copy_height; y++, dest_y++) {
 		memset(origImageBuffer + dest_y * pitch + dest_x*byte_depth, 
-                        fillValue, 
-                        copylength);
+			fillValue,
+			copylength);
 	}
 }
  
@@ -574,7 +573,7 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 /*
  * Copy an image in another
  */
-void tmpCopyImage(IplImage * img_src, IplImage * img_dest) {
+void tmCopyImage(IplImage * img_src, IplImage * img_dest) {
 	if(img_dest->widthStep == img_src->widthStep && img_dest->height == img_src->height) {
 		memcpy(img_dest->imageData, img_src->imageData, img_src->widthStep*img_src->height);
 	}
@@ -603,7 +602,7 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 	case IPL_DEPTH_8U: // 8bit image as input
 		switch(img->nChannels) {
 		case 1:	// same size, image is already grayscaled
-			tmpCopyImage(grayImage, img);
+			tmCopyImage(grayImage, img);
 			break;
 		default: { // Use Green plane as grayscaled
 			int offset = 1; // green
@@ -1271,9 +1270,10 @@ int tmSearchBestCorrelation(
 
 
 
-
-
-int processDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
+/*
+ * Difference between 2 images, knowning film type (positive or negative or undefined)
+ */
+int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 				IplImage * diffImage, IplImage * varianceImage,
 				unsigned long * diffHisto, int size)
 {
@@ -1386,6 +1386,8 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	int pile_sp = 0;
 	pile_x[0] = c;
 	pile_y[0] = r;
+
+	memset(areaOut, 0, sizeof(CvConnectedComp));
 	areaOut->area = 0.f; // for current pix
 
 	if(c<0 || c>=swidth) return;
