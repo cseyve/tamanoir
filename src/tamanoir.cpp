@@ -32,6 +32,7 @@
 #include <QFileInfo>
 #include <QFileDialog>
 
+
 /* File for logging messages */
 extern FILE * logfile;
 

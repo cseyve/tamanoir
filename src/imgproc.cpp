@@ -30,9 +30,9 @@
 #include <sys/time.h>
 
 #include <highgui.h>
-
-#include "imgproc.h"
 #include "imgutils.h"
+#include "imgproc.h"
+
 
 extern FILE * logfile;
 u8 g_debug_imgverbose = 0;
@@ -106,9 +106,7 @@ void TamanoirImgProc::init() {
 	/** Processed imge size */
 	processingSize = cvSize(0,0);
 
-#ifndef WIN32
-	pthread_mutex_init(&mutex, NULL);
-#endif
+	MUTEX_INIT(&mutex)
 
 	// Image buffers
 	originalImage = NULL;
@@ -369,7 +367,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-		sleep(1); retry++;
+                tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	
@@ -603,7 +601,7 @@ int TamanoirImgProc::preProcessImage() {
 	
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-		sleep(1); retry++;
+                tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	if(m_lock)
@@ -1021,7 +1019,7 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 int TamanoirImgProc::saveFile(const char * filename) {
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-		sleep(1); retry++;
+                tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	if(m_lock)
@@ -1215,7 +1213,7 @@ int TamanoirImgProc::nextDust() {
 
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-		sleep(1); retry++;
+                tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	if(m_lock)
@@ -1278,14 +1276,7 @@ int TamanoirImgProc::findDust(int x, int y) {
 
 	return findDust(x,y, &m_correct);
 }
-#ifndef WIN32
-#define MUTEX_LOCK(m) pthread_mutex_lock(m)
-#define MUTEX_UNLOCK(m) pthread_mutex_unlock(m)
-#else
-// FIXME
-#define MUTEX_LOCK(m)
-#define MUTEX_UNLOCK(m)
-#endif
+
 
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	if(!growImage) return -1; // Loading is not finished
@@ -1329,27 +1320,32 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		int xleft = x - pcorrection->copy_width/2;
 		if(xleft<0) xleft = 0; 
 		else if(xleft >= lw) {
-			MUTEX_UNLOCK(&mutex); return 0;
+			MUTEX_UNLOCK(&mutex)
+			return 0;
 		}
 		int xright = xleft + pcorrection->copy_width;
 		if(xright<0) {
-			MUTEX_UNLOCK(&mutex); return 0;
+			MUTEX_UNLOCK(&mutex)
+			return 0;
 		}
 		else if(xright >= lw) xright = lw-1;
 		
 		if(xright <= xleft) {
-			MUTEX_UNLOCK(&mutex); return 0;
+			MUTEX_UNLOCK(&mutex)
+			return 0;
 		}
 		
 		int ytop  = y - pcorrection->copy_height/2;
 		if(ytop<0) ytop = 0; 
 		else if(ytop >= lh) {
-			MUTEX_UNLOCK(&mutex); return 0;
+			MUTEX_UNLOCK(&mutex)
+			return 0;
 		}
 		
 		int ybottom = y + pcorrection->copy_height/2;
 		if(ybottom<0) {
-			MUTEX_UNLOCK(&mutex); return 0;
+			MUTEX_UNLOCK(&mutex)
+			return 0;
 		}
 		else if(ybottom >= lh) ybottom = lh-1;
 		

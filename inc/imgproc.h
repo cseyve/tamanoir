@@ -27,21 +27,33 @@
 
 #define IMGPROC_H
 
+#include <stdlib.h>
 
 #include "imgutils.h"
 
 #ifndef WIN32
 #include <pthread.h>
+typedef pthread_mutex_t Mutex_t;
+#define MUTEX_INIT(m)	pthread_mutex_init((m), NULL)
+#define MUTEX_LOCK(m) pthread_mutex_lock((m))
+#define MUTEX_UNLOCK(m) pthread_mutex_unlock((m))
 #else
-FIXME
+#include <TIME.H>
+#include <STDIO.H>
+#include <Winsock2.h>	// contains mutex
+
+// Use Windows mutexex instead of POSIX
+typedef HANDLE Mutex_t;
+#define MUTEX_INIT(m)	{ *m = CreateMutex(NULL, FALSE, NULL); }
+#define MUTEX_LOCK(m)	{ WaitForSingleObject( *(m), INFINITE ); }
+#define MUTEX_UNLOCK(m)	ReleaseMutex(*(m));
 #endif
 
 
 #define STATS_MAX_SURF	1000
 
-
-/** @brief Statistics on dust replacement and sizes*/
-typedef struct dust_stats_t_ {
+/** @brief Statistics on dust replacement and sizes */
+typedef struct _dust_stats_t {
 	/* Cumul variables */
 	unsigned long nb_grown;				/*! grown regions */
 	unsigned long grown_size[STATS_MAX_SURF];		/*! grown size histogram */
@@ -58,13 +70,12 @@ typedef struct dust_stats_t_ {
 } dust_stats_t;
 
 
-
 /** @brief Local correction storage structure
 
 This structure contains the information needed to clone a part of the original image into the corrected image
 */
 typedef struct t_correction_ {
-        /// Width of copy
+	/// Width of copy
 	int copy_width;
 	/// Height of copy
 	int copy_height;
@@ -74,34 +85,34 @@ typedef struct t_correction_ {
 	/// top-left of Crop image
 	int crop_y;
 	
-        /// relative origin of clone, x coordinate
+	/// relative origin of clone, x coordinate
 	int rel_src_x;
-        /// relative origin of clone, y coordinate
+	/// relative origin of clone, y coordinate
 	int rel_src_y;
 	
-        /// relative destination of clone, x coordinate
+	/// relative destination of clone, x coordinate
 	int rel_dest_x;
-        /// relative destination of clone, y coordinate
-        int rel_dest_y;
+	/// relative destination of clone, y coordinate
+	int rel_dest_y;
 	
-        /// relative seed of region growing, x coordinate
+	/// relative seed of region growing, x coordinate
 	int rel_seed_x;
-        /// relative seed of region growing, y coordinate
-        int rel_seed_y;
+	/// relative seed of region growing, y coordinate
+	int rel_seed_y;
 	
-        /// Crop size for display, width
+	/// Crop size for display, width
 	int crop_width;
-        /// Crop size for display, height
-        int crop_height;
+	/// Crop size for display, height
+	int crop_height;
 	
 	// Dust size statistics
-        /// Area of dust in image (pixel^2)
+	/// Area of dust in image (pixel^2)
 	int area;
 
-        /// physical/real width of dust in millimeters
-        float width_mm;
-        /// physical/real height of dust in millimeters
-        float height_mm;
+	/// physical/real width of dust in millimeters
+	float width_mm;
+	/// physical/real height of dust in millimeters
+	float height_mm;
 	
 } t_correction;
 
@@ -255,7 +266,7 @@ private:
 	bool m_lock;
 
 	/** Mutex to prevent clone search to perturbate normal background search */
-	pthread_mutex_t mutex;
+	Mutex_t mutex;
 
 
 	/** @brief Purge allocated buffers */
