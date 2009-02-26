@@ -10,16 +10,15 @@ This page explains how to build Tamanoir on Windows.
 Building Tamanoir on Windows.
 
 You need :
-- OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
-- Qt4 for Mac
-- an IDE/... : you should try QtCreator, because the installer package provides Qt4, MinGW compiler and the IDE.
-    
+  - OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+  - Qt4 for Windows
+  - an IDE/... : you should try QtCreator, because the installer package provides Qt4, MinGW compiler and the IDE.
 
 ----
 ==QtCreator==
 
 Download : http://trolltech.com/developer/qt-creator/qt-creator
-Then install :
+Then install
 
 ----
 == OpenCV ==
