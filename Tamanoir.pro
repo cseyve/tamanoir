@@ -65,7 +65,7 @@ win32: {
         -lcv
 }
 unix: { 
-    # Test if libtiff is installed
+    # Test if libtiff is installed ==============================
     exists( /usr/local/include/tiffio.h ) { 
         INCLUDEPATH += /usr/local/include
         DYN_LIBS += -L/usr/local/lib \
@@ -94,8 +94,7 @@ unix: {
             }
             else:exists( /usr/include/tiffio.h ) { 
                 INCLUDEPATH += /usr/include
-                DYN_LIBS += -L/usr/lib \
-                    -ltiff
+                DYN_LIBS += -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
                 STATIC_LIBS += /usr/lib/libtiff.a
@@ -129,7 +128,7 @@ unix: {
                 CVINSTPATH = /usr
                 CVINCPATH = /usr/include/opencv
                 INCLUDEPATH += /usr/include/opencv
-                DYN_LIBS += -L/usr/lib
+#                DYN_LIBS += -L/usr/lib
                 OPENCV_STATIC_LIBDIR = /usr/local/lib
             }
             else { 
@@ -221,6 +220,7 @@ CONFIG += qt \
 # # INSTALATION
 # target.path = /usr/local/tamanoir
 # INSTALLS += target
+
 # FINAL CONFIGURATION ==================================================
 message( "")
 message( "")

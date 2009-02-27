@@ -606,7 +606,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 							ret);
 							*/
 					current_dust = search_correct;
-						
+
 					//m_pImgProc->applyCorrection(search_correct, true);
 				}
 			}
@@ -1551,7 +1551,10 @@ void TamanoirApp::updateDisplay()
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
-			
+			QString propStr;
+			propStr.sprintf("Dist=%g Bg=%g", current_dust.proposal_diff, current_dust.bg_diff);
+			ui.proposalLabel->setText(propStr);
+
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
 			if(curImage->nChannels == 1) {
