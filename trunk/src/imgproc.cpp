@@ -1616,6 +1616,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			int neighbour_rmax = tmmin(crop_connect.rect.y+crop_connect.rect.height+border, dilateImage->height);
 			int neighbour_cmin = tmmax(crop_connect.rect.x - border, 0);
 			int neighbour_cmax = tmmin(crop_connect.rect.x+crop_connect.rect.width+border, dilateImage->width);
+			double sum_neighbour = 0.;
 
 			int best_correl = 100;
 			// Check if this region is not the film grain by cheching the local
@@ -1672,7 +1673,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				
 				int min_neighbour = 255;
 				int max_neighbour = 0;
-				double sum_neighbour = 0.;
+				sum_neighbour = 0.;
 				int nb_neighbour = 0;
 				for(int h=0; h<256; h++) {
 					if(histoNeighbour[h]>0) {
@@ -1937,7 +1938,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				pcorrection->width_mm = 25.4f * connect.rect.width / m_dpi;
 				pcorrection->height_mm = 25.4f * connect.rect.height / m_dpi;
 				
-				
+				pcorrection->bg_diff = fabsf(sum_neighbour - sum_dust);
+				pcorrection->proposal_diff = best_correl;
+
 				if(m_trust && return_now) {
 					// Check if correction area is in diff image
 					int left =   tmmin(copy_src_x - copy_width/2, copy_dest_x - copy_width/2);

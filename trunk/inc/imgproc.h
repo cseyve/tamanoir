@@ -34,9 +34,9 @@
 #ifndef WIN32
 #include <pthread.h>
 typedef pthread_mutex_t Mutex_t;
-#define MUTEX_INIT(m)	pthread_mutex_init((m), NULL)
-#define MUTEX_LOCK(m) pthread_mutex_lock((m))
-#define MUTEX_UNLOCK(m) pthread_mutex_unlock((m))
+#define MUTEX_INIT(m)	pthread_mutex_init((m), NULL);
+#define MUTEX_LOCK(m) pthread_mutex_lock((m));
+#define MUTEX_UNLOCK(m) pthread_mutex_unlock((m));
 #else
 #include <TIME.H>
 #include <STDIO.H>
@@ -114,6 +114,11 @@ typedef struct t_correction_ {
 	/// physical/real height of dust in millimeters
 	float height_mm;
 	
+	/// Accuracy
+	float bg_diff;
+	float proposal_diff;
+
+
 } t_correction;
 
 
