@@ -881,7 +881,6 @@ void tmMarkCloneRegion(IplImage * origImage,
 }
 
 
-
 float tmCorrelation(
 	IplImage * img1, IplImage * img2,
 	IplImage * maskImage, 

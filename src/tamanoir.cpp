@@ -1551,23 +1551,28 @@ void TamanoirApp::updateDisplay()
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
+
 			QString propStr;
-			propStr.sprintf("Dist=%g Bg=%g", current_dust.proposal_diff, current_dust.bg_diff);
-			ui.proposalLabel->setText(propStr);
+			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
+							current_dust.proposal_diff, current_dust.bg_diff,
+							current_dust.equivalent_diff*100.f);
+			ui.proposalLabel->setText( propStr );
 
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
 			if(curImage->nChannels == 1) {
 				grayQImage.setNumColors(256);
-				for(int c=0; c<255; c++) 
+				for(int c=0; c<255; c++) {
 					grayQImage.setColor(c, qRgb(c,c,c));
-				
+				}
+
 				grayQImage.setColor(255, qRgb(0,255,0));
 			}
+
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
 				grayQImage,
-				QPixmap::Color);
+				QPixmap::Color );
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
 		}
