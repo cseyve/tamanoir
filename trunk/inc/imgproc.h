@@ -108,6 +108,8 @@ typedef struct t_correction_ {
 	// Dust size statistics
 	/// Area of dust in image (pixel^2)
 	int area;
+	/// Dust grown by image processing
+	CvConnectedComp grown_dust;
 
 	/// physical/real width of dust in millimeters
 	float width_mm;
@@ -117,7 +119,7 @@ typedef struct t_correction_ {
 	/// Accuracy
 	float bg_diff;
 	float proposal_diff;
-
+	float equivalent_diff;
 
 } t_correction;
 
@@ -374,8 +376,31 @@ private:
 	
 	/** @brief Crop images to create cropped views for GUI */
 	void cropViewImages();
-	
+	/** @brief Dilate Dust to have a better segmentation
+		@param[in] crop_x top-left position of crop in original image
+		@param[in] crop_y top-left position of crop in original image
+		@param[in] crop_center_x seed position of crop in original image
+		@param[in] crop_center_y seed position of crop in original image
+		@param[in,out] pcrop_connect grown region
+		@param[in] is_a_dust tell function if this region is considered as a dust
+		@param[in] force_search true if search is forced by user (clone tool)
+		@param[out] dilateImageOut dilate image destination, used either in findDust=>dilateImage or in cropCorrectionImages for display
+		@param[out] pbest_correl search distance tolerance
+		@param[out] pmean_dust mean value of dust
+		@param[out] pmean_neighbour mean value of dust's neighbour
+		@return true if region is a dust, false if not
+	*/
+	bool dilateDust(int crop_x, int crop_y,
+					int crop_center_x, int crop_center_y,
+					CvConnectedComp * pcrop_connect,
+					bool is_a_dust, bool force_search,
+					IplImage * dilateImageOut,
+					int * pbest_correl = NULL,
+					float * pmean_dust = NULL, float * pmean_neighbour = NULL);
+
+	/** @brief Last seed position (used for searching next) */
 	int m_seed_x;
+	/** @brief Last seed position (used for searching next) */
 	int m_seed_y;
 	
 	

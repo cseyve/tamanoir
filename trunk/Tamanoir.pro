@@ -22,6 +22,11 @@ win32::RC_FILE = icon/tamanoir.rc
 linux-g++::ICON = icon/Tamanoir32.png
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 
+
+!win32 {
+#     SOURCES -= paintwidget_win.cpp
+}
+
 # Input
 HEADERS = inc/imgproc.h \
     inc/imgutils.h \
@@ -217,7 +222,7 @@ CONFIG += qt \
     release \
     build_all
 
-# # INSTALATION
+# # INSTALLATION
 # target.path = /usr/local/tamanoir
 # INSTALLS += target
 

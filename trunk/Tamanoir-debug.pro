@@ -204,7 +204,11 @@ message("Building dynamic libraries version of binary :")
 LIBS = $$DYN_LIBS
 }
 
+DOCS_DIR = docs/doxygen
+
 message( "Configuration : ")
 message( "   defs : $$DEFINES ")
 message( "   libs : $$LIBS ")
+
+RESOURCES += tamanoir.qrc
 

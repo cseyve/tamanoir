@@ -18,10 +18,28 @@ QComboBox{
 	selection-background-color: #505050;
 }
 
+QDialog {
+	color: back;
+	alternate-background-color: re
 
+}
 
 QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel {
 	color: #E0E0E0;
+	border-color: red;
+	alternate-background-color: white;
+	selection-color: red;
+	selection-background-color: white;
+}
+
+QCheckBox::indicator::checked {
+	background-color: #20A020;
+	color: white;
+}
+
+QCheckBox::indicator::unchecked {
+	background-color: #A02020;
+	color: black;
 }
 
 QStatusBar {
@@ -30,12 +48,8 @@ QStatusBar {
 }
 
 QGroupBox {
-	background-color: #353535;
-	/*border: 1px solid #CCCCCC;*/
-}
-
-QGroupBox::title {
 	color: #E0E0E0;
+	background-color: #353535;
 }
 
 QLabel::border {
@@ -56,11 +70,11 @@ QProgressBar::border {
 	border-radius: 5px;
 	background-color: #CCCCCC;
 }
-
+/*
 QProgressBar::chunk {
 	background-color: #AAAAAA;
 	width: 5 pix;
-}
+}*/
 
 
 
