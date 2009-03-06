@@ -482,6 +482,9 @@
              <height>4</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Proposed correction</string>
+           </property>
            <property name="pixmap">
             <pixmap/>
            </property>

@@ -634,6 +634,9 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 	m_progress = 30;
+
+
+
 	// Smooth siz depend on DPI - size of 9 is ok at 2400 dpi
 	m_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
 	if(m_smooth_size < 3)
@@ -642,17 +645,15 @@ int TamanoirImgProc::preProcessImage() {
 	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image => median image... size %d x %d\n",
 		__func__, __LINE__, m_smooth_size, m_smooth_size);
 
-	switch(m_FilmType) {
-	default: {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : default type: smoothing input image as medianImage (smooth size:%d)...\n",
-			__func__, __LINE__, m_smooth_size);
-
-		cvSmooth(grayImage, medianImage, 
+	cvSmooth(grayImage, medianImage,
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 			m_smooth_size, m_smooth_size );
-		
-		}break;
-	case FILM_NEGATIVE:
+		// For debug, save image in temporary directory
+		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
+	m_progress = 35;
+
+	// FOR GRAINY IMAGES, SMOOTH ORIGINAL IMAGE TOO
+	if(0) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n", 
 			__func__, __LINE__);
 		int orig_smooth_size = 1 + 2*(int)(4 * m_dpi / 2400);
@@ -660,38 +661,14 @@ int TamanoirImgProc::preProcessImage() {
 		if(!origBlurredImage) {
 			origBlurredImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 				originalImage->depth, originalImage->nChannels);
-			
-			// First, blur the color image
-			cvSmooth( originalImage, origBlurredImage,
+		}
+		// First, blur the color image
+		cvSmooth( originalImage, origBlurredImage,
 				CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 				orig_smooth_size, orig_smooth_size); //int param1=3, int param2=0 );
 					 // FIXME : adapt size to resolution
-		}
-		m_progress = 35;
-		
-		
-		int open_iter = m_dpi / 2400;
-		if(open_iter < 1) open_iter = 1;
-		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image (Smooth %dx%d x %d times)...\n",
-			__func__, __LINE__, m_smooth_size, m_smooth_size,1);
-
-		cvSmooth(grayImage, medianImage, 
-			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-//			orig_smooth_size, orig_smooth_size); //
-			m_smooth_size, m_smooth_size );
-		/* // CSE : test 2009-01-°04 : with open instead of smooth
-		tmOpenImage(
-			grayImage,  // => src 
-			medianImage, // => dest
-			diffImage, // => tmp
-			open_iter);
-		*/
-		fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image OK\n", 
-			__func__, __LINE__);
-		break;
 	}
-		// For debug, save image in temporary directory
-		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
+
 	
 	m_progress = 40;
 	
@@ -1545,7 +1522,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				connect_height += 2;
 			}
 			
-
 			
 			// Crop original image
 			if(origBlurredImage) { // If original is grainy it has been blurred
@@ -1762,6 +1738,34 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					return 0;
 				}
 
+				// Dust and correction must be different (for avoiding periodical patterns)
+				{
+					// process correlation without mask
+					cvZero(dilateImage);
+
+					int maxdiff = 100, nbdiff =  0;
+					float l_dist = tmCorrelation(correctColorImage, correctColorImage,
+							dilateImage,
+							connect_center_x, connect_center_y,
+							pcorrection->rel_src_x, pcorrection->rel_src_y,
+							connect_width, connect_height,
+							100,
+							&maxdiff,
+							&nbdiff
+							);
+					if(l_dist < 10) {
+						fprintf(stderr, "\t::%s:%d : NOT SO GOOD : PERIODICAL PATTERN ?? "
+							"\t grown:%d,%d+%dx%d "
+							"=> dist=%g between src and dest\n",
+							__func__, __LINE__,
+							connect_center_x, connect_center_y,
+							connect_width, connect_height,
+							l_dist);
+						//
+						MUTEX_UNLOCK(&mutex);
+						return 0;
+					}
+				}
 
 
 				// Now check if the correction is better than original ==
@@ -1773,7 +1777,37 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					tmpCropImage
 					);
 				// Then blur and process diff
-// FIXME
+				cvSmooth(tmpCropImage, correctImage,
+					CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+					m_smooth_size, m_smooth_size );
+
+				tmProcessDiff(m_FilmType,
+							  tmpCropImage,// gray
+							  correctImage, // median
+							  dilateImage // difference
+							  );
+
+				// Threshold in difference
+				CvConnectedComp after_connect;
+				cvZero(correctImage);
+				tmGrowRegion(
+					(u8 *)dilateImage->imageData,
+					(u8 *)correctImage->imageData,
+					cropImage->widthStep, cropImage->height,
+					crop_center_x, crop_center_y,
+					DIFF_CONTOUR,
+					242,
+					&after_connect);
+				if(after_connect.area > m_dust_area_min) {
+					fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
+						"\t STILL A DUST => grown:%d,%d+%dx%d \n",
+						__func__, __LINE__,
+						(int)after_connect.rect.x, (int)after_connect.rect.y,
+						(int)after_connect.rect.width, (int)after_connect.rect.height);
+					//
+					MUTEX_UNLOCK(&mutex);
+					return 0;
+				}
 
 
 
@@ -2524,17 +2558,17 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 	
 	
-        if(g_debug_imgverbose //|| force
-		) {
+	if(g_debug_imgverbose //|| force
+	   ) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
 				__func__, __LINE__, force?"TRUE":"FALSE");
 
 		fprintf(logfile, "Dust\t%d,%d+%dx%d"
-						"\t%d,%d"
-						"\t%c\n",
-						correction.crop_x + correction.rel_dest_x, correction.crop_y + correction.rel_dest_y, correction.copy_width, correction.copy_height,
-						correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
-						(force?'T':'F') );
+				"\t%d,%d"
+				"\t%c\n",
+				correction.crop_x + correction.rel_dest_x, correction.crop_y + correction.rel_dest_y, correction.copy_width, correction.copy_height,
+				correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
+				(force?'T':'F') );
 	}
 	
 	
@@ -2545,25 +2579,25 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	}
 
 	// Correction if dest_x is not set, because it may not be set if we use the clone tool
-        int correction_dest_x = correction.crop_x + correction.rel_dest_x;
-        int correction_dest_y = correction.crop_y + correction.rel_dest_y;
-        int correction_src_x = correction.crop_x + correction.rel_src_x;
-        int correction_src_y = correction.crop_y + correction.rel_src_y;
+	int correction_dest_x = correction.crop_x + correction.rel_dest_x;
+	int correction_dest_y = correction.crop_y + correction.rel_dest_y;
+	int correction_src_x = correction.crop_x + correction.rel_src_x;
+	int correction_src_y = correction.crop_y + correction.rel_src_y;
 
 	
 	// Apply clone on original image
 	tmCloneRegion(  originalImage, 
-                        correction_dest_x, correction_dest_y,
-                        correction_src_x, correction_src_y,
-			correction.copy_width, correction.copy_height);
+					correction_dest_x, correction_dest_y,
+					correction_src_x, correction_src_y,
+					correction.copy_width, correction.copy_height);
 	
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
 	//if(!force)
-		tmFillRegion(  diffImage, 
-                        correction_dest_x, correction_dest_y,
-			correction.copy_width, correction.copy_height,
-			DIFF_NEUTRALIZE);
+	tmFillRegion(  diffImage,
+				   correction_dest_x, correction_dest_y,
+				   correction.copy_width, correction.copy_height,
+				   DIFF_NEUTRALIZE);
 	
 	
 	if( displayImage ) {

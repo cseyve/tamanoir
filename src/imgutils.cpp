@@ -360,28 +360,31 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
  * Fill a rectangle with a given color -> orig rectangle
  */
 void tmFillRegion(IplImage * origImage, 
-	int dest_x, int dest_y,
-	int copy_width, int copy_height,
+	int center_x, int center_y,
+	int fill_width, int fill_height,
 	u8 fillValue)
 {
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
+	// Compute top-left corner coordinates
+	center_x -= fill_width/2;
+	center_y -= fill_height/2;
 
-	if(dest_x<0) { dest_x = 0; }
-	if(dest_y<0) { dest_y = 0; }
+	if(center_x<0) { center_x = 0; }
+	if(center_y<0) { center_y = 0; }
 	
 	// Clip destination
-	if(dest_x + copy_width >= orig_width)
-		copy_width = orig_width - dest_x;
+	if(center_x + fill_width >= orig_width)
+		fill_width = orig_width - center_x;
 
-	if(dest_y + copy_height >= orig_height)
-		copy_height = orig_height - dest_y;
+	if(center_y + fill_height >= orig_height)
+		fill_height = orig_height - center_y;
 
-	if(copy_width <= 0 || copy_height <= 0) {
+	if(fill_width <= 0 || fill_height <= 0) {
 		fprintf(logfile, "imgutils : %s:%d : INVALID clear %dx%d +%d,%d\n", 
 			__func__, __LINE__, 
-			copy_width, copy_height,
-			dest_x, dest_y);
+			fill_width, fill_height,
+			center_x, center_y);
 
 		return;
 	}
@@ -389,21 +392,21 @@ void tmFillRegion(IplImage * origImage,
 	if(g_debug_imgverbose)
 		fprintf(logfile, "imgutils : %s:%d : clear %dx%d +%d,%d\n", 
 			__func__, __LINE__, 
-			copy_width, copy_height,
-			dest_x, dest_y);
+			fill_width, fill_height,
+			center_x, center_y);
 	
 	// Clear buffer
 	int pitch = origImage->widthStep;
 	int byte_depth = tmByteDepth(origImage);
-	int copylength = copy_width * byte_depth;
+	int fill_length = fill_width * byte_depth;
 	
 	u8 * origImageBuffer = (u8 *)origImage->imageData;
 	
 	// Raw clear
-	for(int y=0; y<copy_height; y++, dest_y++) {
-		memset(origImageBuffer + dest_y * pitch + dest_x*byte_depth, 
+	for(int y=0; y<fill_height; y++, center_y++) {
+		memset(origImageBuffer + center_y * pitch + center_x*byte_depth,
 			fillValue,
-			copylength);
+			fill_length);
 	}
 }
  
@@ -1279,6 +1282,12 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	unsigned char * blurImageBuffer = (unsigned char *)medianImage->imageData;
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
+	static unsigned long l_diffHisto[256];
+	if(!diffHisto) {
+		diffHisto = l_diffHisto;
+
+	}
+	memset(diffHisto, 0, sizeof(unsigned long)*256);
 
 	int width = medianImage->widthStep;
 	int height = medianImage->height;
@@ -1685,7 +1694,7 @@ void tmSaveImage(const char * filename, IplImage * src) {
 			if(ret != 0) {
 				fprintf(logfile, "cv2tiff : %s:%d : Error with LibTIFF when saving "
 					"file '%s' for writing !\n",
-					__func__, __LINE__, filename);
+					__func__, __LINE__, (char *)filename);
 			}
 			else {
 				// Ok, we can return now
