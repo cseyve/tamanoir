@@ -254,9 +254,9 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 /** @brief Clear a part of an image ('erase tool')
 
 */
-void tmFillRegion(IplImage * origImage, 
-	int dest_x, int dest_y, 
-	int copy_width, int copy_height,
+void tmFillRegion(IplImage * origImage,
+	int center_x, int center_y,
+	int fill_width, int fill_height,
 	u8 fillValue);
 
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
@@ -284,15 +284,16 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 
 
 /** @brief Process difference between original image and blurred image, depending on film type 
-\param l_FilmType film type (0=FILM_UNDEFINED, 1=FILM_NEGATIVE, 2=FILM_POSITIVE)
-\param original (input) image 
-\param blurred image 
-\param difference image = output
-\param variance image = output
-\param diffHisto difference histogram (may be NULL)
+	@param[in] l_FilmType film type (0=FILM_UNDEFINED, 1=FILM_NEGATIVE, 2=FILM_POSITIVE)
+	@param[in] original (input) image
+	@param[in] blurred image
+	@param[out] difference image = output
+	@param[out] variance image = output
+	@param[out] diffHisto difference histogram (may be NULL)
+	@param[out] variance neighbour size
 */
 int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
-	IplImage * diffImage, IplImage * varianceImage,
-	unsigned long * diffHisto, int var_size = 3);
+	IplImage * diffImage, IplImage * varianceImage = NULL,
+	unsigned long * diffHisto = NULL, int var_size = 3);
 
 #endif
