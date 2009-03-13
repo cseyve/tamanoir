@@ -1697,14 +1697,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 
 				// Analysis of the repartition of difference in region
-				int rect_cmin = tmmin(pcorrection->rel_src_x - pcorrection->copy_width,
-										pcorrection->rel_dest_x - pcorrection->copy_width),
-					rect_rmin = tmmin(pcorrection->rel_src_y - pcorrection->copy_height,
-										pcorrection->rel_dest_y - pcorrection->copy_height),
-					rect_cmax = tmmax(pcorrection->rel_src_x + pcorrection->copy_width,
-										pcorrection->rel_dest_x + pcorrection->copy_width),
-					rect_rmax = tmmax(pcorrection->rel_src_y + pcorrection->copy_height,
-										pcorrection->rel_dest_y + pcorrection->copy_height);
+				int rect_cmin = tmmax(0, tmmin(pcorrection->rel_src_x - pcorrection->copy_width,
+										pcorrection->rel_dest_x - pcorrection->copy_width)),
+					rect_rmin = tmmax(0,  tmmin(pcorrection->rel_src_y - pcorrection->copy_height,
+										pcorrection->rel_dest_y - pcorrection->copy_height)),
+					rect_cmax = tmmin(cropImage->height, tmmax(pcorrection->rel_src_x + pcorrection->copy_width,
+										pcorrection->rel_dest_x + pcorrection->copy_width)),
+					rect_rmax = tmmin(cropImage->height, tmmax(pcorrection->rel_src_y + pcorrection->copy_height,
+										pcorrection->rel_dest_y + pcorrection->copy_height));
 				int diffcount = 0, r, c;
 				u8 diffref = (u8)fabsf(sum_dust - sum_neighbour);
 				for(r=rect_rmin;r<rect_rmax; r++) {
@@ -1753,7 +1753,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 							&maxdiff,
 							&nbdiff
 							);
-					if(l_dist < 10) {
+					if(l_dist < fabsf(pcorrection->bg_diff)
+						|| maxdiff < fabsf(pcorrection->bg_diff)) {
 						fprintf(stderr, "\t::%s:%d : NOT SO GOOD : PERIODICAL PATTERN ?? "
 							"\t grown:%d,%d+%dx%d "
 							"=> dist=%g between src and dest\n",
@@ -1808,8 +1809,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					MUTEX_UNLOCK(&mutex);
 					return 0;
 				}
-
-
 
 				if(m_trust && return_now) {
 					// Check if correction area is in diff image
