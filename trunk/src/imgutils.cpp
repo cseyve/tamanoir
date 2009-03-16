@@ -1285,7 +1285,6 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	static unsigned long l_diffHisto[256];
 	if(!diffHisto) {
 		diffHisto = l_diffHisto;
-
 	}
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
 
@@ -1326,8 +1325,8 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	switch(l_FilmType) {
 	default:
 	case FILM_UNDEFINED: { /* dust can be darker or brighter => absolute value */
-		fprintf(logfile, "[imgutils] %s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n", 
-			__func__, __LINE__);
+		//fprintf(logfile, "[imgutils] %s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n",
+		//	__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++)
 		{
 			//if(grayImageBuffer[pos] > blurImageBuffer[pos])
@@ -1338,8 +1337,8 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 		}
 		}break;
 	case FILM_NEGATIVE: /* dust must be brighter => gray - median */
-		fprintf(logfile, "[imgutils] %s:%d : NEGATIVE film type : looking for diffImage = Grayscaled-Blurred ...\n", 
-			__func__, __LINE__);
+		//fprintf(logfile, "[imgutils] %s:%d : NEGATIVE film type : looking for diffImage = Grayscaled-Blurred ...\n",
+		//	__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++) 
 		{
 			if(grayImageBuffer[pos] > blurImageBuffer[pos])
@@ -1350,8 +1349,8 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 		}
 		break;
 	case FILM_POSITIVE: /* dust must be darker => median - gray */
-		fprintf(logfile, "[imgutils] %s:%d : POSITIVE film type : looking for diffImage = Blurred-Grayscaled ...\n", 
-			__func__, __LINE__);
+		//fprintf(logfile, "[imgutils] %s:%d : POSITIVE film type : looking for diffImage = Blurred-Grayscaled ...\n",
+		//	__func__, __LINE__);
 		for(int pos=0; pos<width*height; pos++) 
 		{
 			if(grayImageBuffer[pos] < blurImageBuffer[pos]) 
@@ -1364,8 +1363,6 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	}
 	return 0;
 }
-
-
 
 
 
