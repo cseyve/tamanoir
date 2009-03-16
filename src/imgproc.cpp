@@ -1734,12 +1734,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// If more than 20% of the area has difference with median, then
 				// it's a textured area, not a dust
 				if(pcorrection->equivalent_diff > 0.15f) {
-					MUTEX_UNLOCK(&mutex);
-					return 0;
+					fprintf(stderr, "[imgproc] %s:%d : TEXTURED AREA : equivalent_diff=%g\n",
+						__func__, __LINE__,
+						pcorrection->equivalent_diff);
+					is_a_dust = false;
 				}
 
 				// Dust and correction must be different (for avoiding periodical patterns)
-				{
+				if(is_a_dust) {
 					// process correlation without mask
 					cvZero(dilateImage);
 
@@ -1753,63 +1755,70 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 							&maxdiff,
 							&nbdiff
 							);
-					if(l_dist < fabsf(pcorrection->bg_diff)
-						|| maxdiff < fabsf(pcorrection->bg_diff)) {
+					if(l_dist < tmmin(10, fabsf(pcorrection->bg_diff))
+						|| maxdiff < tmmin(10, fabsf(pcorrection->bg_diff))
+						) {
 						fprintf(stderr, "\t::%s:%d : NOT SO GOOD : PERIODICAL PATTERN ?? "
 							"\t grown:%d,%d+%dx%d "
-							"=> dist=%g between src and dest\n",
+							"=> dist=%g maxdif=%d / bgdiff=%g between src and dest\n",
 							__func__, __LINE__,
 							connect_center_x, connect_center_y,
 							connect_width, connect_height,
-							l_dist);
-						//
-						MUTEX_UNLOCK(&mutex);
-						return 0;
+							l_dist, maxdiff, pcorrection->bg_diff);
+
+						is_a_dust = false;
 					}
 				}
 
+				if(is_a_dust) {
+					// Now check if the correction is better than original ==
+					// see if after correction, there is no more dust
+					//	clone image region
+					tmCloneRegion(tmpCropImage,
+						pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
+						pcorrection->rel_src_x, pcorrection->rel_src_y, // src
+						pcorrection->copy_width, pcorrection->copy_height,
+						tmpCropImage
+						);
+					// Then blur and process diff
+					cvSmooth(tmpCropImage, correctImage,
+						CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+						m_smooth_size, m_smooth_size );
 
-				// Now check if the correction is better than original ==
-				//	clone image region
-				tmCloneRegion(tmpCropImage,
-					pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
-					pcorrection->rel_src_x, pcorrection->rel_src_y, // src
-					pcorrection->copy_width, pcorrection->copy_height,
-					tmpCropImage
-					);
-				// Then blur and process diff
-				cvSmooth(tmpCropImage, correctImage,
-					CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-					m_smooth_size, m_smooth_size );
+					tmProcessDiff(m_FilmType,
+								  tmpCropImage,// gray
+								  correctImage, // median
+								  dilateImage // difference
+								  );
 
-				tmProcessDiff(m_FilmType,
-							  tmpCropImage,// gray
-							  correctImage, // median
-							  dilateImage // difference
-							  );
-
-				// Threshold in difference
-				CvConnectedComp after_connect;
-				cvZero(correctImage);
-				tmGrowRegion(
-					(u8 *)dilateImage->imageData,
-					(u8 *)correctImage->imageData,
-					cropImage->widthStep, cropImage->height,
-					crop_center_x, crop_center_y,
-					DIFF_CONTOUR,
-					242,
-					&after_connect);
-				if(after_connect.area > m_dust_area_min) {
-					fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
-						"\t STILL A DUST => grown:%d,%d+%dx%d \n",
-						__func__, __LINE__,
-						(int)after_connect.rect.x, (int)after_connect.rect.y,
-						(int)after_connect.rect.width, (int)after_connect.rect.height);
-					//
-					MUTEX_UNLOCK(&mutex);
-					return 0;
+					// Threshold in difference
+					CvConnectedComp after_connect;
+					cvZero(correctImage);
+					tmGrowRegion(
+						(u8 *)dilateImage->imageData,
+						(u8 *)correctImage->imageData,
+						cropImage->widthStep, cropImage->height,
+						crop_center_x, crop_center_y,
+						DIFF_CONTOUR,
+						242,
+						&after_connect);
+					if(after_connect.area > m_dust_area_min) {
+						fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
+							"\t STILL A DUST => grown:%d,%d+%dx%d \n",
+							__func__, __LINE__,
+							(int)after_connect.rect.x, (int)after_connect.rect.y,
+							(int)after_connect.rect.width, (int)after_connect.rect.height);
+						//
+						is_a_dust = false;
+					}
 				}
 
+				// If not a dust, do not return now
+				if(!is_a_dust) {
+					return_now = false;
+				}
+
+				// Trust mode : check if neighbour is empty enough to correct by default
 				if(m_trust && return_now) {
 					// Check if correction area is in diff image
 					int left =   tmmin(copy_src_x - copy_width/2, copy_dest_x - copy_width/2);
@@ -1957,6 +1966,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			x, y,
 			255 );
 	}
+
 	MUTEX_UNLOCK(&mutex);
 	return 0;
 }
@@ -2693,7 +2703,7 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 
 /* Test if dust is already knwon */
 bool testKnownDust(t_correction correction, int img_w, int img_h) {
-	if(g_dataset_mode) return false;
+	if(g_dataset_mode) { return false; }
 	
 	if(!known_dusts)  { // Read dataset file to fill known dusts tab 
 	
