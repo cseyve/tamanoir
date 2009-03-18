@@ -830,17 +830,28 @@ void tmMarkCloneRegion(IplImage * origImage,
 	
 	// Debug : original (=bad) as red, copy source (=good) in green
 	if(mark) {
-		cvRectangle(origImage, 
+		if(origImage->nChannels > 1)
+			cvRectangle(origImage,
 					cvPoint(orig_x-copy_width/2, orig_y-copy_height/2),
 					cvPoint(orig_x+copy_width/2, orig_y+copy_height/2),
 					CV_RGB(255,0,0),
 					1);
+		else
+			cvRectangle(origImage,
+					cvPoint(orig_x-copy_width/2, orig_y-copy_height/2),
+					cvPoint(orig_x+copy_width/2, orig_y+copy_height/2),
+					cvScalarAll(COLORMARK_CORRECTED), // green in 8bit image
+					1);
+
 	}
 	
-	cvRectangle(origImage, 
+
+	cvRectangle(origImage,
 				cvPoint(copy_x-copy_width/2, copy_y-copy_height/2),
 				cvPoint(copy_x+copy_width/2, copy_y+copy_height/2),
-				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
+				(origImage->nChannels>1?
+					CV_RGB(0,255,0) :
+					cvScalarAll(COLORMARK_CORRECTED)),
 				1);
 
 	// Copy vector
@@ -862,7 +873,9 @@ void tmMarkCloneRegion(IplImage * origImage,
 	cvLine(origImage, 
 		   cvPoint(copy_center_x, copy_center_y),
 		   cvPoint(copy_center_x - copy_vector_x, copy_center_y - copy_vector_y),
-				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
+				(origImage->nChannels>1?
+					CV_RGB(0,255,0) :
+					cvScalarAll(COLORMARK_CORRECTED)),
 		   1);
 	
 	int arrow_vector_x = -copy_vector_x;
@@ -872,13 +885,17 @@ void tmMarkCloneRegion(IplImage * origImage,
 		   cvPoint(copy_center_x + arrow_vector_x*3/4 - arrow_vector_y*1/4 ,
 				   copy_center_y + arrow_vector_y*3/4 + arrow_vector_x*1/4 ),
 		   cvPoint(copy_center_x - copy_vector_x, copy_center_y - copy_vector_y),
-				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
+				(origImage->nChannels>1?
+					CV_RGB(0,255,0) :
+					cvScalarAll(COLORMARK_CORRECTED)),
 		   1);
 	cvLine(origImage, 
 		   cvPoint(copy_center_x + arrow_vector_x*3/4 + arrow_vector_y*1/4 ,
 				   copy_center_y + arrow_vector_y*3/4 - arrow_vector_x*1/4 ),
 		   cvPoint(copy_center_x - copy_vector_x, copy_center_y - copy_vector_y),
-				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
+				(origImage->nChannels>1?
+					CV_RGB(0,255,0) :
+					cvScalarAll(COLORMARK_CORRECTED)),
 		   1);
 }
 

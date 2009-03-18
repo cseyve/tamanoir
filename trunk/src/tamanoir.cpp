@@ -135,8 +135,8 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) -1)*4;
 	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) -1)*4;
 	m_blockSize = cvSize(size_w, size_h);
-	size_w += 2;
-	size_h += 2;
+	size_w += 4;
+	size_h += 4;
 
 	ui.cropPixmapLabel->resize( size_w, size_h);
 	ui.correctPixmapLabel->resize( size_w, size_h);
@@ -811,11 +811,13 @@ void TamanoirApp::loadFile(QString s) {
 		
 		refreshMainDisplay();
 		
-		m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
+	/*	m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
 		m_pImgProc->setTrustCorrection(m_options.trust);
 		m_pImgProc->setResolution(m_options.dpi);
-		m_pImgProc->setFilmType(m_options.filmType);
+		m_pImgProc->setFilmType(m_options.filmType);*/
+		m_pImgProc->setOptions(m_options);
 	}
+
 	if(!m_pProcThread) {
 		m_pProcThread = new TamanoirThread(m_pImgProc);
 	}
@@ -915,6 +917,7 @@ int TamanoirApp::loadOptions() {
 		m_options.filmType = ui.typeComboBox->currentIndex();
 		m_options.trust = ui.trustCheckBox->isChecked();
 		m_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
+		m_options.sensitivity = ui.sensitivityComboBox->currentIndex();
 		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
 		
 		return 0;
@@ -952,7 +955,10 @@ int TamanoirApp::loadOptions() {
 					} else
 					if(strcasestr(cmd, "dpi")) {
 						m_options.dpi = atoi(arg);
-					} 
+					}
+					if(strcasestr(cmd, "sensitivity")) {
+						m_options.sensitivity = atoi(arg);
+					}
 				}
 			}
 		}
@@ -972,7 +978,9 @@ int TamanoirApp::loadOptions() {
 	int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 	if(ind >= 0)
 		ui.dpiComboBox->setCurrentIndex(ind);
-		
+
+	ui.sensitivityComboBox->setCurrentIndex(m_options.sensitivity);
+
 	return 1;
 }
 
@@ -983,6 +991,7 @@ typedef struct {
 	bool hotPixels;	/ *! Hot pixels detection activated * /
 	int filmType;	/ *! Film type * /
 	int dpi;		/ *! Scan resolution in dot per inch * /
+	int sensitivity;
 } tm_options;
 */
 void fprintfOptions(FILE * f, tm_options * p_options) {
@@ -993,6 +1002,7 @@ void fprintfOptions(FILE * f, tm_options * p_options) {
 	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
 	fprintf(f, "FilmType:%d\n", p_options->filmType);
 	fprintf(f, "DPI:%d\n", p_options->dpi);
+	fprintf(f, "Sensitivity:%d\n", p_options->sensitivity);
 	fflush(f);
 }
 
@@ -1218,9 +1228,32 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	if(m_pProcThread) {
 		m_curCommand = m_pProcThread->setOptions(m_options);
 		refreshTimer.start(250);
-	} else m_curCommand = PROTH_NOTHING;
+	} else {
+		m_curCommand = PROTH_NOTHING;
+	}
 	
-	
+	saveOptions();
+}
+
+void TamanoirApp::on_sensitivityComboBox_currentIndexChanged(int i) {
+	fprintf(stderr, "TamanoirApp::%s:%d : sensitivity changed to type %d ...\n",
+		__func__, __LINE__, i);
+	statusBar()->showMessage( tr("Changed sensitivity: please wait...") );
+	statusBar()->update();
+
+	if(m_options.sensitivity != i) {
+		skipped_list.clear();
+	}
+
+	m_options.sensitivity = i;
+
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else {
+		m_curCommand = PROTH_NOTHING;
+	}
+
 	saveOptions();
 }
 
@@ -1279,7 +1312,38 @@ void TamanoirApp::on_cropPixmapLabel_customContextMenuRequested(QPoint p)
 }
 
 
-QImage iplImageToQImage(IplImage * iplImage) {
+static u32 * grayToBGR32 = NULL;
+static u32 * grayToBGR32False = NULL;
+
+static void init_grayToBGR32()
+{
+	if(grayToBGR32) {
+		return;
+	}
+
+	grayToBGR32 = new u32 [256];
+	grayToBGR32False = new u32 [256];
+	for(int c = 0; c<256; c++) {
+		int Y = c;
+		u32 B = Y;// FIXME
+		u32 G = Y;
+		u32 R = Y;
+		grayToBGR32[c] =
+			grayToBGR32False[c] = (R << 16) | (G<<8) | (B<<0);
+	}
+
+	// Add false colors
+	grayToBGR32False[COLORMARK_CORRECTED] = (255 << 8);
+		//mainImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
+	grayToBGR32False[COLORMARK_REFUSED] = (255 << 8) | (255 << 16);
+				//mainImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
+	grayToBGR32False[COLORMARK_FAILED] = (255 << 16);
+				//mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
+	grayToBGR32False[COLORMARK_CURRENT] = (255 << 0);
+				//mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
+}
+
+QImage iplImageToQImage(IplImage * iplImage, bool false_colors ) {
 	if(!iplImage)
 		return QImage();
 	
@@ -1291,10 +1355,24 @@ QImage iplImageToQImage(IplImage * iplImage) {
 		depth = 4;
 		rgb24_to_bgr32 = true;
 	}
+
+	u32 * grayToBGR32palette = grayToBGR32;
+	bool gray_to_bgr32 = false;
+	if(depth == 1) {// GRAY is obsolete on Qt => use 32bit instead
+		depth = 4;
+		gray_to_bgr32 = true;
+
+		init_grayToBGR32();
+		if(!false_colors)
+			grayToBGR32palette = grayToBGR32;
+		else
+			grayToBGR32palette = grayToBGR32False;
+	}
 	
 	int orig_width = iplImage->width;
 	if((orig_width % 2) == 1)
 		orig_width--;
+
 	QImage qImage(orig_width, iplImage->height, 8*depth);
 	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 	
@@ -1304,13 +1382,12 @@ QImage iplImageToQImage(IplImage * iplImage) {
 		break;
 	
 	case IPL_DEPTH_8U: {
-		if(!rgb24_to_bgr32) {
+		if(!rgb24_to_bgr32 && !gray_to_bgr32) {
 			for(int r=0; r<iplImage->height; r++) // Limit to
 				memcpy(qImage.bits() + r*orig_width,
 					iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
-
 		}
-		else {
+		else if(rgb24_to_bgr32) {
 			// RGB24 to BGR32
 			u8 * buffer3 = (u8 *)iplImage->imageData;
 			u8 * buffer4 = (u8 *)qImage.bits();
@@ -1328,6 +1405,15 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					buffer4[pos4   ] = buffer3[pos3];
 					buffer4[pos4 + 1] = buffer3[pos3+1];
 					buffer4[pos4 + 2] = buffer3[pos3+2];
+				}
+			}
+		} else if(gray_to_bgr32) {
+			for(int r=0; r<iplImage->height; r++)
+			{
+				u32 * buffer4 = (u32 *)qImage.bits() + r*qImage.width();
+				u8 * bufferY = (u8 *)(iplImage->imageData + r*iplImage->widthStep);
+				for(int c=0; c<iplImage->width; c++) {
+					buffer4[c] = grayToBGR32palette[ (int)bufferY[c] ];
 				}
 			}
 		}
@@ -1405,7 +1491,6 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	case IPL_DEPTH_16U: {
 		if(!rgb24_to_bgr32) {
 			
-			u8 * buffer4 = (u8 *)qImage.bits();
 			unsigned short valmax = 0;
 			
 			for(int r=0; r<iplImage->height; r++)
@@ -1416,20 +1501,39 @@ QImage iplImageToQImage(IplImage * iplImage) {
 						valmax = buffershort[c];
 			}
 			
-			if(valmax>0)
-				for(int r=0; r<iplImage->height; r++)
-				{
-					unsigned short * buffer3 = (unsigned short *)(iplImage->imageData 
-									+ r * iplImage->widthStep);
-					int pos3 = 0;
-					int pos4 = r * orig_width;
-					for(int c=0; c<orig_width; c++, pos3++, pos4++)
+			if(valmax>0) {
+				if(!gray_to_bgr32) {
+					u8 * buffer4 = (u8 *)qImage.bits();
+					for(int r=0; r<iplImage->height; r++)
 					{
-						int val = abs((int)buffer3[pos3]) * 255 / valmax;
-						if(val > 255) val = 255;
-						buffer4[pos4] = (u8)val;
+						unsigned short * buffer3 = (unsigned short *)(iplImage->imageData
+										+ r * iplImage->widthStep);
+						int pos3 = 0;
+						int pos4 = r * orig_width;
+						for(int c=0; c<orig_width; c++, pos3++, pos4++)
+						{
+							int val = abs((int)buffer3[pos3]) * 255 / valmax;
+							if(val > 255) val = 255;
+							buffer4[pos4] = (u8)val;
+						}
+					}
+				} else {
+					u32 * buffer4 = (u32 *)qImage.bits();
+					for(int r=0; r<iplImage->height; r++)
+					{
+						unsigned short * buffer3 = (unsigned short *)(iplImage->imageData
+										+ r * iplImage->widthStep);
+						int pos3 = 0;
+						int pos4 = r * orig_width;
+						for(int c=0; c<orig_width; c++, pos3++, pos4++)
+						{
+							int val = abs((int)buffer3[pos3]) * 255 / valmax;
+							if(val > 255) val = 255;
+							buffer4[pos4] = grayToBGR32palette[ val ];
+						}
 					}
 				}
+			}
 		}
 		else {
 			fprintf(stderr, "[TamanoirApp]::%s:%d : U16  depth = %d -> BGR32\n", __func__, __LINE__, iplImage->depth);
@@ -1522,8 +1626,8 @@ void TamanoirApp::updateDisplay()
 
 		// Update cropped buffers
 		if(m_pProcThread) {
-			current_dust.crop_width = ui.cropPixmapLabel->size().width()-2;
-			current_dust.crop_height = ui.cropPixmapLabel->size().height()-2;
+			current_dust.crop_width = ui.cropPixmapLabel->size().width();
+			current_dust.crop_height = ui.cropPixmapLabel->size().height();
 
 			m_pImgProc->cropCorrectionImages(current_dust);
 		}
@@ -1534,8 +1638,10 @@ void TamanoirApp::updateDisplay()
 			int gray_width = displayImage->width;
 			//int scaled_width = displayImage->width;
 			//int scaled_height = displayImage->height;
-			QImage mainImage(gray_width, displayImage->height, 8*displayImage->nChannels);
-			if(displayImage->nChannels == 1) {
+
+
+			QImage mainImage(gray_width, displayImage->height, 32); //8*displayImage->nChannels);
+			if(mainImage.depth() == 8) {
 				memcpy(mainImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
 				mainImage.setNumColors(256);
 				for(int c=0; c<256; c++) 
@@ -1546,8 +1652,9 @@ void TamanoirApp::updateDisplay()
 				mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
 				mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
 			}
-			else
-				mainImage = iplImageToQImage(displayImage);
+			else {
+				mainImage = iplImageToQImage(displayImage, true);
+			}
 
 			QPixmap pixmap;
 			pixmap.convertFromImage( mainImage );
@@ -1577,8 +1684,8 @@ void TamanoirApp::updateDisplay()
 			ui.proposalLabel->setText( propStr );
 
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
-			if(curImage->nChannels == 1) {
+			QImage grayQImage = iplImageToQImage(curImage, true).scaledToWidth(pLabel->width());
+			if(grayQImage.depth() == 8) {
 				grayQImage.setNumColors(256);
 				for(int c=0; c<255; c++) {
 					grayQImage.setColor(c, qRgb(c,c,c));
@@ -1615,7 +1722,7 @@ void TamanoirApp::updateDisplay()
 					if(curImage->nChannels == 1) {
 						for(int c = 0; c<growImage->width; c++) {
 							if(growLine[c]>0) {
-								correctLine[c] = 254;
+								correctLine[c] = COLORMARK_FAILED;
 							}
 						}
 					}
@@ -1645,14 +1752,14 @@ void TamanoirApp::updateDisplay()
 
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage);
-			if(curImage->nChannels == 1) {
+			if(grayQImage.depth() == 8) {
 				grayQImage.setNumColors(256);
 				for(int c=0; c<256; c++)
 					grayQImage.setColor(c, qRgb(c,c,c));
 
 				//grayQImage.setColor(255, qRgb(0,255,0));
 				if(m_overCorrected) {
-					grayQImage.setColor(254, qRgb(255, 127, 0));
+					grayQImage.setColor(COLORMARK_FAILED, qRgb(255, 127, 0));
 				}
 			}
 
@@ -1673,7 +1780,7 @@ void TamanoirApp::updateDisplay()
 				
 				// Display in frame
 				QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
-				if(curImage->nChannels == 1) {
+				if(grayQImage.depth() == 8) {
 					grayQImage.setNumColors(256);
 					for(int c=0; c<255; c++)
 						grayQImage.setColor(c, qRgb(c,c,c));
@@ -1716,7 +1823,7 @@ void TamanoirApp::updateDisplay()
 
 				// Display in frame
 				QImage grayQImage = iplImageToQImage(curImage);
-				if(curImage->nChannels == 1) {
+				if(grayQImage.depth() == 8) {
 					grayQImage.setNumColors(256);
 					for(int c=0; c<256; c++) {
 						int R=c, G=c, B=c;
@@ -1798,6 +1905,9 @@ int TamanoirThread::setOptions(tm_options options) {
 		dust_list.clear();
 	}
 	if(m_options.dpi != options.dpi) {
+		dust_list.clear();
+	}
+	if(m_options.sensitivity != options.sensitivity) {
 		dust_list.clear();
 	}
 
@@ -2035,11 +2145,14 @@ void TamanoirThread::run() {
 			// Clear dust list
 			dust_list.clear();
 			
+/*			obsolete
 			m_pImgProc->setFilmType(m_options.filmType);
 			m_pImgProc->setResolution(m_options.dpi);
 			m_pImgProc->setTrustCorrection(m_options.trust);
 			m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
-			
+	*/
+			m_pImgProc->setOptions(m_options);
+
 			no_more_dusts = false;
 			
 			// Search for next dust 

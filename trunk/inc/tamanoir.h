@@ -45,21 +45,13 @@
 #define PROTH_SEARCH	3
 #define PROTH_OPTIONS	4
 
-/** @brief Tamanoir settings/options */
-typedef struct {
-	char currentDir[512];
-	bool trust;		/*! Trust mode activated */
-	bool hotPixels;	/*! Hot pixels detection activated */
-	int filmType;	/*! Film type */
-	int dpi;		/*! Scan resolution in dot per inch */
-} tm_options;
 
 void fprintfOptions(FILE * f, tm_options * p_options);
 
 
 /** @brief Tamanoir processing thread 
 */
-class TamanoirThread : public QThread 
+class TamanoirThread : public QThread
 {
 	Q_OBJECT
 public:
@@ -219,6 +211,7 @@ private slots:
 
 	void on_typeComboBox_currentIndexChanged(int);
 	void on_dpiComboBox_currentIndexChanged(QString );
+	void on_sensitivityComboBox_currentIndexChanged(int);
 
 	void on_hotPixelsCheckBox_toggled(bool);
 	void on_trustCheckBox_toggled(bool);
@@ -247,7 +240,7 @@ private:
 };
 
 /** @brief Convert an OpenCV IplImage to a Qt QImage */
-QImage iplImageToQImage(IplImage * iplImage);
+QImage iplImageToQImage(IplImage * iplImage, bool false_colors = true);
 
 
 #endif

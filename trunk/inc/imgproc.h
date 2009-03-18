@@ -154,6 +154,15 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 /** @brief Test if dust is already knwon */
 bool testKnownDust(t_correction, int img_w, int img_h); 
 
+/** @brief Tamanoir settings/options */
+typedef struct {
+	char currentDir[512];
+	bool trust;			/*! Trust mode activated */
+	bool hotPixels;		/*! Hot pixels detection activated */
+	int filmType;		/*! Film type */
+	int dpi;			/*! Scan resolution in dot per inch */
+	int sensitivity;	/*! Sensitivity (0 means highly sensitive to small dust, bigger needs bigger dusts) */
+} tm_options;
 
 
 
@@ -172,6 +181,10 @@ public:
 
 	/** @brief allow cropping of debug images */
 	void allowDebugCrop(bool on) { m_show_crop_debug = on; };
+
+
+	/** @brief Set all options in one single call */
+	int setOptions(tm_options opt);
 
 	/** @brief Set film type \param type : 0 for undefined, 1 for negative, 2 for positive */
 	void setFilmType(int type);
@@ -290,20 +303,11 @@ private:
 	/** @brief Allocate cropped processing buffers */
 	void allocCropped();
 
-	/** @brief Film type */
-	int m_FilmType;
-	
-	/** @brief Scan resolution */
-	int m_dpi;
+	/** @brief Options : Film type, resolution, ... */
+	tm_options m_options;
 	
 	/** opened file name */
 	char m_filename[512];
-
-	/** @brief Hot pixels filtering */
-	bool m_hotPixels;
-	
-	/** @brief Trust good correction proposals */
-	bool m_trust;
 	
 	/** Dust statistics */
 	dust_stats_t m_dust_stats;
