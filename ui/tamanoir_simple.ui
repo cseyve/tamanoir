@@ -463,7 +463,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="correctPixmapLabel">
+          <widget class="QImageDisplay" name="correctPixmapLabel">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
              <horstretch>0</horstretch>
@@ -481,6 +481,9 @@
              <width>4</width>
              <height>4</height>
             </size>
+           </property>
+           <property name="mouseTracking">
+            <bool>true</bool>
            </property>
            <property name="toolTip">
             <string>Proposed correction</string>

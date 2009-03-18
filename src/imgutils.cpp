@@ -880,7 +880,6 @@ void tmMarkCloneRegion(IplImage * origImage,
 		   cvPoint(copy_center_x - copy_vector_x, copy_center_y - copy_vector_y),
 				origImage->nChannels>1?CV_RGB(0,255,0):cvScalarAll(255),
 		   1);
-	
 }
 
 

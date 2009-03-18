@@ -65,6 +65,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	
 	ui.setupUi((QMainWindow *)this);
 	
+	m_overCorrected = false;
+
 	// Load last options
 	loadOptions();
 	
@@ -227,7 +229,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 }
 
 void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
-	
+	m_overCorrected = false;
+
 	
 	if(e && m_pImgProc) {
 		// Keep current dust in mind to get back to it when done
@@ -359,7 +362,8 @@ void TamanoirApp::on_linearButton_toggled(bool state) {
 
 
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
-	
+	m_overCorrected = false;
+
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	cropPixmapLabel_last_button = Qt::NoButton;
 }
@@ -523,8 +527,24 @@ fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
 }
 
 
+void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+	if(e && m_pProcThread && m_pImgProc) {
+		m_pImgProc->showDebug(true);
+		m_overCorrected = false;
+		int mouse_x = e->pos().x();
+		int mouse_y = e->pos().y();
+
+		if( abs(mouse_x - ui.correctPixmapLabel->width() /2)< (ui.correctPixmapLabel->width() /2)-20
+			&& abs(mouse_y - ui.correctPixmapLabel->height() /2)< (ui.correctPixmapLabel->height() /2) -20) {
+			m_overCorrected = true;
+		}
+
+		updateDisplay();
+	}
+}
 
 void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+	m_overCorrected = false;
 
 	if(e && m_pProcThread && m_pImgProc) {
 		
@@ -1488,8 +1508,6 @@ void TamanoirApp::refreshMainDisplay() {
 }
 
 
-
-
 void TamanoirApp::updateDisplay()
 {
 	if(m_pImgProc) {
@@ -1551,6 +1569,47 @@ void TamanoirApp::updateDisplay()
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
+			// If wa are over the correction pixmap, let's display debug information
+			if(m_overCorrected) {
+				IplImage * growImage = m_pImgProc->getMask();//getDiffCrop();
+				// Mix images
+				float coef = 0.5f;
+				float coef_1 = 1.f - coef;
+#define DUST_MARK_R		255
+#define DUST_MARK_G		127
+#define DUST_MARK_B		0
+				for(int r = 0; r<growImage->height; r++) {
+					u8 * correctLine = (u8 *)(curImage->imageData + r * curImage->widthStep);
+					u8 * growLine = (u8 *)(growImage->imageData + r * growImage->widthStep);
+					if(curImage->nChannels == 1) {
+						for(int c = 0; c<growImage->width; c++) {
+							if(growLine[c]>0) {
+								correctLine[c] = 254;
+							}
+						}
+					}
+					else {
+						int RGB[4] = { DUST_MARK_B, DUST_MARK_G,DUST_MARK_R, 0 };
+						int kc = 0;
+						for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
+							if(growLine[c]>30) {
+								int col = growLine[c];
+								/*
+								// False colors
+								if(col<128) RGB[2] = (255-2*col); else RGB[2] = 0;
+								if(col>128) RGB[0] = 2*(col-128); else RGB[0] = 0;
+								RGB[2] = 256 - abs(128-col)*2; if(RGB[1]>255) RGB[1] = 255;
+								*/
+
+								for(int k=0; k<curImage->nChannels; k++) {
+									//correctLine[kc+k] = (u8) (RGB[k] * (int)correctLine[kc+k] / 255);
+									correctLine[kc+k] = (u8) (RGB[k]);
+								}
+							}
+						}
+					}
+				}
+			}
 
 			QString propStr;
 			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
@@ -1567,6 +1626,9 @@ void TamanoirApp::updateDisplay()
 				}
 
 				grayQImage.setColor(255, qRgb(0,255,0));
+				if(m_overCorrected) {
+					grayQImage.setColor(254, qRgb(255, 127, 0));
+				}
 			}
 
 			QPixmap pixmap;
@@ -1582,6 +1644,8 @@ void TamanoirApp::updateDisplay()
 		if(curImage) {
 			QLabel * pLabel = ui.correctPixmapLabel;
 			
+
+
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage);
 			if(curImage->nChannels == 1) {
