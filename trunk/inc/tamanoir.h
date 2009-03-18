@@ -184,6 +184,8 @@ private:
 	Qt::MouseButton cropPixmapLabel_last_button;
 	
 	CvSize originalMainPixmapLabelSize;
+
+	bool m_overCorrected;
 signals:
 	
 private slots:
@@ -212,6 +214,8 @@ private slots:
 	void on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent *);
 	void on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
+
+	void on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 
 	void on_typeComboBox_currentIndexChanged(int);
 	void on_dpiComboBox_currentIndexChanged(QString );

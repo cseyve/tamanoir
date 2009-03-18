@@ -159,7 +159,9 @@ bool testKnownDust(t_correction, int img_w, int img_h);
 
 /** @brief main image processing class
 
-	This classe is used to load image, detect dust then search for correction proposal
+	This class is used to load image, detect dust then search for correction proposal
+
+	@author Christophe Seyve @mail cseyve@free.fr
 */
 class TamanoirImgProc {
 public:
@@ -180,11 +182,14 @@ public:
 	/** @brief Save corrected image file */
 	int saveFile(const char * filename);
 	
-	
-	/** @brief Perform image pre-processing */
+	/** @brief Set if @see cropCorrectionImages must crop debug image too */
+	void showDebug(bool on) { m_show_crop_debug = on; };
+
+	/** @brief Perform image pre-processing (difference, conversion to grayscale, ...) */
 	int preProcessImage();
 
-	/** @brief Go to first dust, @return -1 if error, 0 if no more dust, and 1 if still */
+	/** @brief Go to first dust
+		@return -1 if error, 0 if no more dust, and 1 if still */
 	int firstDust();
 	
 	/** @brief Go to next dust, @return -1 if error, 0 if no more dust, and 1 if still */

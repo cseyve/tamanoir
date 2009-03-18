@@ -80,6 +80,8 @@ TamanoirImgProc::TamanoirImgProc(int bw, int bh) {
 void TamanoirImgProc::init() {
 
 	m_filename[0] = '\0';
+
+
 #ifdef SIMPLE_VIEW
 	m_show_crop_debug = false;
 #else
@@ -1734,9 +1736,11 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// If more than 20% of the area has difference with median, then
 				// it's a textured area, not a dust
 				if(pcorrection->equivalent_diff > 0.15f) {
+					/*
 					fprintf(stderr, "[imgproc] %s:%d : TEXTURED AREA : equivalent_diff=%g\n",
 						__func__, __LINE__,
 						pcorrection->equivalent_diff);
+					*/
 					is_a_dust = false;
 				}
 
@@ -2207,6 +2211,10 @@ bool TamanoirImgProc::dilateDust(
 			}
 
 			best_correl = 5 + max_neighbour - min_neighbour;
+			// Limit best_correl because it cas go real high (ex: 114 )
+			if(best_correl>50) {
+				best_correl = 50;
+			}
 			if(pbest_correl ) {
 				*pbest_correl = best_correl;
 			}
@@ -2327,46 +2335,61 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(!disp_cropImage && m_show_crop_debug) {
 		disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
+
 	
-	if(0) { // Sobel : OBSOLETE DISPLAY
-		if(!disp_dilateImage) 
-		{
-			disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_16S, 1);
-			memset( disp_dilateImage->imageData, 0, 
-					disp_dilateImage->widthStep * disp_dilateImage->height * sizeof(short));
+	if(m_show_crop_debug) { // Grown region
+		if(disp_dilateImage) {
+			if(disp_dilateImage->width != cropSize.width
+				|| disp_dilateImage->height != cropSize.height) {
+				fprintf(stderr, "[imgproc]::%s:%d : size does not fit : %dx%d != %dx%d\n",
+						__func__, __LINE__,
+						disp_dilateImage->width, disp_dilateImage->height,
+						cropSize.width, cropSize.height);
+				tmReleaseImage(&disp_dilateImage);
+			}
 		}
-		
-		// Get Sobel
-		tmCropImage(grayImage, disp_cropImage, 
-					correction.crop_x, correction.crop_y);
-		int dx = abs(correction.rel_src_x - correction.rel_dest_x);
-		int dy = abs(correction.rel_src_y - correction.rel_dest_y);
-		if(dx < dy) // Check if we are not copying while following a border
-			cvSobel(disp_cropImage, disp_dilateImage, 1, 0, 5);
-		else
-			cvSobel(disp_cropImage, disp_dilateImage, 0, 1, 5);
-	} else if(m_show_crop_debug) { // Grown region
-		
+
 		if(!disp_dilateImage) {
 			disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_8U, 1);
 		} else {
 			memset( disp_dilateImage->imageData, 0, 
 					disp_dilateImage->widthStep * disp_dilateImage->height );
-		}	
+		}
+
 		// Get grown region
-		if(correction.grown_dust.area > 0 ) {
+		if(correction.grown_dust.area > 0 && correctImage) {
 			CvConnectedComp copy_rect = correction.grown_dust;
 
-			dilateDust(correction.crop_x, correction.crop_y,
+			// test to protect processing crop images
+
+			if(disp_dilateImage->width == correctImage->width &&
+				disp_dilateImage->height == correctImage->height ) {
+
+				dilateDust(correction.crop_x, correction.crop_y,
 						correction.rel_seed_x, correction.rel_seed_y,
 						&copy_rect,
 						false, false,
 						disp_dilateImage);
-
+			} else {
+				fprintf(stderr, "[imgproc]::%s:%d : size does not fit : disp_dilateImage:%dx%d != correctImage:%dx%d\n",
+						__func__, __LINE__,
+						disp_dilateImage->width, disp_dilateImage->height,
+						correctImage->width, correctImage->height);
+				CvConnectedComp ext_connect;
+				// Do our own region growing
+				tmGrowRegion(
+						(u8 *)disp_cropImage->imageData,
+						(u8 *)disp_dilateImage->imageData,
+						cropImage->widthStep, cropImage->height,
+						correction.rel_seed_x, correction.rel_seed_y,
+						DIFF_THRESHVAL,
+						255,
+						&ext_connect);
+			}
 		} else { // Do our own region growing
 			tmCropImage(diffImage, disp_cropImage,
 					correction.crop_x, correction.crop_y);
-		
+
 			CvConnectedComp ext_connect;
 			tmGrowRegion(
 					(u8 *)disp_cropImage->imageData, 
