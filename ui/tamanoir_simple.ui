@@ -392,12 +392,34 @@
              </widget>
             </item>
             <item>
+             <widget class="QComboBox" name="sensitivityComboBox">
+              <property name="toolTip">
+               <string>Sensitivity of dust detection : from highly sensitive (smallest dusts) to low (bigger dusts)</string>
+              </property>
+              <item>
+               <property name="text">
+                <string>Sensitive</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Medium</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Rough</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
              <widget class="QCheckBox" name="trustCheckBox">
               <property name="toolTip">
                <string>Trust small dusts with very good correction proposal</string>
               </property>
               <property name="text">
-               <string>Trust mode</string>
+               <string>Trust</string>
               </property>
               <property name="shortcut">
                <string>T</string>
