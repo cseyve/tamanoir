@@ -1569,6 +1569,37 @@ void TamanoirApp::updateDisplay()
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
+
+			QString propStr;
+			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
+							current_dust.proposal_diff, current_dust.bg_diff,
+							current_dust.equivalent_diff*100.f);
+			ui.proposalLabel->setText( propStr );
+
+			// Display in frame
+			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
+			if(curImage->nChannels == 1) {
+				grayQImage.setNumColors(256);
+				for(int c=0; c<255; c++) {
+					grayQImage.setColor(c, qRgb(c,c,c));
+				}
+
+				grayQImage.setColor(255, qRgb(0,255,0));
+			}
+
+			QPixmap pixmap;
+			pixmap.convertFromImage( 
+				grayQImage,
+				QPixmap::Color );
+			pLabel->setPixmap(pixmap);
+			pLabel->repaint();
+		}
+		
+		// Bottom-left : Proposed correction
+		curImage = m_pImgProc->getCorrectedCrop();
+		if(curImage) {
+			QLabel * pLabel = ui.correctPixmapLabel;
+			
 			// If wa are over the correction pixmap, let's display debug information
 			if(m_overCorrected) {
 				IplImage * growImage = m_pImgProc->getMask();//getDiffCrop();
@@ -1611,40 +1642,6 @@ void TamanoirApp::updateDisplay()
 				}
 			}
 
-			QString propStr;
-			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
-							current_dust.proposal_diff, current_dust.bg_diff,
-							current_dust.equivalent_diff*100.f);
-			ui.proposalLabel->setText( propStr );
-
-			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
-			if(curImage->nChannels == 1) {
-				grayQImage.setNumColors(256);
-				for(int c=0; c<255; c++) {
-					grayQImage.setColor(c, qRgb(c,c,c));
-				}
-
-				grayQImage.setColor(255, qRgb(0,255,0));
-				if(m_overCorrected) {
-					grayQImage.setColor(254, qRgb(255, 127, 0));
-				}
-			}
-
-			QPixmap pixmap;
-			pixmap.convertFromImage( 
-				grayQImage,
-				QPixmap::Color );
-			pLabel->setPixmap(pixmap);
-			pLabel->repaint();
-		}
-		
-		// Bottom-left : Proposed correction
-		curImage = m_pImgProc->getCorrectedCrop();
-		if(curImage) {
-			QLabel * pLabel = ui.correctPixmapLabel;
-			
-
 
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage);
@@ -1654,6 +1651,9 @@ void TamanoirApp::updateDisplay()
 					grayQImage.setColor(c, qRgb(c,c,c));
 
 				//grayQImage.setColor(255, qRgb(0,255,0));
+				if(m_overCorrected) {
+					grayQImage.setColor(254, qRgb(255, 127, 0));
+				}
 			}
 
 			QPixmap pixmap;

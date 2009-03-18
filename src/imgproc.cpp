@@ -1752,17 +1752,18 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					int maxdiff = 100, nbdiff =  0;
 					float l_dist = tmCorrelation(correctColorImage, correctColorImage,
 							dilateImage,
-							connect_center_x, connect_center_y,
+							pcorrection->rel_dest_x, pcorrection->rel_dest_y,
 							pcorrection->rel_src_x, pcorrection->rel_src_y,
 							connect_width, connect_height,
 							100,
 							&maxdiff,
 							&nbdiff
 							);
+
 					if(l_dist < tmmin(10, fabsf(pcorrection->bg_diff))
 						|| maxdiff < tmmin(10, fabsf(pcorrection->bg_diff))
 						) {
-						fprintf(stderr, "\t::%s:%d : NOT SO GOOD : PERIODICAL PATTERN ?? "
+						fprintf(stderr, "\t::%s:%d : SRC/DEST are similar : PERIODICAL PATTERN ?? "
 							"\t grown:%d,%d+%dx%d "
 							"=> dist=%g maxdif=%d / bgdiff=%g between src and dest\n",
 							__func__, __LINE__,
@@ -2361,7 +2362,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			CvConnectedComp copy_rect = correction.grown_dust;
 
 			// test to protect processing crop images
-
+#ifndef SIMPLE_VIEW	// only in debug GUI
 			if(disp_dilateImage->width == correctImage->width &&
 				disp_dilateImage->height == correctImage->height ) {
 
@@ -2370,17 +2371,23 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 						&copy_rect,
 						false, false,
 						disp_dilateImage);
-			} else {
+			} else
+			{
 				fprintf(stderr, "[imgproc]::%s:%d : size does not fit : disp_dilateImage:%dx%d != correctImage:%dx%d\n",
 						__func__, __LINE__,
 						disp_dilateImage->width, disp_dilateImage->height,
 						correctImage->width, correctImage->height);
+#else
+			{
+#endif
+				tmCropImage(diffImage, disp_cropImage,
+					correction.crop_x, correction.crop_y);
 				CvConnectedComp ext_connect;
 				// Do our own region growing
 				tmGrowRegion(
 						(u8 *)disp_cropImage->imageData,
 						(u8 *)disp_dilateImage->imageData,
-						cropImage->widthStep, cropImage->height,
+						disp_cropImage->widthStep, disp_cropImage->height,
 						correction.rel_seed_x, correction.rel_seed_y,
 						DIFF_THRESHVAL,
 						255,

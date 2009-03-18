@@ -14,6 +14,7 @@ QPushButton,QComboBox
 		stop:0.45 #5c5c5c,
 		stop:0.55 #454545);
 }
+
 QComboBox{
 	selection-background-color: #505050;
 }
@@ -21,7 +22,6 @@ QComboBox{
 QDialog {
 	color: back;
 	alternate-background-color: re
-
 }
 
 QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel {
@@ -60,23 +60,24 @@ QLabel::border {
 	border-color: #AAAAAA;
 }
 
-QDialog,QFileDialog,QMessageBox {
+QToolTip,QDialog,QFileDialog,QMessageBox {
 	background-color: #3F3F3F; /* background-color: #909090;*/
 	color: black;
 }
-
+QToolTip {
+	background-color: #CCCCCC;
+	color: black;
+}
 QProgressBar::border {
 	border: 2px solid #F7F7F7;
 	border-radius: 5px;
 	background-color: #CCCCCC;
 }
+
 /*
 QProgressBar::chunk {
 	background-color: #AAAAAA;
 	width: 5 pix;
 }*/
-
-
-
 
 //-->
