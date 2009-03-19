@@ -303,12 +303,12 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		IplImage * tmpDisplayImage = tmCreateImage(cvSize(originalImage->width,originalImage->height),
 			IPL_DEPTH_8U, originalImage->nChannels);
 		//cvConvertImage(originalImage, tmpDisplayImage ); // cvConvertIMage has bug for 16bit -> 8bit
-		tmCropImage(originalImage, tmpDisplayImage, 0,0 );
+		tmCropImage(originalImage, tmpDisplayImage, 0,0, true);
 		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "tmpDisplayImage-depthConverted" IMG_EXTENSION, tmpDisplayImage); }
 
 		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
 		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "new_displayImage-depthConverted" IMG_EXTENSION, new_displayImage); }
-
+		
 		tmReleaseImage(&tmpDisplayImage);
 	} else {
 		cvResize(originalImage, new_displayImage, CV_INTER_LINEAR );
@@ -334,8 +334,8 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 			u8 * lineGray = (u8 *)new_displayImage->imageData 
 				+ r * new_displayImage->widthStep;
 			for(int c = 0 ; c<new_displayImage->width; c++)
-				if(lineGray[c] >= COLORMARK_FAILED)
-					lineGray[c] = COLORMARK_FAILED-1;
+				if(lineGray[c] > COLORMARK_THRESHOLD)
+					lineGray[c] = COLORMARK_THRESHOLD;
 		}
 	} else {
 		if(originalImage->depth != IPL_DEPTH_8U) {
@@ -347,6 +347,8 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 					+ r * new_displayImage->widthStep;
 				for(int c = 0 ; c< new_displayImage->width * new_displayImage->nChannels; c+=new_displayImage->nChannels) {
 					u8 tmp = lineGray[c];
+					if(tmp > COLORMARK_THRESHOLD)
+						tmp = COLORMARK_THRESHOLD;
 					lineGray[c] =  lineGray[c+2];
 					lineGray[c+2] = tmp;
 				}
@@ -1094,9 +1096,9 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	if(m_options.sensitivity != opt.sensitivity
 	   && originalImage) {
 		// FIXME
-
 		preProcessImage();
 		firstDust();
+		m_options.sensitivity = opt.sensitivity;
 	}
 
 	// Then set resolution, because we process the min size here
@@ -1139,10 +1141,10 @@ int TamanoirImgProc::setResolution(int dpi) {
 		// We just reset the dust seeker
 		// Allocate region growing structs
 		float coef_sensitivity[4] = { 1.f, 1.5f, 3.f, 5.f};
-		if(m_options.sensitivity < 0 )
-			m_options.sensitivity = 0;
-		else if(m_options.sensitivity > 3 )
-			m_options.sensitivity = 3;
+		if(m_options.sensitivity < 0 ) {
+			m_options.sensitivity = 0; }
+		else if(m_options.sensitivity > 3 ) {
+			m_options.sensitivity = 3; }
 
 		m_dust_area_min = DUST_MIN_SIZE * (dpi * dpi)/ (2400*2400)
 						  * coef_sensitivity[ m_options.sensitivity ] ;
@@ -2461,12 +2463,13 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 								   correction.rel_dest_y + correction.copy_height) ),
 					cvScalarAll(254),
 					1);
-
 	}
 	
 	// Top-left on GUI : Original image for display in GUI
 	tmCropImage(originalImage, disp_cropColorImage, 
-				correction.crop_x, correction.crop_y);
+				correction.crop_x, correction.crop_y,
+				true // threshold for not having highlights
+				);
 	
 	// Bottom-Left
 	// If we use a blurred version for searching,
@@ -2501,7 +2504,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		if(displayBlockImage->width == displayImage->width
 			&& displayBlockImage->height == displayImage->height
 			) {
-			cvCopy(displayImage, displayBlockImage);
+			//cvCopy(displayImage, displayBlockImage);
+			tmCropImage(displayImage, displayBlockImage, 0,0, true);// Threshold for false colors
 		} else {
 			fprintf(stderr, "TamanoirImgProc::%s:%d : error : different image size : displayImage %dx%d != displayBlockImage %dx%d\n",
 					__func__, __LINE__,
@@ -2525,6 +2529,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_y = (correction.crop_y ) * displayImage->height / grayImage->height;
 			disp_w = correction.crop_width * displayImage->width / grayImage->width;
 			disp_h = correction.crop_height * displayImage->height / grayImage->height;
+
 			tmMarkFailureRegion(displayBlockImage,
 						disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
 		}

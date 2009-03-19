@@ -135,8 +135,8 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) -1)*4;
 	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) -1)*4;
 	m_blockSize = cvSize(size_w, size_h);
-	size_w += 4;
-	size_h += 4;
+	size_w += 2;
+	size_h += 2;
 
 	ui.cropPixmapLabel->resize( size_w, size_h);
 	ui.correctPixmapLabel->resize( size_w, size_h);
@@ -1314,6 +1314,7 @@ void TamanoirApp::on_cropPixmapLabel_customContextMenuRequested(QPoint p)
 
 static u32 * grayToBGR32 = NULL;
 static u32 * grayToBGR32False = NULL;
+static u32 * grayToBGR32Red = NULL;
 
 static void init_grayToBGR32()
 {
@@ -1323,27 +1324,33 @@ static void init_grayToBGR32()
 
 	grayToBGR32 = new u32 [256];
 	grayToBGR32False = new u32 [256];
+	grayToBGR32Red = new u32 [256];
 	for(int c = 0; c<256; c++) {
 		int Y = c;
 		u32 B = Y;// FIXME
 		u32 G = Y;
 		u32 R = Y;
-		grayToBGR32[c] =
+		grayToBGR32[c] = grayToBGR32Red[c] =
 			grayToBGR32False[c] = (R << 16) | (G<<8) | (B<<0);
 	}
 
 	// Add false colors
-	grayToBGR32False[COLORMARK_CORRECTED] = (255 << 8);
+	grayToBGR32[COLORMARK_CORRECTED] = // GREEN
+		grayToBGR32False[COLORMARK_CORRECTED] = (255 << 8);
 		//mainImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
+	// YELLOW
 	grayToBGR32False[COLORMARK_REFUSED] = (255 << 8) | (255 << 16);
 				//mainImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
-	grayToBGR32False[COLORMARK_FAILED] = (255 << 16);
+	grayToBGR32False[COLORMARK_FAILED] =
+			grayToBGR32Red[COLORMARK_FAILED] = (255 << 16);
 				//mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
-	grayToBGR32False[COLORMARK_CURRENT] = (255 << 0);
+	grayToBGR32False[COLORMARK_CURRENT] = // BLUE
+	//		grayToBGR32Red[COLORMARK_CURRENT] =
+										(255 << 0);
 				//mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
 }
 
-QImage iplImageToQImage(IplImage * iplImage, bool false_colors ) {
+QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) {
 	if(!iplImage)
 		return QImage();
 	
@@ -1365,6 +1372,8 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors ) {
 		init_grayToBGR32();
 		if(!false_colors)
 			grayToBGR32palette = grayToBGR32;
+		else if(red_only)
+			grayToBGR32palette = grayToBGR32Red;
 		else
 			grayToBGR32palette = grayToBGR32False;
 	}
@@ -1490,7 +1499,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors ) {
 		}break;
 	case IPL_DEPTH_16U: {
 		if(!rgb24_to_bgr32) {
-			
+
 			unsigned short valmax = 0;
 			
 			for(int r=0; r<iplImage->height; r++)
@@ -1578,7 +1587,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors ) {
 		}break;
 	}
 	
-	if(iplImage->nChannels == 1) {
+	if(qImage.depth() == 8) {
 		qImage.setNumColors(256);
 
 		for(int c=0; c<256; c++) {
@@ -1652,8 +1661,8 @@ void TamanoirApp::updateDisplay()
 				mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
 				mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
 			}
-			else {
-				mainImage = iplImageToQImage(displayImage, true);
+			else { // use false colors
+				mainImage = iplImageToQImage(displayImage, true, false);
 			}
 
 			QPixmap pixmap;
@@ -1671,12 +1680,12 @@ void TamanoirApp::updateDisplay()
 		
 		IplImage * curImage;
 		
-
-		// Top-left : Display cropped / detailled images
+#define LABELWIDTH_MARGIN	2
+		// Top-left : Display cropped / detailled images -- ORIGINAL
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
-
+			int label_width = pLabel->width()-LABELWIDTH_MARGIN;
 			QString propStr;
 			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
 							current_dust.proposal_diff, current_dust.bg_diff,
@@ -1684,7 +1693,8 @@ void TamanoirApp::updateDisplay()
 			ui.proposalLabel->setText( propStr );
 
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage, true).scaledToWidth(pLabel->width());
+			QImage grayQImage = iplImageToQImage(curImage,
+												 false); //.scaledToWidth(label_width);
 			if(grayQImage.depth() == 8) {
 				grayQImage.setNumColors(256);
 				for(int c=0; c<255; c++) {
@@ -1702,17 +1712,18 @@ void TamanoirApp::updateDisplay()
 			pLabel->repaint();
 		}
 		
-		// Bottom-left : Proposed correction
+		// Bottom-left : Proposed correction -- CORRECTED
 		curImage = m_pImgProc->getCorrectedCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.correctPixmapLabel;
-			
+			int label_width = pLabel->width()-LABELWIDTH_MARGIN;
+
 			// If wa are over the correction pixmap, let's display debug information
 			if(m_overCorrected) {
 				IplImage * growImage = m_pImgProc->getMask();//getDiffCrop();
 				// Mix images
-				float coef = 0.5f;
-				float coef_1 = 1.f - coef;
+				//float coef = 0.5f;
+				//float coef_1 = 1.f - coef;
 #define DUST_MARK_R		255
 #define DUST_MARK_G		127
 #define DUST_MARK_B		0
@@ -1731,8 +1742,8 @@ void TamanoirApp::updateDisplay()
 						int kc = 0;
 						for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
 							if(growLine[c]>30) {
-								int col = growLine[c];
-								/*
+								/*int col = growLine[c];
+
 								// False colors
 								if(col<128) RGB[2] = (255-2*col); else RGB[2] = 0;
 								if(col>128) RGB[0] = 2*(col-128); else RGB[0] = 0;
@@ -1751,7 +1762,10 @@ void TamanoirApp::updateDisplay()
 
 
 			// Display in frame
-			QImage grayQImage = iplImageToQImage(curImage);
+			QImage grayQImage = iplImageToQImage(curImage,
+												 true, // false colors
+												 true // with only red as false color
+												 ); //.scaledToWidth(label_width);
 			if(grayQImage.depth() == 8) {
 				grayQImage.setNumColors(256);
 				for(int c=0; c<256; c++)
@@ -2082,9 +2096,12 @@ void TamanoirThread::run() {
 		case PROTH_NOTHING:
 			//fprintf(stderr, "TmThread::%s:%d : do NOTHING ???\n", __func__, __LINE__);
 			if(!no_more_dusts) {
-				req_command = PROTH_SEARCH;
-				if(g_debug_TmThread) 
-					fprintf(stderr, "nothing\t=>\tTmThread::%s:%d : => PROTH_SEARCH !!!\n", __func__, __LINE__);
+				// If there are not too much dusts in list, continue to search
+				if(dust_list.count() < 100) {
+					req_command = PROTH_SEARCH;
+					if(g_debug_TmThread)
+						fprintf(stderr, "nothing\t=>\tTmThread::%s:%d : => PROTH_SEARCH !!!\n", __func__, __LINE__);
+				}
 			}
 			
 			break;

@@ -38,8 +38,8 @@ SOURCES = src/imgproc.cpp \
     src/main.cpp \
     src/tamanoir.cpp \
     src/qimagedisplay.cpp
+#    -O2 \
 linux-g++:TMAKE_CXXFLAGS += -Wall \
-    -O2 \
     -g \
     -fexceptions \
     -Wimplicit \
