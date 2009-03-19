@@ -570,23 +570,30 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 				}
 			}
 		}
-	}		
+	}
 }
 
 /*
  * Copy an image in another
  */
-void tmCopyImage(IplImage * img_src, IplImage * img_dest) {
-	if(img_dest->widthStep == img_src->widthStep && img_dest->height == img_src->height) {
+void tmCopyImage(IplImage * img_src, IplImage * img_dest)
+{
+	if(img_dest->widthStep == img_src->widthStep
+	   && img_dest->height == img_src->height) {
 		memcpy(img_dest->imageData, img_src->imageData, img_src->widthStep*img_src->height);
-	}
-	else {
-		cvZero(img_dest); // prevent from using uninitialised pixels
+	} else {
+		cvZero(img_dest); // prevent from using uninitialised pixels for valgrind
 		int copy_width = tmmin(img_dest->widthStep, img_src->widthStep);
+		fprintf(stderr, "[imgutils] %s:%d : copy %dx%d (pitch=%d) x %dx%d - into %dx%d (pitch %d) x %dx%d\n",
+				__func__, __LINE__,
+				img_src->width, img_src->height,  img_src->widthStep, img_src->nChannels, img_src->depth,
+				img_dest->width, img_dest->height,  img_dest->widthStep, img_dest->nChannels, img_dest->depth
+				);
+
 		for(int r=0; r<tmmin(img_dest->height, img_src->height); r++) {
-			memcpy(img_dest->imageData + r*img_dest->widthStep,
-				   img_src->imageData + r*img_src->widthStep,
-				   copy_width);
+			memcpy( img_dest->imageData + r*img_dest->widthStep,
+					img_src->imageData + r*img_src->widthStep,
+					copy_width);
 		}
 	}
 }
@@ -600,20 +607,25 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 	// Convert
 	switch(img->depth) {
 	default:
+		fprintf(stderr, "[imgutils] %s:%d : UNSUPPORTED DEPTH !!\n", __func__, __LINE__);
 		tmReleaseImage(&grayImage);
 		return NULL;
 	case IPL_DEPTH_8U: // 8bit image as input
 		switch(img->nChannels) {
 		case 1:	// same size, image is already grayscaled
+			fprintf(stderr, "[imgutils] %s:%d : just copy !!\n", __func__, __LINE__);
 			tmCopyImage(grayImage, img);
 			break;
 		default: { // Use Green plane as grayscaled
 			int offset = 1; // green
 			int bytedepth = tmByteDepth(img);
-			unsigned char * buf_in = (unsigned char *)img->imageData;
-			unsigned char * buf_out = (unsigned char *)grayImage->imageData;
-			for(int pos = offset; pos < img->widthStep * img->height; pos+=bytedepth, buf_out++) {
-				*buf_out = buf_in[pos];
+			for(int r=0; r< img->height; r++) {
+				unsigned char * buf_in = (unsigned char *)(img->imageData + r*img->widthStep);
+				unsigned char * buf_out = (unsigned char *)(grayImage->imageData + r*grayImage->widthStep);
+				int pos = offset;
+				for(int c = 0; c<grayImage->width; c++, pos+=bytedepth) {
+					buf_out[c] = buf_in[pos];
+				}
 			}
 			}break;
 		}
@@ -646,7 +658,9 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
  */
 void tmCropImage(IplImage * origImage, 
 	IplImage * cropImage, 
-	int crop_x, int crop_y) {
+	int crop_x, int crop_y,
+	bool threshold_false_colors)
+{
 	
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
@@ -771,8 +785,13 @@ void tmCropImage(IplImage * origImage,
 						unsigned char val = (unsigned char)(
 							origBuffer[ orig_pos - ld*2 ]);
 						//	origBuffer[ orig_pos + ld*2 ]);
-						if(val == 255) val = 254;
-						
+						if(val > COLORMARK_THRESHOLD) {
+							if(val == 255) val = 254; // always thrshold to 255
+							if(threshold_false_colors) {
+								val = COLORMARK_THRESHOLD;
+							}
+						}
+
 						cropImageBuffer[ 
 							crop_pix_offset
 							+ ld // component offset
@@ -790,10 +809,35 @@ void tmCropImage(IplImage * origImage,
 		u8 * origImageBuffer = (u8 *)origImage->imageData;
 		
 		int ly = 0;
-		for(int y=ytop; y<ybottom; ly++, y++) 
-			memcpy(cropImageBuffer + ly * cropImage->widthStep, 
-				origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
-		
+		if(origImage->nChannels == 1) { // For 8bit, we can use false colors map, so we need to threshold
+			if(!threshold_false_colors) {
+				for(int y=ytop; y<ybottom; ly++, y++)
+					memcpy(cropImageBuffer + ly * cropImage->widthStep,
+						origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
+			} else {
+
+				for(int y=ytop; y<ybottom; ly++, y++) {
+					u8 * origLine = (u8 *)(origImage->imageData + y * origImage->widthStep);
+					u8 * cropLine = (u8 *)(cropImage->imageData + ly * cropImage->widthStep);
+					int c = 0;
+					for(int x=xleft; x<xright; x++, c++) {
+						u8 val = origLine[x];
+						if(val > COLORMARK_THRESHOLD) {
+							if(val == 255) val = 254; // always thrshold to 255
+							if(threshold_false_colors) {
+								val = COLORMARK_THRESHOLD;
+							}
+						}
+						cropLine[c] = val;
+					}
+				}
+			}
+		} else {
+			for(int y=ytop; y<ybottom; ly++, y++)
+				memcpy(cropImageBuffer + ly * cropImage->widthStep,
+					origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
+		}
+
 		//tmSaveImage ("/dev/shm/tmCropImage_cropImage.ppm", cropImage);
 		//tmSaveImage ("/dev/shm/tmCropImage_origImage.ppm", origImage);
 	}
@@ -840,9 +884,8 @@ void tmMarkCloneRegion(IplImage * origImage,
 			cvRectangle(origImage,
 					cvPoint(orig_x-copy_width/2, orig_y-copy_height/2),
 					cvPoint(orig_x+copy_width/2, orig_y+copy_height/2),
-					cvScalarAll(COLORMARK_CORRECTED), // green in 8bit image
+					cvScalarAll(COLORMARK_FAILED), // red in 8bit image
 					1);
-
 	}
 	
 

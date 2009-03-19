@@ -240,7 +240,7 @@ private:
 };
 
 /** @brief Convert an OpenCV IplImage to a Qt QImage */
-QImage iplImageToQImage(IplImage * iplImage, bool false_colors = true);
+QImage iplImageToQImage(IplImage * iplImage, bool false_colors = false, bool red_only = true);
 
 
 #endif

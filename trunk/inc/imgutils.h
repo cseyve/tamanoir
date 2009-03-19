@@ -75,6 +75,7 @@ typedef int32_t i32;
 #define IMGUTILS_NULL
 #endif
 
+#define COLORMARK_THRESHOLD	251
 //
 #define COLORMARK_FAILED	252
 #define COLORMARK_REFUSED	253
@@ -142,8 +143,14 @@ void tmEraseRegion(
 	int c, int r,
 	unsigned char fillValue);
 
-/** @brief Crop an IplImage around a point in another IplImage */
-void tmCropImage(IplImage * origImage, IplImage * cropImage, int center_x, int center_y);
+/** @brief Crop an IplImage around a point in another IplImage
+	@param[in] origImage input image, to be cropped
+	@param[out] cropImage output image
+	@param[in] crop_x coordinate of crop top-left point
+	@param[in] crop_y coordinate of crop top-left point
+	@param[in] threshold_false_colors threshold 8bit image for later false colors display (only on 8bit input images)
+*/
+void tmCropImage(IplImage * origImage, IplImage * cropImage, int crop_x, int crop_y, bool threshold_false_colors = false);
 
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h,
