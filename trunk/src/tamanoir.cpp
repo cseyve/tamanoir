@@ -643,10 +643,11 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 			{
 			int dx = current_dust.rel_seed_x - current_dust.rel_src_x;
 			int dy = current_dust.rel_seed_y - current_dust.rel_src_y;
-fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+
+			/*fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
 							current_dust.crop_x+current_dust.rel_seed_x ,
 							current_dust.crop_y+current_dust.rel_seed_y ,
-							0);
+							0);*/
 			if(is_src_selected) {
 				// Move src
 				current_dust.rel_src_x = e->pos().x();
@@ -840,6 +841,8 @@ void TamanoirApp::loadFile(QString s) {
 
 
 void TamanoirApp::lockTools(bool lock) {
+	ui.cropGroupBox->setDisabled(lock);
+	ui.dustGroupBox->setDisabled(lock);
 	ui.toolFrame->setDisabled(lock);
 	//ui.loadButton->setEnabled(lock);
 	ui.saveButton->setDisabled(lock);
@@ -917,7 +920,9 @@ int TamanoirApp::loadOptions() {
 		m_options.filmType = ui.typeComboBox->currentIndex();
 		m_options.trust = ui.trustCheckBox->isChecked();
 		m_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
+		m_options.onlyEmpty = ui.emptyCheckBox->isChecked();
 		m_options.sensitivity = ui.sensitivityComboBox->currentIndex();
+
 		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
 		
 		return 0;
@@ -950,6 +955,9 @@ int TamanoirApp::loadOptions() {
 					if(strcasestr(cmd, "hot")) {
 						m_options.hotPixels = (arg[0]=='T');
 					} else
+					if(strcasestr(cmd, "empty")) {
+						m_options.onlyEmpty = (arg[0]=='T');
+					} else
 					if(strcasestr(cmd, "film")) {
 						m_options.filmType = atoi(arg);
 					} else
@@ -973,6 +981,7 @@ int TamanoirApp::loadOptions() {
 	ui.typeComboBox->setCurrentIndex( m_options.filmType );
 	ui.trustCheckBox->setChecked( m_options.trust );
 	ui.hotPixelsCheckBox->setChecked( m_options.hotPixels );
+	ui.emptyCheckBox->setChecked( m_options.onlyEmpty );
 	QString str;
 	str.sprintf("%d", m_options.dpi);
 	int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
@@ -1000,6 +1009,7 @@ void fprintfOptions(FILE * f, tm_options * p_options) {
 	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
 	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
 	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
+	fprintf(f, "OnlyEmpty:%c\n", p_options->onlyEmpty ? 'T' : 'F');
 	fprintf(f, "FilmType:%d\n", p_options->filmType);
 	fprintf(f, "DPI:%d\n", p_options->dpi);
 	fprintf(f, "Sensitivity:%d\n", p_options->sensitivity);
@@ -1059,14 +1069,18 @@ void TamanoirApp::on_skipButton_clicked()
 	
 	if(m_pProcThread) {
 		// Mark skip on image
-		if(m_pImgProc)
+		if(m_pImgProc) {
 			m_pImgProc->skipCorrection(current_dust);
-		if(skipped_list.isEmpty())
-			ui.prevButton->setEnabled(TRUE);
-		
-		if(!force_mode)
+		}
+
+		if(!force_mode) {
+			if(skipped_list.isEmpty()) {
+				// enable previous button because we'll add one dust
+				ui.prevButton->setEnabled(TRUE);
+			}
 			skipped_list.append(current_dust);
-		
+		}
+
 		// First check if a new dust if available
 		current_dust = m_pProcThread->getCorrection();
 		
@@ -1079,7 +1093,7 @@ void TamanoirApp::on_skipButton_clicked()
 			if(ret == 0) // Finished
 			{
 				ui.overAllProgressBar->setValue(100);
-				statusBar()->showMessage(tr("Finished"));
+				statusBar()->showMessage( tr("Finished") );
 				
 				updateDisplay(); // To show corrections
 				
@@ -1221,6 +1235,7 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 
 	if(m_options.filmType != i) {
 		skipped_list.clear();
+		memset(&current_dust, 0, sizeof(t_correction));
 	}
 
 	m_options.filmType = i;
@@ -1243,6 +1258,7 @@ void TamanoirApp::on_sensitivityComboBox_currentIndexChanged(int i) {
 
 	if(m_options.sensitivity != i) {
 		skipped_list.clear();
+		memset(&current_dust, 0, sizeof(t_correction));
 	}
 
 	m_options.sensitivity = i;
@@ -1290,6 +1306,20 @@ void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 	
 	saveOptions();
 }
+
+void TamanoirApp::on_emptyCheckBox_toggled(bool on) {
+	statusBar()->showMessage( tr("Changed empty area filter: please wait...") );
+	statusBar()->update();
+	m_options.onlyEmpty = on;
+
+	if(m_pProcThread) {
+		m_curCommand = m_pProcThread->setOptions(m_options);
+		refreshTimer.start(250);
+	} else m_curCommand = PROTH_NOTHING;
+
+	saveOptions();
+}
+
 
 void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed hot pixels filter: please wait...") );
@@ -1687,9 +1717,12 @@ void TamanoirApp::updateDisplay()
 			QLabel * pLabel = ui.cropPixmapLabel;
 			int label_width = pLabel->width()-LABELWIDTH_MARGIN;
 			QString propStr;
-			propStr.sprintf("Dist=%g BgDiff=%g %.1f %%",
+			propStr.sprintf("Dist=%g BgDiff=%g %.1f %% smD=%d s/d={d=%g max=%g}",
 							current_dust.proposal_diff, current_dust.bg_diff,
-							current_dust.equivalent_diff*100.f);
+							current_dust.equivalent_diff*100.f,
+							current_dust.smooth_diff,
+							current_dust.srcdest_correl,current_dust.srcdest_maxdiff
+							);
 			ui.proposalLabel->setText( propStr );
 
 			// Display in frame
