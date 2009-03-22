@@ -76,6 +76,7 @@ typedef int32_t i32;
 #endif
 
 #define COLORMARK_THRESHOLD	251
+
 //
 #define COLORMARK_FAILED	252
 #define COLORMARK_REFUSED	253

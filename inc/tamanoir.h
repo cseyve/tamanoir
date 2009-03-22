@@ -215,7 +215,8 @@ private slots:
 
 	void on_hotPixelsCheckBox_toggled(bool);
 	void on_trustCheckBox_toggled(bool);
-	
+	void on_emptyCheckBox_toggled(bool);
+
 	void on_refreshTimer_timeout();
 
 private:

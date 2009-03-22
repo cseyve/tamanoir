@@ -120,7 +120,9 @@ typedef struct t_correction_ {
 	float bg_diff;
 	float proposal_diff;
 	float equivalent_diff;
-
+	float srcdest_correl; /*! Correlation between source and destination, _including_ dust */
+	float srcdest_maxdiff; /*! Max difference between source and destination, _including_ dust */
+	int smooth_diff;	/*! Max difference in neighbourhood of (copy+src) bounding box */
 } t_correction;
 
 
@@ -159,6 +161,7 @@ typedef struct {
 	char currentDir[512];
 	bool trust;			/*! Trust mode activated */
 	bool hotPixels;		/*! Hot pixels detection activated */
+	bool onlyEmpty;		/*! Return for dusts only in empty regions */
 	int filmType;		/*! Film type */
 	int dpi;			/*! Scan resolution in dot per inch */
 	int sensitivity;	/*! Sensitivity (0 means highly sensitive to small dust, bigger needs bigger dusts) */
@@ -406,6 +409,53 @@ private:
 					IplImage * dilateImageOut,
 					int * pbest_correl = NULL,
 					float * pmean_dust = NULL, float * pmean_neighbour = NULL);
+
+	// ============= DUST LIKELYHOOD FUNCTIONS =============
+	/*
+	Dust are characterized by :
+	- we detect them by the difference between the grayscaled image
+		and the blurred grayscale image (@see dilateDust)
+	- we look for a replacement candidate with (@see tmSearchBestCorrelation)
+	- if we found a replacement, but we have to filter real high frequency pattern from
+		real dusts:
+		o source and destination must not be connected (@see srcNotConnectedToDest)
+			=> filter : branches, edges, ...
+		o dilated dust level must have a mean gray level different enough from the gray level of the neighbourhood
+			(@see differentFromNeighbourHood)
+			=> filter small grains
+		o after the correction, the corrected image must be less different from the
+			blurred image than the detected dust (@see correctedBetterThanOriginal)
+
+	*/
+	/** @brief Test if source and destination are connected (by an edge, a branch...)
+		@return false if they are connected
+	*/
+	bool srcNotConnectedToDest(t_correction * pcorrection);
+
+	/** @brief Test if the dust gray level is different enough from the neighbourhood
+	*/
+	bool differentFromNeighbourHood(
+		t_correction * pcorrection,
+		u8 diffref);
+
+	/** @brief check if correction is better than original
+		 e.g. that there's less difference after correction
+		 between the corrected image and the median/blurred image */
+	bool correctedBetterThanOriginal(t_correction * pcorrection);
+
+	/* @brief Test if source and destination are different */
+	bool srcDifferentFromDest(t_correction * pcorrection);
+
+	// ============= DUST LIKELYHOOD FUNCTIONS (end) =============
+
+
+
+	/** @brief is neighbour of dust empty (isolated dust in sky) */
+	bool neighbourhoodEmpty(t_correction * pcorrection);
+
+
+
+
 
 	/** @brief Last seed position (used for searching next) */
 	int m_seed_x;

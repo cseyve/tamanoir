@@ -273,7 +273,7 @@ void tmMarkFailureRegion(IplImage * origImage,
 	{
 		cvRectangle(origImage, 
 			cvPoint(x - 1, y-1),
-			cvPoint(x +w + 1, y+h+1),
+			cvPoint(x + w + 1, y + h + 1),
 			cvScalar(color), 1);
 	} else {
 		switch(color) {
@@ -322,11 +322,11 @@ void tmMarkFailureRegion(IplImage * origImage,
 }
 
 /** Return the ratio of pixels non 0 in an IplImage in a region */
-float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
-		int exclu_x, int exclu_y, int exclu_w, int exclu_h,
-		u8 threshval)
+float tmNonZeroRatio(IplImage * origImage,
+					int orig_x, int orig_y, int w, int h,
+					int exclu_x, int exclu_y, int exclu_w, int exclu_h,
+					u8 threshval)
 {
-	int nbpixnon0 = 0;
 	
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
@@ -342,17 +342,22 @@ float tmNonZeroRatio(IplImage * origImage, int orig_x, int orig_y, int w, int h,
 	
 	// Count pixels
 	u8 * origBuffer = (u8 *)(origImage->imageData);
+	int nbpixnon0 = 0;
+	int nbpix = 0;
 	for(int y=orig_y; y<orig_y+h; y++) {
 		int pos = y * origImage->widthStep + orig_x;
 		for(int x=orig_x; x<orig_x+w; x++, pos++) {
-                        if( (x<exclu_x || x >exclu_x+exclu_w)
-                            && (y<exclu_y || y >exclu_y+exclu_h))
-                        	if( origBuffer[pos] >= threshval)
-                        		nbpixnon0++;
+			if( (x<exclu_x || x >exclu_x+exclu_w)
+				&& (y<exclu_y || y >exclu_y+exclu_h)) {
+				if( origBuffer[pos] >= threshval) {
+					nbpixnon0++;
+				}
+				nbpix++;
+			}
 		}
 	}
-	
-	return (float)nbpixnon0 / ((float)(w*h));
+	if(nbpix==0) return 0.f;
+	return (float)nbpixnon0 / ((float)(nbpix));
 }
 
 
@@ -823,10 +828,7 @@ void tmCropImage(IplImage * origImage,
 					for(int x=xleft; x<xright; x++, c++) {
 						u8 val = origLine[x];
 						if(val > COLORMARK_THRESHOLD) {
-							if(val == 255) val = 254; // always thrshold to 255
-							if(threshold_false_colors) {
-								val = COLORMARK_THRESHOLD;
-							}
+							val = COLORMARK_THRESHOLD;
 						}
 						cropLine[c] = val;
 					}
@@ -1586,8 +1588,8 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 }
 
 
-/*
- * Erase a region filled with @param fillValue in @param grownImage, and neutralize diffImage at the same place
+/* Erase a region filled with @param fillValue in @param grownImage,
+ *	and neutralize diffImage at the same place
  */
 void tmEraseRegion(
 	IplImage * grownImage,
