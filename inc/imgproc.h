@@ -271,6 +271,8 @@ public:
 
 	/** @brief Return the display (crop) block size, used for display and processing */
 	CvSize getDisplayCropSize();
+	/** @brief Undo last cloning */
+	void undo();
 
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };
@@ -347,7 +349,12 @@ private:
 	// Image buffers
 	IplImage * originalImage;
 	IplImage * originalSmallImage;
-	
+	/// Undo image
+	IplImage * undoImage;
+	/// Undo image crop position (top-left)
+	int undoImage_x, undoImage_y;
+
+	/// Original image, blurred for grain removal
 	IplImage * origBlurredImage;
 	
 	IplImage * grayImage;

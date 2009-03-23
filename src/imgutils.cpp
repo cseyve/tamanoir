@@ -657,6 +657,33 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 	return grayImage;
 }
 
+void tmInsertImage(IplImage * cropImage, IplImage * destImage,
+				   int insert_x, int insert_y)
+{
+	int dest_width = destImage->width;
+	int dest_height = destImage->height;
+
+	int crop_width = cropImage->width;
+	int crop_height = cropImage->height;
+	if(insert_x<0) return;
+	if(insert_y<0) return;
+	if(insert_x+crop_width>=dest_width) return;
+	if(insert_y+crop_height>=dest_height) return;
+
+	int byte_depth_dest = tmByteDepth(destImage);
+	int byte_depth_crop = tmByteDepth(cropImage);
+	if(byte_depth_dest != byte_depth_crop) {
+		fprintf(stderr, "[imgutils] %s:%d : byte depth does not fit\n",__func__, __LINE__);
+		return;
+	}
+
+	// Copy into dest image
+	for(int y = 0; y<crop_height; y++) {
+		memcpy(destImage->imageData + (insert_y+y)*destImage->widthStep + insert_x*byte_depth_dest,
+			   cropImage->imageData + y*cropImage->widthStep,
+			   cropImage->width * byte_depth_crop);
+	}
+}
 
 /*
  * Crop image

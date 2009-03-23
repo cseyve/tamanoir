@@ -197,6 +197,7 @@ private slots:
 	void on_topLeftButton_clicked();
 	void on_pageDownButton_clicked();
 	void on_pageUpButton_clicked();
+	void on_undoButton_clicked();
 
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
@@ -218,6 +219,7 @@ private slots:
 	void on_emptyCheckBox_toggled(bool);
 
 	void on_refreshTimer_timeout();
+
 
 private:
 	/** @brief lock tools while doing big tasks : loading/saving/settings */
