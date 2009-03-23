@@ -11,18 +11,18 @@ This page explains how to build Tamanoir on Mac OS X.
 Building Tamanoir on Mac OS X.
 
 You need :
-- OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
-- Qt4 for Mac
-- XCode
-- Tamanoir
+  * OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+  * Qt4 for Mac
+  * XCode
+  * Tamanoir
 
 If you want to manipulate 16bit TIFF, you have to patch OpenCV and to use libtiff. 
 If OpenCV uses ImageIO, it will not support import/export of 16bit images. When removing ImageIO from OpenCV, you need to add at least libPNG to open PNG pictures. The building of libJPEG is not needed.
 
 So, for 16bit support, you need to download and rebuild : 
-* libTIFF
-* libPNG
-* OpenCV 
+  * libTIFF
+  * libPNG
+  * OpenCV 
 
 If you do not need 16bit TIFF support, jump to Qt4 section.
 
@@ -162,4 +162,3 @@ Build and make dependencies :
 rm -fr Tamanoir.app ; BUILD_STATIC=true qmake-4.5 Tamanoir.pro && make clean && make
 ./build_mac_bundle.sh Tamanoir.app Tamanoir.app/Contents/MacOS/Tamanoir
 }}}
-
