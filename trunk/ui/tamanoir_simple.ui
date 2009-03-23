@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>805</width>
-    <height>644</height>
+    <height>622</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -518,7 +518,7 @@
             <bool>true</bool>
            </property>
            <property name="toolTip">
-            <string>Proposed correction</string>
+            <string>Proposed correction. When the mouse is over the display, the dust is shown in red.</string>
            </property>
            <property name="pixmap">
             <pixmap/>
@@ -671,6 +671,19 @@
             </property>
             <property name="shortcut">
              <string>PgUp</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="undoButton">
+            <property name="toolTip">
+             <string>Undo last change</string>
+            </property>
+            <property name="text">
+             <string>Undo</string>
+            </property>
+            <property name="shortcut">
+             <string>Ctrl+Z</string>
             </property>
            </widget>
           </item>

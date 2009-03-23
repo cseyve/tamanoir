@@ -347,6 +347,13 @@ void TamanoirApp::on_pageUpButton_clicked() {
 	moveBlock();
 }
 
+void TamanoirApp::on_undoButton_clicked() {
+	if(m_pImgProc) {
+		fprintf(stderr, "TamanoirApp::%s:%d : UNDO\n", __func__, __LINE__);
+		m_pImgProc->undo();
+		updateDisplay();
+	}
+}
 
 void TamanoirApp::on_linearButton_toggled(bool state) {
 	if(m_draw_on != state) {
@@ -1310,6 +1317,7 @@ void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 void TamanoirApp::on_emptyCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed empty area filter: please wait...") );
 	statusBar()->update();
+
 	m_options.onlyEmpty = on;
 
 	if(m_pProcThread) {
@@ -1944,8 +1952,9 @@ int TamanoirThread::setOptions(tm_options options) {
 	m_options = options;
 	if(!m_pImgProc) 
 		return 0;
-	if(!m_run)
+	if(!m_run) {
 		start();
+	}
 
 	// If something changed, clear already known dusts
 	if(m_options.filmType != options.filmType) {
@@ -1955,6 +1964,9 @@ int TamanoirThread::setOptions(tm_options options) {
 		dust_list.clear();
 	}
 	if(m_options.sensitivity != options.sensitivity) {
+		dust_list.clear();
+	}
+	if(m_options.onlyEmpty != options.onlyEmpty) {
 		dust_list.clear();
 	}
 

@@ -153,6 +153,15 @@ void tmEraseRegion(
 */
 void tmCropImage(IplImage * origImage, IplImage * cropImage, int crop_x, int crop_y, bool threshold_false_colors = false);
 
+/** @brief Insert an IplImage into another IplImage
+	@param[in] cropImage input image, to be cropped
+	@param[out] destImage output image
+	@param[in] insert_x coordinate of dest top-left point
+	@param[in] insert_y coordinate of dest top-left point
+*/
+void tmInsertImage(IplImage * cropImage, IplImage * destImage, int insert_x, int insert_y);
+
+
 /** @brief Return the ratio of pixels non 0 in an IplImage in a region */
 float tmNonZeroRatio(IplImage * origImage, int x, int y, int w, int h,
 			int exclu_x, int exclu_y, int exclu_w, int exclu_h,

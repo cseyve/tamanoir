@@ -116,7 +116,9 @@ void TamanoirImgProc::init() {
 	// Image buffers
 	originalImage = NULL;
 	origBlurredImage = NULL;
-	
+	undoImage = NULL;
+	undoImage_x = undoImage_y = -1;
+
 	// Working images : full size 
 	grayImage = NULL;
 	medianImage = NULL;
@@ -190,7 +192,9 @@ void TamanoirImgProc::purge() {
 	tmReleaseImage(&displayImage);
 	tmReleaseImage(&displayBlockImage);
 	tmReleaseImage(&originalSmallImage);
-	
+	tmReleaseImage(&undoImage);
+	undoImage_x = undoImage_y = -1;
+
 	// Big images
 	tmReleaseImage(&grayImage);
 	tmReleaseImage(&origBlurredImage);
@@ -1212,6 +1216,16 @@ CvSize TamanoirImgProc::getDisplayCropSize() {
 
 	// Else return default size for analysis
 	return processingSize;
+}
+void TamanoirImgProc::undo() {
+	fprintf(stderr, "TamanoirImgProc::%s:%d : UNDO\n", __func__, __LINE__);
+	if(undoImage) {
+		// Copy undo image into original image
+		tmInsertImage(undoImage, originalImage, undoImage_x, undoImage_y);
+
+	} else {
+		fprintf(stderr, "TamanoirImgProc::%s:%d : ERROR: NO UNDO\n", __func__, __LINE__);
+	}
 }
 
 /* @brief Get progress in %age */
@@ -2885,9 +2899,36 @@ void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
 }
 
 void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_y) {
-	if(pcorrection->crop_x <= 0) return;
+	if(pcorrection->crop_x < 0) return;
 	if(!diffImage) return;
 	
+	bool resnap = false;
+	if(undoImage) {
+		if(pcorrection->crop_x != undoImage_x
+		   || pcorrection->crop_y != undoImage_y) {
+			resnap = true,
+			fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage\n", __func__, __LINE__);
+		}
+		if( cropImage->width != undoImage->width
+		   || cropImage->height != undoImage->height ) {
+			tmReleaseImage(&undoImage);
+			fprintf(stderr, "[imgproc]::%s:%d : release undoImage\n", __func__, __LINE__);
+		}
+	}
+	if(!undoImage) {
+		undoImage = tmCreateImage(cvSize(cropImage->width, cropImage->height),
+								  originalImage->depth, originalImage->nChannels);
+		resnap = true;
+	}
+	if(resnap) {
+		undoImage_x = pcorrection->crop_x;
+		undoImage_y = pcorrection->crop_y;
+		tmCropImage(originalImage, undoImage, undoImage_x, undoImage_y);
+
+		fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage : top-left=%d,%d\n", __func__, __LINE__,
+				undoImage_x, undoImage_y);
+	}
+
 	if(g_debug_imgverbose)
 		fprintf(stderr, "[imgproc] %s:%d : rel_x=%d rel_y=%d  %dx%d\n", __func__, __LINE__,
 			rel_x, rel_y, cropImage->width, cropImage->height);
@@ -2949,7 +2990,7 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 {
-        if(correction.copy_width < 0)
+	if(correction.copy_width < 0)
 		return -1; // no available correction
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
