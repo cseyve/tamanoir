@@ -155,6 +155,11 @@ Then you can choose your IDE :
 
 Reference : http://www.siteduzero.com/forum-83-234070-p1-un-bundle-mac-pour-vos-applications-qt4.html
 
-Required : Python : http://www.python.org/download/
+(Required : Python : http://www.python.org/download/)
 
+Build and make dependencies : 
+{{{
+rm -fr Tamanoir.app ; BUILD_STATIC=true qmake-4.5 Tamanoir.pro && make clean && make
+./build_mac_bundle.sh Tamanoir.app Tamanoir.app/Contents/MacOS/Tamanoir
+}}}
 
