@@ -5,10 +5,10 @@ echo "BUILDING Tamanoir for MacOS X....................."
 echo
 
 
-./build_mac_bundle.sh Tamanoir-simple.app/ Tamanoir-simple.app/Contents/MacOS/Tamanoir-simple
-./build_mac_bundle.sh Tamanoir.app/ Tamanoir.app/Contents/MacOS/Tamanoir
+#DEBUG ./build_mac_bundle.sh Tamanoir-simple.app/ Tamanoir-simple.app/Contents/MacOS/Tamanoir-simple
+#./build_mac_bundle.sh Tamanoir.app/ Tamanoir.app/Contents/MacOS/Tamanoir
 
-exit 0
+#exit 0
 
 
 echo
@@ -57,21 +57,28 @@ qtguidir=`otool -L $APP.app/Contents/MacOS/$APP | grep QtGui | awk '{print $1}' 
 echo "QtGui Path = '$qtgui' => copy in Contents"
 cp -R $qtfrmwk/$qtguidir $APP.app/Contents/Frameworks
 
-
 # Copy OpenCV
+cvpath=`otool -L $APP.app/Contents/MacOS/$APP | grep cxcore | awk '{print $1}'`
+cvpath=`pwd -L $cvpath`
+echo "CVPath='$cvpath'"
 cxcore=`otool -L $APP.app/Contents/MacOS/$APP | grep cxcore | awk '{print $1}'`
-cv=`otool -L $APP.app/Contents/MacOS/$APP | grep cv. | awk '{print $1}'`
+cxcoreslashh=`echo $cxcore | cut -d "/" -f5` 
+cv=`otool -L $APP.app/Contents/MacOS/$APP | grep "cv\." | awk '{print $1}'`
+cvslash=`otool -L $APP.app/Contents/MacOS/$APP | grep "cv\." | awk '{print $1}' | cut -d "/" -f5`
+
+cvaux=`otool -L $APP.app/Contents/MacOS/$APP | grep "cvaux" | awk '{print $1}'`
 highgui=`otool -L $APP.app/Contents/MacOS/$APP | grep highgui | awk '{print $1}'`
 
 echo "OpenCV Libs: "
-echo "    + CxCore='$cxcore'"
-echo "    + Cv='$cv'"
+echo "    + CxCore='$cxcore' => '$cxcoreslash'"
+echo "    + Cv='$cv' => '$cvslash'"
+echo "    + Cvaux='$cvaux'"
 echo "    + HighGUI='$highgui'"
 echo
 
-cp -R $cxcore $APP.app/Contents/Frameworks
-cp -R $cv $APP.app/Contents/Frameworks
-cp -R $highgui $APP.app/Contents/Frameworks
+cp -R /usr/local/lib/libcxcore* $APP.app/Contents/FrameWorks/
+cp -R /usr/local/lib/libcv* $APP.app/Contents/Frameworks
+cp -R /usr/local/lib/libhighgui* $APP.app/Contents/Frameworks
 
 # Copy libtiff
 tiff=`otool -L $APP.app/Contents/MacOS/$APP | grep tiff | awk '{print $1}'`
@@ -85,6 +92,31 @@ ls $APP.app/Contents/Frameworks
 
 echo
 echo "Remapping Frameworks... -id"
+echo " + remapping libcv..."
+echo install_name_tool -id @executable_path/../Frameworks/$cvslash $APP.app//Contents/Frameworks/$cvslash
+install_name_tool -id @executable_path/../Frameworks/$cvslash $APP.app//Contents/Frameworks/$cvslash
+echo " + change..."
+echo install_name_tool -change /usr/local/lib \
+         @executable_path/../Frameworks \
+         $APP.app/Contents/Frameworks/libcxcore.2.dylib
+echo install_name_tool -change /usr/local/lib \
+         @executable_path/../Frameworks \
+         $APP.app/Contents/Frameworks/libcv.2.dylib
+echo install_name_tool -change /usr/local/lib \
+         @executable_path/../Frameworks \
+         $APP.app/Contents/Frameworks/libcvaux.2.dylib
+echo install_name_tool -change /usr/local/lib \
+         @executable_path/../Frameworks \
+         $APP.app/Contents/Frameworks/libhighgui.2.dylib
+
+
+echo "Finally, otool says : "
+otool -L $APP.app/Contents/MacOS/$APP
+
+
+#install_name_tool -id @executable_path/../Frameworks/$cv \
+#		$APP.app/Contents/Frameworks/$cvslash
+exit 0
 install_name_tool -id @executable_path/../Frameworks/$qtcore \
                 $APP.app/Contents/Frameworks/$qtcore
 install_name_tool -id @executable_path/../Frameworks/$qtgui \
@@ -104,5 +136,6 @@ install_name_tool -change $qtfrmwk/$qtcore \
                  @executable_path/../Frameworks/$qtcore \
                  $APP.app/Contents/Frameworks/$qtgui
 
+echo "Finally, otool says : "
 otool -L $APP.app/Contents/MacOS/$APP
 

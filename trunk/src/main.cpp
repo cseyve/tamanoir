@@ -123,13 +123,16 @@ int main(int argc, char *argv[])
   	// for development, use "/" to use the english original as
 	// .qm files are stored in the base project directory.
 	QLocale localLang;
-	tor.load( QString("tamanoir_") +
+	QDir dir(QApplication::applicationDirPath());
+	QString translationFile = QString("tamanoir_") +
 //			  QTextCodec::locale() +
 			  localLang.languageToString(localLang.language()) +
-			  QString(".qm"),
-				QString(".") );
+			  QString(".qm");
+	fprintf(stderr, "Translation file='%s'\n", translationFile.ascii());
+	tor.load( translationFile,
+				QApplication::applicationDirPath() );
 	
- 	a.installTranslator( &tor );
+	a.installTranslator( &tor );
 	
 	/* --- Create application ---*/
 	TamanoirApp sA;
