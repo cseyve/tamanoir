@@ -20,14 +20,14 @@ Merci de lire le [ModeDEmploiTamanoir]
 === Paquets ===
 
 Deux paquets sont disponibles : 
-  * MacOS X : [http://cseyve.free.fr/tamanoir/Tamanoir-MacOSX-svn20090326.zip Tamanoir-MacOSX-svn20090326.zip] (74 Mo, Qt4.5 inclus)
+  * MacOS X / Intel : [http://cseyve.free.fr/tamanoir/Tamanoir-MacOSX-svn20090326.zip Tamanoir-MacOSX-svn20090326.zip] (74 Mo, Qt4.5 inclus)
   * Linux Debian 5/Lenny / Ubuntu : [http://tamanoir.googlecode.com/files/tamanoir_0.svn20090323-1_i386.deb tamanoir_0.svn20090323-1_i386.deb]
 
 === Statut ===
 
 Version : beta. 
 
-Portabilité : Linux et MacOS X. Compile sous Windows mais problème d'exécution : un peu d'aide serait bienvenue !
+Portabilité : Linux et MacOS X (Intel). Compile sous Windows mais problème d'exécution : un peu d'aide serait bienvenue ! Pour MacOS X / PowerPC, besoin d'aide aussi.
 
 === Dépendances ===
 
