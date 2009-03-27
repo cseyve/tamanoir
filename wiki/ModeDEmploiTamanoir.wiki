@@ -103,7 +103,7 @@ Il y a deux vues :
 
     La partie gauche affiche de plus un bouton "Clonage" (_raccourci : touche 'C'_). Si le clonage est activé :
         * La flèche suit en permanence le curseur de la souris. Si aucun bouton n'est appuyé, le logiciel cherche la meilleure source pour la destination pointée par la souris.
-        * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : il n'y a pas de fonction d'annulation !
+        * Le clic gauche effectue la copie du rectangle vers la pointe de la flèche. Attention : l'annulation (Ctrl+Z ou Pomme+Z) ne fonctionne que si l'on ne déplace pas la zone de zoom !
         * Le clic droit positionne l'origine (source) de la copie
         * La molette sert à redimensionner le rectangle source
 
