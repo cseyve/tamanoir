@@ -20,7 +20,7 @@ Merci de lire le [ModeDEmploiTamanoir]
 === Paquets ===
 
 Deux paquets sont disponibles : 
-  * MacOS X : [http://cseyve.free.fr/tamanoir/Tamanoir-svn20090326.zip Tamanoir-svn20090326.zip] (74 Mo, Qt4.5 inclus)
+  * MacOS X : [http://cseyve.free.fr/tamanoir/Tamanoir-MacOSX-svn20090326.zip Tamanoir-MacOSX-svn20090326.zip] (74 Mo, Qt4.5 inclus)
   * Linux Debian 5/Lenny / Ubuntu : [http://tamanoir.googlecode.com/files/tamanoir_0.svn20090323-1_i386.deb tamanoir_0.svn20090323-1_i386.deb]
 
 === Statut ===
@@ -42,3 +42,4 @@ Tamanoir est écrit en C/C++, et utilise les bibliothèques :
 Documentation en anglais :
   * pour MacOS X : voir [MacOSXBuild]
   * pour Linux : voir [LinuxBuild]
+  * pour Windows : voir [WindowsBuild]
