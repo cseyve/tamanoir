@@ -17,9 +17,15 @@ Environ 80 à 90 % des poussières sont détectées sur des films avec peu de gr
 
 Merci de lire le [ModeDEmploiTamanoir]
 
+=== Paquets ===
+
+Deux paquets sont disponibles : 
+  * MacOS X : [http://cseyve.free.fr/tamanoir/Tamanoir-svn20090326.zip Tamanoir-svn20090326.zip] (74 Mo, Qt4.5 inclus)
+  * Linux Debian 5/Lenny / Ubuntu : [http://tamanoir.googlecode.com/files/tamanoir_0.svn20090323-1_i386.deb tamanoir_0.svn20090323-1_i386.deb]
+
 === Statut ===
 
-Version : béta. Fonctionne bien avec les scans de diapos couleur. Pour les films noir & blanc à grain (ex: 400 ISO scannés en haute résolution, 2400 dpi), il détecte trop de poussières (fausses alarmes) pour être utilisable.
+Version : béta. Fonctionne bien avec les scans de diapos couleur. 
 
 Portabilité : Linux et MacOS X. Pas encore testé/construit sous Windows : un peu d'aide serait bienvenue !
 
