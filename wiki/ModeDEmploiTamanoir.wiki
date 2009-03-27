@@ -143,6 +143,10 @@ http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Options.png
 Le mode "confiance" permet d'accélérer la tâche de correction en validant automatiquement les corrections qui sont jugées comme très bonnes par le logiciel. Les corrections sont indiquées en vert sur la vue générale.
 
 
+== Mode "Vide seul."=Surfaces vides seulement ==
+
+Le mode "Vide seulement" permet d'éviter de devoir confirmer ou refuser les poussières dans les zones où il y a beaucoup de fausses détections (graviers, surfaces tachetées...). Les poussières ne sont présentées que si elles se situent dans un espace uniforme : ciel, mur ...
+
 ----
 
 Commentaires et suggestions sont bienvenues !! Nous cherchons de nouveaux contributeurs.
