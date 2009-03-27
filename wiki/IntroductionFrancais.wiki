@@ -25,9 +25,9 @@ Deux paquets sont disponibles :
 
 === Statut ===
 
-Version : béta. Fonctionne bien avec les scans de diapos couleur. 
+Version : beta. 
 
-Portabilité : Linux et MacOS X. Pas encore testé/construit sous Windows : un peu d'aide serait bienvenue !
+Portabilité : Linux et MacOS X. Compile sous Windows mais problème d'exécution : un peu d'aide serait bienvenue !
 
 === Dépendances ===
 
