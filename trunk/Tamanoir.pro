@@ -2,7 +2,13 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
-TARGET = Tamanoir
+
+# Use lowercase name for Linux
+linux-g++::TARGET = tamanoir
+# and an uppercase first letter for Mac & Windows
+mac::TARGET = Tamanoir
+win32::TARGET = Tamanoir
+
 DEPENDPATH += . \
     inc \
     src \
@@ -20,14 +26,10 @@ TRANSLATIONS = tamanoir_fr.ts
 mac::ICON = icon/Tamanoir.icns
 win32::RC_FILE = icon/tamanoir.rc
 linux-g++::ICON = icon/Tamanoir32.png
-
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+!win32:
 
-
-!win32 {
-#     SOURCES -= paintwidget_win.cpp
-}
-
+# SOURCES -= paintwidget_win.cpp
 # Input
 HEADERS = inc/imgproc.h \
     inc/imgutils.h \
@@ -39,9 +41,9 @@ SOURCES = src/imgproc.cpp \
     src/main.cpp \
     src/tamanoir.cpp \
     src/qimagedisplay.cpp
-#    -O2 \
+
 linux-g++:TMAKE_CXXFLAGS += -Wall \
-    -g \
+    -g -O2 \
     -fexceptions \
     -Wimplicit \
     -Wreturn-type \
@@ -134,7 +136,8 @@ unix: {
                 CVINSTPATH = /usr
                 CVINCPATH = /usr/include/opencv
                 INCLUDEPATH += /usr/include/opencv
-#                DYN_LIBS += -L/usr/lib
+                
+                # DYN_LIBS += -L/usr/lib
                 OPENCV_STATIC_LIBDIR = /usr/local/lib
             }
             else { 
@@ -184,11 +187,18 @@ unix: {
         message( defines : $$DEFINES )
     }
 }
+
+# libtool --mode=link g++ -o Tamanoir .obj-simple/imgproc.o .obj-simple/imgutils.o .obj-simple/main.o .obj-simple/tamanoir.o .obj-simple/qimagedisplay.o .obj-simple/cv2tiff.o .obj-simple/moc_tamanoir.o .obj-simple/moc_qimagedisplay.o .obj-simple/qrc_tamanoir.o -L/usr/lib /usr/lib/libtiff.a /usr/local/lib/libcxcore.la /usr/local/lib/libcv.la /usr/local/lib/libcvaux.la /usr/local/lib/libhighgui.la -lQtGui -lQtCore -lpthread
 DYN_LIBS += -lcvaux \
     -lhighgui
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
     $$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
+    $$OPENCV_STATIC_LIBDIR/libjpeg.a \
+    $$OPENCV_STATIC_LIBDIR/libtiff.a \
     $$OPENCV_STATIC_LIBDIR/lib_highgui.a
+
+# Build static if linked statically with a patched version of OpenCV for 16bit TIFF pictures
+# ./configure --with-ffmpeg=no --with-tiff=yes --with-v4l=no --with-v4l2=no --with-gtk=no
 BUILD_STATIC = $$(BUILD_STATIC)
 contains(BUILD_STATIC, true) { 
     message("Building static version of binary :")
@@ -203,7 +213,8 @@ else {
     LIBS += $$DYN_LIBS
 }
 OTHER_FILES += build_mac_bundle.sh \
-    build_mac_dmg.py
+    build_mac_dmg.py \
+    docs/Tamanoir-FR_AnnonceForums.txt
 
 # CONFIG(debug, debug|release) {
 macx:message("MacOS X specific options =================================================")
@@ -221,13 +232,11 @@ CONFIG += qt \
     warn_on \
     debug \
     release \
-	static \
     build_all
 
 # # INSTALLATION
 # target.path = /usr/local/tamanoir
 # INSTALLS += target
-
 # FINAL CONFIGURATION ==================================================
 message( "")
 message( "")

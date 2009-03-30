@@ -43,7 +43,7 @@ extern u8 g_debug_correlation;
 extern u8 g_evaluate_mode;
 
 u8 g_debug_TmThread = 0; 
-
+u8 g_debug_displaylabel = 0;
 
 /** constructor */
 TamanoirApp::TamanoirApp(QWidget * l_parent) 
@@ -87,8 +87,6 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	//ui.overAllProgressBar->hide();
 	ui.loadingTextLabel->hide();
 	//ui.hiddenFrame->hide();
-	on_loadButton_clicked ();
-	
 #endif
 	int size_w = (ui.cropPixmapLabel->size().width()/4)*4+2;
 	int size_h = (ui.cropPixmapLabel->size().height()/4)*4+2;
@@ -414,8 +412,8 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
 		int dist_to_src = tmmax( dx_src, dy_src );
 
-fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
-		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
+		//fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
+		//		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
 		switch(e->button()) {
 		case Qt::NoButton:
 			//fprintf(stderr, "TamanoirApp::%s:%d : NoButton...\n", __func__, __LINE__);
@@ -474,28 +472,7 @@ fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
 					current_dust.rel_seed_x = e->pos().x();
 					current_dust.rel_seed_y = e->pos().y();
 					
-					/** No search when we click = click=apply 
-					t_correction search_correct = current_dust;
-					
-					// Compute correction
-					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
-					//g_debug_imgverbose = 255;
-					//g_debug_correlation = 255;
-					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x , 
-										current_dust.crop_y+current_dust.rel_seed_y , 
-											&search_correct);
-					g_debug_imgverbose = old_debug;
-					g_debug_correlation = old_correlation;
-				
-					if(ret > 0) {
-						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
-							current_dust.crop_x+current_dust.rel_seed_x , 
-							current_dust.crop_y+current_dust.rel_seed_y , 
-						0);
-						current_dust = search_correct;
-						
-					}
-					** No search when we click = click=apply **/
+					/** No search when we click = click=apply **/
 					m_pImgProc->applyCorrection(current_dust, true);
 				}
 			}
@@ -763,7 +740,7 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 void TamanoirApp::setArgs(int argc, char **argv) {
 	ui.loadingTextLabel->setText(QString(""));
 	statusBar()->showMessage( QString("") );
-	
+	bool open_load_dialog = true;
 	QString argsStr = tr("Args=");
 	if(argc > 1) {
 		for(int arg=1; arg<argc; arg++) {
@@ -778,16 +755,26 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 					g_debug_savetmp = 1;
 				
 			} else {
-				loadFile( argv[arg] );
+				QFileInfo fi(argv[arg]);
+				if(fi.exists()) {
+					loadFile( argv[arg] );
+					open_load_dialog = false;
+				}
 			}
 			
 			
 			argsStr += QString(argv[arg]);
-			
 		}
 		
 		statusBar()->showMessage( argsStr );
 	}
+
+#ifdef SIMPLE_VIEW
+	if(open_load_dialog) {
+		on_loadButton_clicked ();
+	}
+#endif
+
 }
 
 
@@ -1716,22 +1703,24 @@ void TamanoirApp::updateDisplay()
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
 		
+//unused #define LABELWIDTH_MARGIN	2
 		IplImage * curImage;
 		
-#define LABELWIDTH_MARGIN	2
 		// Top-left : Display cropped / detailled images -- ORIGINAL
 		curImage = m_pImgProc->getCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
-			int label_width = pLabel->width()-LABELWIDTH_MARGIN;
-			QString propStr;
-			propStr.sprintf("Dist=%g BgDiff=%g %.1f %% smD=%d s/d={d=%g max=%g}",
-							current_dust.proposal_diff, current_dust.bg_diff,
-							current_dust.equivalent_diff*100.f,
-							current_dust.smooth_diff,
-							current_dust.srcdest_correl,current_dust.srcdest_maxdiff
-							);
-			ui.proposalLabel->setText( propStr );
+			//unused int label_width = pLabel->width()-LABELWIDTH_MARGIN;
+			if(g_debug_displaylabel) {
+				QString propStr;
+				propStr.sprintf("Dist=%g BgDiff=%g %.1f %% smD=%d s/d={d=%g max=%g}",
+								current_dust.proposal_diff, current_dust.bg_diff,
+								current_dust.equivalent_diff*100.f,
+								current_dust.smooth_diff,
+								current_dust.srcdest_correl,current_dust.srcdest_maxdiff
+								);
+				ui.proposalLabel->setText( propStr );
+			}
 
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage,
@@ -1757,7 +1746,7 @@ void TamanoirApp::updateDisplay()
 		curImage = m_pImgProc->getCorrectedCrop();
 		if(curImage) {
 			QLabel * pLabel = ui.correctPixmapLabel;
-			int label_width = pLabel->width()-LABELWIDTH_MARGIN;
+			//unused int label_width = pLabel->width()-LABELWIDTH_MARGIN;
 
 			// If wa are over the correction pixmap, let's display debug information
 			if(m_overCorrected) {
@@ -1766,34 +1755,36 @@ void TamanoirApp::updateDisplay()
 				//float coef = 0.5f;
 				//float coef_1 = 1.f - coef;
 #define DUST_MARK_R		255
-#define DUST_MARK_G		127
+#define DUST_MARK_G		0
 #define DUST_MARK_B		0
-				for(int r = 0; r<growImage->height; r++) {
-					u8 * correctLine = (u8 *)(curImage->imageData + r * curImage->widthStep);
-					u8 * growLine = (u8 *)(growImage->imageData + r * growImage->widthStep);
-					if(curImage->nChannels == 1) {
-						for(int c = 0; c<growImage->width; c++) {
-							if(growLine[c]>0) {
-								correctLine[c] = COLORMARK_FAILED;
+				if(growImage) {
+					for(int r = 0; r<growImage->height; r++) {
+						u8 * correctLine = (u8 *)(curImage->imageData + r * curImage->widthStep);
+						u8 * growLine = (u8 *)(growImage->imageData + r * growImage->widthStep);
+						if(curImage->nChannels == 1) {
+							for(int c = 0; c<growImage->width; c++) {
+								if(growLine[c]>0) {
+									correctLine[c] = COLORMARK_FAILED;
+								}
 							}
 						}
-					}
-					else {
-						int RGB[4] = { DUST_MARK_B, DUST_MARK_G,DUST_MARK_R, 0 };
-						int kc = 0;
-						for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
-							if(growLine[c]>30) {
-								/*int col = growLine[c];
+						else {
+							int RGB[4] = { DUST_MARK_B, DUST_MARK_G,DUST_MARK_R, 0 };
+							int kc = 0;
+							for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
+								if(growLine[c]>30) {
+									/*int col = growLine[c];
 
-								// False colors
-								if(col<128) RGB[2] = (255-2*col); else RGB[2] = 0;
-								if(col>128) RGB[0] = 2*(col-128); else RGB[0] = 0;
-								RGB[2] = 256 - abs(128-col)*2; if(RGB[1]>255) RGB[1] = 255;
-								*/
+									// False colors
+									if(col<128) RGB[2] = (255-2*col); else RGB[2] = 0;
+									if(col>128) RGB[0] = 2*(col-128); else RGB[0] = 0;
+									RGB[2] = 256 - abs(128-col)*2; if(RGB[1]>255) RGB[1] = 255;
+									*/
 
-								for(int k=0; k<curImage->nChannels; k++) {
-									//correctLine[kc+k] = (u8) (RGB[k] * (int)correctLine[kc+k] / 255);
-									correctLine[kc+k] = (u8) (RGB[k]);
+									for(int k=0; k<curImage->nChannels; k++) {
+										//correctLine[kc+k] = (u8) (RGB[k] * (int)correctLine[kc+k] / 255);
+										correctLine[kc+k] = (u8) (RGB[k]);
+									}
 								}
 							}
 						}
@@ -1940,7 +1931,7 @@ void TamanoirThread::setModeAuto(bool on) {
 		
 		req_command = PROTH_SEARCH;
 		m_options.trust = 1;
-		m_pImgProc->setTrustCorrection(m_options.trust);
+		m_pImgProc->setOptions(m_options);
 		// Unlock thread 
 		mutex.lock();
 		waitCond.wakeAll();

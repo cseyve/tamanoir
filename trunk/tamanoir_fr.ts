@@ -87,7 +87,6 @@
         <translation>Type de film : positif (numérique ou diapos) ou négatif</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="336"/>
         <location filename="ui/tamanoir_simple.ui" line="364"/>
         <source>Undefined</source>
         <translation>Indéfini</translation>
@@ -250,7 +249,6 @@
         <translation>Après</translation>
     </message>
     <message>
-        <location filename="ui/tamanoir_simple.ui" line="558"/>
         <location filename="ui/tamanoir_simple.ui" line="609"/>
         <source>TextLabel</source>
         <translation></translation>
@@ -373,11 +371,71 @@
     <message>
         <location filename="ui/tamanoir_simple.ui" line="676"/>
         <source>page up</source>
-        <translation>Suivant</translation>
+        <translation type="obsolete">Suivant</translation>
     </message>
     <message>
         <location filename="ui/tamanoir_simple.ui" line="679"/>
         <source>PgUp</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="397"/>
+        <source>Detect dusts only in empty areas (sky, ...)</source>
+        <translation>Détection des poiusssières seulement dans les zones uniformes (ciel, ...)</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="400"/>
+        <source>Empty only</source>
+        <translation>Vide seul.</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="407"/>
+        <source>Sensitivity of dust detection : from highly sensitive (smallest dusts) to low (bigger dusts)</source>
+        <translation>Sensibilité de la détection de poussières : de très sensible (poussières petites) à peu sensibles (grosses poussières)</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="411"/>
+        <source>Sensitive</source>
+        <translation>Sensible</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="416"/>
+        <source>Medium</source>
+        <translation>Moyen</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="421"/>
+        <source>Rough</source>
+        <translation>Peu sensible</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="432"/>
+        <source>Trust</source>
+        <translation>Confiance</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="521"/>
+        <source>Proposed correction. When the mouse is over the display, the dust is shown in red.</source>
+        <translation>Correction proposée. Quand la souris est au-dessus de l&apos;affichage, la poussière est affichée en rouge.</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="670"/>
+        <source>Page up</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="680"/>
+        <source>Undo last change</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="683"/>
+        <source>Undo</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="686"/>
+        <source>Ctrl+Z</source>
         <translation></translation>
     </message>
 </context>
@@ -577,6 +635,16 @@ Voulez-vous revenir au début ?</translation>
         <location filename="src/tamanoir.cpp" line="1865"/>
         <source>Corrected: dust: </source>
         <translation>Corrigée : </translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="1242"/>
+        <source>Changed sensitivity: please wait...</source>
+        <translation>Changement de sensibilité : merci de patienter...</translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="1297"/>
+        <source>Changed empty area filter: please wait...</source>
+        <translation>Changement de mode &quot;Vide seulement&quot; : merci de patienter...</translation>
     </message>
 </context>
 </TS>

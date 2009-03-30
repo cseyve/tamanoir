@@ -1,3 +1,21 @@
+tamanoir (0.svn20090327-2) unstable; urgency=low
+
+  * Bugfix on translation files installation
+
+ -- Christophe Seyve <cseyve@free.fr>  Tue, 27 Mar 2009 17:24:00 +0200
+
+tamanoir (0.svn20090327-1) unstable; urgency=low
+
+  * Added translation files
+
+ -- Christophe Seyve <cseyve@free.fr>  Tue, 27 Mar 2009 13:24:00 +0200
+
+tamanoir (0.svn20090323-1) unstable; urgency=low
+
+  * Many improvements in GUI and image processing: first really usable release
+
+ -- Christophe Seyve <cseyve@free.fr>  Tue, 23 Mar 2009 23:24:00 +0200
+
 tamanoir (0.svn20080730-2) unstable; urgency=low
 
   * Now sing a theme-independent icon.

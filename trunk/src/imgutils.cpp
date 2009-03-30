@@ -937,6 +937,9 @@ void tmMarkCloneRegion(IplImage * origImage,
 	float vector_len = sqrt(copy_vector_x*copy_vector_x+copy_vector_y*copy_vector_y);
 	if(vector_len > 10) {
 		float shorter_len = vector_len - 10.f;
+		if(shorter_len < 8) {
+			shorter_len = 8;
+		}
 		copy_vector_x = (int)roundf((float)copy_vector_x * shorter_len / vector_len);
 		copy_vector_y = (int)roundf((float)copy_vector_y * shorter_len / vector_len);
 	}
@@ -952,6 +955,7 @@ void tmMarkCloneRegion(IplImage * origImage,
 	
 	int arrow_vector_x = -copy_vector_x;
 	int arrow_vector_y = -copy_vector_y;
+
 	// Arrow
 	cvLine(origImage, 
 		   cvPoint(copy_center_x + arrow_vector_x*3/4 - arrow_vector_y*1/4 ,
@@ -1655,8 +1659,10 @@ void tmEraseRegion(
 	u8 * diffOut = (u8 *)diffImage->imageData;
 
 	if(growIn[c+r * swidth] != fillValue) {
+		/*
 		fprintf(stderr, "[imgutils] %s:%d : not a seed @ %d,%d\n", __func__, __LINE__,
 				c, r);
+				*/
 		return;
 	}
 

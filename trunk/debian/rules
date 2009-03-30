@@ -17,7 +17,10 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-	qmake-qt4
+	#BUILD_STATIC=true 
+	# generate translation file
+	lrelease-qt4 tamanoir_fr.ts -qm tamanoir_French.qm
+	qmake-qt4 Tamanoir.pro
 
 	touch configure-stamp
 
@@ -52,7 +55,8 @@ install: build
 
 	# Add here commands to install the package into debian/tamanoir.
 	export DESTDIR=$(CURDIR)/debian/tamanoir; \
-	install -D -o root -g root -m 0755 Tamanoir $$DESTDIR/usr/bin/Tamanoir; \
+	install -D -o root -g root -m 0755 tamanoir $$DESTDIR/usr/bin/tamanoir; \
+	install -D -o root -g root -m 0644 tamanoir_French.qm $$DESTDIR/usr/share/tamanoir/tamanoir_French.qm; \
 	install -D -o root -g root -m 0644 debian/tamanoir.desktop $$DESTDIR/usr/share/applications/tamanoir.desktop; \
 	install -D -o root -g root -m 0644 debian/tamanoir-desktop.png $$DESTDIR/usr/share/pixmaps/tamanoir.png
 
