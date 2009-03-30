@@ -490,7 +490,7 @@
             </size>
            </property>
            <property name="text">
-            <string>Proposal:</string>
+            <string/>
            </property>
           </widget>
          </item>
@@ -673,7 +673,7 @@
           <item>
            <widget class="QPushButton" name="pageUpButton">
             <property name="text">
-             <string>page up</string>
+             <string>Page up</string>
             </property>
             <property name="shortcut">
              <string>PgUp</string>

@@ -1,7 +1,7 @@
 Source: tamanoir
 Section: graphics
 Priority: extra
-Maintainer: Vincent Caron <vincent@zerodeux.net>
+Maintainer: Christophe Seyve <cseyve@free.fr>
 Build-Depends: debhelper (>= 7), libpng-dev, libtiff-dev, libhighgui-dev, libqt4-dev
 Standards-Version: 3.7.3
 Homepage: http://code.google.com/p/tamanoir/

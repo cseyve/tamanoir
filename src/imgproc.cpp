@@ -883,11 +883,12 @@ int TamanoirImgProc::preProcessImage() {
 							tmmin(blockSize.height, originalImage->height));
 
 	allocCropped();
+	processResolution(m_options.dpi);
 
 	m_lock = false;
 
-	setResolution(m_options.dpi);
 	
+	// Then process
 	m_progress = 100;
 	
 	return 0;
@@ -1036,87 +1037,79 @@ int TamanoirImgProc::saveFile(const char * filename) {
 
 
 
-/*
- * Activate/desactivate hot pixels filtering
- */
-bool TamanoirImgProc::setHotPixelsFilter(bool on) {
-	if(m_options.hotPixels == on) return on;
-	
-	fprintf(logfile, "TamanoirImgProc::%s:%d : %s hot pixels filtering\n", __func__, __LINE__,
-		(on ? "ACTIVATE" : "DESACTIVATE" ) );
-	m_options.hotPixels = on ;
-	
-	
-	m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400);
-	if(m_options.hotPixels) {
-		m_dust_area_min = HOTPIXEL_MIN_SIZE;
-	}
-	// Then re-process file
-	fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-		__func__, __LINE__);
-	if(originalImage && on)
-	{
-		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-			__func__, __LINE__);
-		preProcessImage();
-		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-			__func__, __LINE__);
-		firstDust();
-	}
-	fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-			__func__, __LINE__);
-		
-	return m_options.hotPixels;
-}
 
 
-/*
- * Activate/desactivate trust on good corrections
- */
-bool TamanoirImgProc::setTrustCorrection(bool on) {
-	fprintf(logfile, "TamanoirImgProc::%s:%d : %s trust on good correction proposals (last=%d,%d)\n",
-		__func__, __LINE__,
-		(on ? "ACTIVATE" : "DESACTIVATE" ),
-		m_last_correction.crop_x, m_last_correction.crop_y);
-	
-	if(m_options.trust != on) { // We changed to trust mode, return to last correction
-		if(on) {
-			m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
-			m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
-		}
-	}
-	
-	// Then search for next
-	nextDust ();
-	
-	m_options.trust = on;
-	
-	return m_options.trust;
-}
 
 int TamanoirImgProc::setOptions(tm_options opt) {
-	setFilmType(opt.filmType);
-	setTrustCorrection(opt.trust);
-	setHotPixelsFilter(opt.hotPixels);
-
 	bool rewind_to_start = false;
 	bool rewind_to_previous = false;
 
+	/*
+	 * Film type change
+	 */
+	if(m_options.filmType != opt.filmType) {
+		// We need to reprocess al image
+		rewind_to_start = true;
+	}
+
+	/*
+	 * Change film resolution
+	 */
+
+	/*
+	 * Activate/desactivate trust on good corrections
+	 */
+	if(m_options.trust != opt.trust) {
+		// We changed to trust mode, return to last correction
+		if(opt.trust) {
+			rewind_to_previous = true;
+		}
+	}
+
+	/*
+	 * Activate/desactivate hot pixels filtering
+	 */
+	if(opt.hotPixels != m_options.hotPixels) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : %s hot pixels filtering\n", __func__, __LINE__,
+			(opt.hotPixels ? "ACTIVATE" : "DESACTIVATE" ) );
+		m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400);
+		if(opt.hotPixels) {
+			m_dust_area_min = HOTPIXEL_MIN_SIZE;
+		}
+	}
+
 	// If the sensitivity changed, clear also
 	if(m_options.sensitivity != opt.sensitivity) {
-		m_options.sensitivity = opt.sensitivity;
-		// FIXME
-		rewind_to_previous = true;
+		if(opt.sensitivity > m_options.sensitivity)
+			// We need less sensibility so we can resume from where we were
+			rewind_to_previous = true;
+		else
+			rewind_to_start = true;
 	}
+
 	if(m_options.onlyEmpty != opt.onlyEmpty) {
-		m_options.onlyEmpty = opt.onlyEmpty;
-		// FIXME
-		rewind_to_previous = true;
+		if(opt.onlyEmpty)
+			// We need less sensibility so we can resume from where we were
+			rewind_to_previous = true;
+		else
+			rewind_to_start = true;
 	}
 
 	// Then set resolution, because we process the min size here
-	setResolution(opt.dpi);
+	if(m_options.dpi != opt.dpi) {
+		if(opt.dpi < m_options.dpi )
+			// we're looking for smaller dust (in pixel size)
+			// so we have to go back to start
+			rewind_to_start = true;
+		else
+			rewind_to_previous = true;
+
+		processResolution(opt.dpi);
+	}
+
+	// At last, store version
+	m_options = opt;
+
 	if(rewind_to_start && originalImage) {
 		preProcessImage();
 		firstDust();
@@ -1131,38 +1124,24 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		if(growImage) {
 			cvZero(growImage);
 		}
+
+		// Then search next
+		nextDust();
 	}
 
 	m_options = opt;
 	return 0;
 }
 
-void TamanoirImgProc::setFilmType(int type) {
-	if(m_options.filmType == type)
-		return;
-	
-	m_options.filmType = type;
-	
-	// Then re-process file
-	if(originalImage) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : re-preprocessing image...\n", 
-			__func__, __LINE__);
-		preProcessImage();
-		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : go to first durst...\n", 
-			__func__, __LINE__);
-		firstDust();
-		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : done.\n", 
-			__func__, __LINE__);
-		
-	}
-}
 
-int TamanoirImgProc::setResolution(int dpi) {
-	
+int TamanoirImgProc::processResolution(int dpi) {
+	if(m_options.dpi == dpi) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : ALREADY SET scan resolution = %d\n",
+			__func__, __LINE__, dpi);
+//		return 0;
+	}
 	// Then re-process file
-	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n",
 		__func__, __LINE__, dpi);
 
 	if(originalImage) {
@@ -1180,24 +1159,17 @@ int TamanoirImgProc::setResolution(int dpi) {
 		if(m_options.hotPixels) {
 			m_dust_area_min = HOTPIXEL_MIN_SIZE;
 		}
-		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : dust min area %d pixels^2\n", 
+
+		fprintf(logfile, "TamanoirImgProc::%s:%d : dust min area %d pixels^2\n",
 			__func__, __LINE__, m_dust_area_min);
-		
+
 		m_dust_area_max = 800 * dpi / 2400;
-		if(dpi != m_options.dpi) {
-			preProcessImage();
-			firstDust();
-		}
 	}
 
-	m_options.dpi = dpi;
-	fprintf(logfile, "TamanoirImgProc::%s:%d : scan resolution = %d\n", 
-		__func__, __LINE__, m_options.dpi);
-	
-	return m_options.dpi;
+	fprintf(logfile, "TamanoirImgProc::%s:%d : scan resolution = %d\n",
+		__func__, __LINE__, dpi);
+	return 0;
 }
-
 
 int TamanoirImgProc::setBlockSize(int w, int h) {
 	if(w == blockSize.width && h == blockSize.height) {
@@ -1403,12 +1375,12 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			// No difference at this point
 			// return 0;
 			int closest_dist = 20*20 ;
-			
+			int xin = x, yin = y;
 			for(int ly=ytop; ly<=ybottom; ly++) {
 				for(int lx=xleft; lx<=xright; lx++) {
 					if(diffImageBuffer[ ly*lpitch + lx] == DIFF_THRESHVAL) {
-						int dx = x - lx;
-						int dy = y - ly;
+						int dx = xin - lx;
+						int dy = yin - ly;
 						int dist = sqrt(dx*dx+dy*dy);
 						if(dist < closest_dist) {
 							closest_dist = dist;
@@ -1421,7 +1393,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		
 		
 		// Clear gnown buffer to enable second region growing
-		
 		for(int ly=ytop; ly<ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
@@ -1831,11 +1802,11 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				if( (m_options.trust )// || m_options.onlyEmpty)
 				   && return_now) {
 					// Check if correction area is in diff image
+					/* OBSOLETE : use percentage of dusts pixels in copy+src bounding box
 					int left =   tmmin(copy_src_x - copy_width/2, copy_dest_x - copy_width/2);
 					int right =  tmmax(copy_src_x + copy_width/2, copy_dest_x + copy_width/2);
 					int top =    tmmin(copy_src_y - copy_height/2, copy_dest_y - copy_height/2);
 					int bottom = tmmax(copy_src_y + copy_height/2, copy_dest_y + copy_height);
-					/* OBSOLETE : use percentage of dusts pixels in copy+src bounding box
 					float fill_failure = tmNonZeroRatio(diffImage,
 											crop_x + left, crop_y + top,
 												right - left, bottom - top,
@@ -2903,19 +2874,20 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 	if(!diffImage) return;
 	
 	bool resnap = false;
-	if(undoImage) {
+	if(undoImage && cropImage) {
 		if(pcorrection->crop_x != undoImage_x
 		   || pcorrection->crop_y != undoImage_y) {
 			resnap = true,
 			fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage\n", __func__, __LINE__);
 		}
+
 		if( cropImage->width != undoImage->width
 		   || cropImage->height != undoImage->height ) {
 			tmReleaseImage(&undoImage);
 			fprintf(stderr, "[imgproc]::%s:%d : release undoImage\n", __func__, __LINE__);
 		}
 	}
-	if(!undoImage) {
+	if(!undoImage && cropImage) {
 		undoImage = tmCreateImage(cvSize(cropImage->width, cropImage->height),
 								  originalImage->depth, originalImage->nChannels);
 		resnap = true;

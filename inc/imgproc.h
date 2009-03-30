@@ -260,12 +260,8 @@ public:
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
 	
-	/** @brief Activate/desactivate hot pixels filtering */
-	bool setHotPixelsFilter(bool on);
-	/** @brief Activate/desactivate trust on good corrections */
-	bool setTrustCorrection(bool on);
 	/** @brief set the scan resolution to use the statistics on dust sizes */
-	int setResolution(int dpi);
+	int processResolution(int dpi);
 	/** @brief Set analysis block size, for display which do not use vertical scanlines */
 	int setBlockSize(int w, int h);
 

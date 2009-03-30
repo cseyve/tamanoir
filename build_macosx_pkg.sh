@@ -1,12 +1,28 @@
 #!/bin/bash
+echo
+echo "GENERATE Translation packages ...................."
 
 echo
 echo "BUILDING Tamanoir for MacOS X....................."
 echo
+rm -fr Tamanoir.app
+BUILD_STATIC=true /Developer/Tools/Qt/qmake Tamanoir.pro || exit 0
+make clean && make || exit 0
+
+#./build_mac_bundle.sh Tamanoir-simple.app/ Tamanoir-simple.app/Contents/MacOS/Tamanoir-simple
+echo
+echo "PACKAGING........................................."
+./build_mac_bundle.sh Tamanoir.app/ Tamanoir.app/Contents/MacOS/Tamanoir
 
 
 #DEBUG ./build_mac_bundle.sh Tamanoir-simple.app/ Tamanoir-simple.app/Contents/MacOS/Tamanoir-simple
 #./build_mac_bundle.sh Tamanoir.app/ Tamanoir.app/Contents/MacOS/Tamanoir
+
+echo
+echo "COMPRESSING......................................."
+zip -r Tamanoir-MacOSX-svn`date +%Y%m%d`.zip Tamanoir.app
+echo
+echo "Done"
 
 #exit 0
 
