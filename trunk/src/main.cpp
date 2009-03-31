@@ -49,7 +49,7 @@ extern u8 g_debug_correlation;
 extern u8 g_dataset_mode;
 extern u8 g_evaluate_mode;
 extern u8 g_debug_savetmp;
-
+extern u8 g_debug_displaylabel;
 
 void displayHelp() {
 	fprintf(stderr, "Usage : ./tamanoir [options]\n"
@@ -104,7 +104,9 @@ int main(int argc, char *argv[])
 				// Force turning of dataset creation mode
 				g_dataset_mode = 0;
 			}
-			
+			if(strstr(argv[argcount], "display")) {
+				g_debug_displaylabel = 1;
+			}
 			
 			if(strstr(argv[argcount], "correl"))	{
 				g_debug_correlation = 1;

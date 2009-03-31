@@ -527,7 +527,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			dt_ms);
 	
 	// convert to Grayscaled image
-	if(dt_ms > 2000) {
+	if(1 // || dt_ms > 2000 : it's faster anyway than loading the grayscaled buffer from file
+	   ) {
 		// Huge file : should use faster method than reload to convert to grayscale
 		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
 			__func__, __LINE__);

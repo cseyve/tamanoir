@@ -585,7 +585,8 @@ void tmCopyImage(IplImage * img_src, IplImage * img_dest)
 {
 	if(img_dest->widthStep == img_src->widthStep
 	   && img_dest->height == img_src->height) {
-		memcpy(img_dest->imageData, img_src->imageData, img_src->widthStep*img_src->height);
+		memcpy(img_dest->imageData, img_src->imageData,
+			   img_src->widthStep*img_src->height);
 	} else {
 		cvZero(img_dest); // prevent from using uninitialised pixels for valgrind
 		int copy_width = tmmin(img_dest->widthStep, img_src->widthStep);
@@ -607,6 +608,7 @@ void tmCopyImage(IplImage * img_src, IplImage * img_dest)
  * Convert a colored/16bit image to 8bit gray */
 IplImage * tmFastConvertToGrayscale(IplImage * img) {
 	if(!img) { return NULL; }
+
 	IplImage * grayImage = tmCreateImage(cvSize(img->width, img->height), IPL_DEPTH_8U, 1);
 
 	// Convert
@@ -619,7 +621,7 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 		switch(img->nChannels) {
 		case 1:	// same size, image is already grayscaled
 			fprintf(stderr, "[imgutils] %s:%d : just copy !!\n", __func__, __LINE__);
-			tmCopyImage(grayImage, img);
+			tmCopyImage(img, grayImage);
 			break;
 		default: { // Use Green plane as grayscaled
 			int offset = 1; // green
