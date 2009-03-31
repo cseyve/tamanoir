@@ -906,12 +906,14 @@ int TamanoirApp::loadOptions() {
 		strcpy(homedir, getenv("HOME"));
 	}
 	optionsFile = QString(homedir) + QString("/.tamanoirrc");
+
+        memset(&m_options, 0, sizeof(tm_options));
+
 	
 	// Read 
 	FILE * foptions = fopen(optionsFile.ascii(), "r");
 	if(!foptions) {
 		// Update options
-		memset(&m_options, 0, sizeof(tm_options));
 		m_options.filmType = ui.typeComboBox->currentIndex();
 		m_options.trust = ui.trustCheckBox->isChecked();
 		m_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
