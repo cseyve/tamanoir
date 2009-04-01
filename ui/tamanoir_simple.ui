@@ -626,7 +626,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>381</width>
+           <width>464</width>
            <height>32</height>
           </rect>
          </property>
@@ -690,6 +690,19 @@
             </property>
             <property name="shortcut">
              <string>Ctrl+Z</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="markButton">
+            <property name="toolTip">
+             <string>Mark a red rectangle in global view to correct a dust later</string>
+            </property>
+            <property name="text">
+             <string>Mark</string>
+            </property>
+            <property name="shortcut">
+             <string>M</string>
             </property>
            </widget>
           </item>

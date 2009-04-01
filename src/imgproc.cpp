@@ -1826,12 +1826,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						//&& fill_failure == 0
 						&& pcorrection->equivalent_diff < TRUST_EQUIV_DIFF
 						) {
-						fprintf(stderr, "[imgproc]::%s:%d : m_options.trust=%c & fill_failure=%g\n",
-							__func__, __LINE__,
-							m_options.trust?'T':'F',
-							pcorrection->equivalent_diff //fill_failure
-							);
 
+						if(g_debug_imgverbose) {
+							fprintf(stderr, "[imgproc]::%s:%d : m_options.trust=%c & fill_failure=%g\n",
+								__func__, __LINE__,
+								m_options.trust?'T':'F',
+								pcorrection->equivalent_diff //fill_failure
+								);
+						}
 						// We can correct and return later
 						forceCorrection(*pcorrection, true);
 						return_now = 0;

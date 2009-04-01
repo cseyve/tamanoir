@@ -250,7 +250,9 @@ public:
 	void setDisplaySize(int w, int h);
 	/** @brief return small image for global view display */
 	IplImage * getDisplayImage() { return displayBlockImage; };
-	
+	/** @brief return the resident version of small image for global view display */
+	IplImage * getStillDisplayImage() { return displayImage; };
+
 	// Cropped images
 	IplImage * getCorrectedCrop() { return disp_correctColorImage; };
 	IplImage * getCrop() { return disp_cropColorImage; };
@@ -361,7 +363,7 @@ private:
 	
 	/// image buffer for display
 	IplImage * displayBlockImage;
-	/// image buffer for display
+	/// image buffer for display (without the crop mark)
 	IplImage * displayImage;
 	CvSize displaySize;
 	

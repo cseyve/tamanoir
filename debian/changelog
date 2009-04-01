@@ -1,14 +1,21 @@
+tamanoir (0.svn20090331-1) unstable; urgency=low
+ 
+  * Fixes minor bugs
+  * Added the 'M' shortcut to mark a region where to come back later for correction
+
+ -- Christophe Seyve <cseyve@free.fr>  Tue, 31 Mar 2009 21:42:10 +0200
+
 tamanoir (0.svn20090327-2) unstable; urgency=low
 
   * Bugfix on translation files installation
 
- -- Christophe Seyve <cseyve@free.fr>  Tue, 27 Mar 2009 17:24:00 +0200
+ -- Christophe Seyve <cseyve@free.fr>  Fri, 27 Mar 2009 17:24:00 +0200
 
 tamanoir (0.svn20090327-1) unstable; urgency=low
 
   * Added translation files
 
- -- Christophe Seyve <cseyve@free.fr>  Tue, 27 Mar 2009 13:24:00 +0200
+ -- Christophe Seyve <cseyve@free.fr>  Fri, 27 Mar 2009 13:24:00 +0200
 
 tamanoir (0.svn20090323-1) unstable; urgency=low
 

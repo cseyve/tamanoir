@@ -227,6 +227,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 	on_mainPixmapLabel_signalMousePressEvent(e);
 }
 
+
+
 void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 	m_overCorrected = false;
 
@@ -278,6 +280,60 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 		updateDisplay();
 	}
+}
+
+/*
+ * Mark current block in red
+ */
+void TamanoirApp::on_markButton_clicked() {
+	fprintf(stderr, "%s:%d ...\n", __func__, __LINE__);
+	if(m_pImgProc) {
+
+		IplImage * origImage = m_pImgProc->getGrayscale();
+		if(!origImage)
+			return;
+
+		IplImage * displayImage = m_pImgProc->getStillDisplayImage();
+
+
+		//int scaled_width = m_main_display_rect.width()-12;
+		//int scaled_height = m_main_display_rect.height()-12;
+		int scaled_width = displayImage->width;
+		int scaled_height = displayImage->height;
+
+		float scale_x = (float)scaled_width / (float)origImage->width;
+		float scale_y = (float)scaled_height / (float)origImage->height;
+
+		//fprintf(stderr, "TamanoirApp::%s:%d : e=%d,%d x scale=%gx%g\n", __func__, __LINE__,
+		//		e->pos().x(), e->pos().y(), scale_x, scale_y);
+
+		// Create a fake dust in middle
+		int crop_w = current_dust.crop_width; //ui.cropPixmapLabel->size().width()-2;
+		int crop_h = current_dust.crop_height; //ui.cropPixmapLabel->size().height()-2;
+		fprintf(stderr, "TamanoirApp::%s:%d : mark current %d,%d +%dx%d "
+				"=> %g,%g+%gx%g\n",
+				__func__, __LINE__,
+				current_dust.crop_x ,
+				current_dust.crop_y ,
+				crop_w ,
+				crop_h ,
+				current_dust.crop_x * scale_x,
+				current_dust.crop_y * scale_y,
+				crop_w * scale_x,
+				crop_h * scale_y);
+
+		// Mark rectangle in image
+		tmMarkFailureRegion(displayImage,
+			current_dust.crop_x * scale_x,
+			current_dust.crop_y * scale_y,
+			crop_w * scale_x,
+			crop_h * scale_y,
+			COLORMARK_FAILED);
+
+		// Then update
+		updateDisplay();
+	}
+
 }
 
 void TamanoirApp::moveBlock() {
@@ -1659,6 +1715,7 @@ void TamanoirApp::updateDisplay()
 		if(!displayImage) {
 			refreshMainDisplay ();
 			displayImage = m_pImgProc->getDisplayImage();
+			if(!displayImage) return;
 		}
 
 		// Update cropped buffers
