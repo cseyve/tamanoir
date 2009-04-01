@@ -198,6 +198,7 @@ private slots:
 	void on_pageDownButton_clicked();
 	void on_pageUpButton_clicked();
 	void on_undoButton_clicked();
+	void on_markButton_clicked();
 
 	void on_mainPixmapLabel_signalMousePressEvent(QMouseEvent *);
 	void on_mainPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
