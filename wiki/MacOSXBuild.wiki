@@ -58,6 +58,8 @@ sudo fink install opencv
 
 Project page: [http://www.intel.com/technology/computing/opencv/]
 
+Universal binary package : http://www.ient.rwth-aachen.de/cms/software/opencv/
+
 
 === OpenCV *with* 16bit TIFF support ===
 Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
