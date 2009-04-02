@@ -32,7 +32,8 @@ If you do not need 16bit TIFF support, jump to Qt4 section.
 Download : http://www.libtiff.org/
 Compile and Install :
 {{{
-./configure ; make ; sudo make install
+./configure  CFLAGS="-O -arch i386 -arch ppc" CXXFLAGS="-O -arch i386 -arch ppc"  LDFLAGS="-arch i386 -arch ppc" --disable-dependency-tracking 
+ake ; sudo make install
 }}}
 
 ----
@@ -40,7 +41,10 @@ Compile and Install :
 
 Download : [http://libpng.sourceforge.net/] - [ftp://ftp.simplesystems.org/pub/png/]
 Compile and Install :
-./configure ; make ; sudo make install
+{{{
+./configure  CFLAGS="-O -arch i386 -arch ppc" CXXFLAGS="-O -arch i386 -arch ppc"  LDFLAGS="-arch i386 -arch ppc" --disable-dependency-tracking
+make ; sudo make install
+}}}
 
 ----
 == OpenCV ==
@@ -58,15 +62,13 @@ sudo fink install opencv
 
 Project page: [http://www.intel.com/technology/computing/opencv/]
 
-Universal binary package : http://www.ient.rwth-aachen.de/cms/software/opencv/
-OpenCV wiki for more information : http://opencv.willowgarage.com/wiki/Mac_OS_X_OpenCV_Port
 
 === OpenCV *with* 16bit TIFF support ===
 Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
 
 We must compile without ImageIO to use the libtiff for 16bit support :
 {{{
-./configure --with-libtiff=yes --enable-libtiff=yes --with-imageio=no
+./configure CFLAGS="-O -g -arch i386 -arch ppc" CXXFLAGS="-O -arch i386 -arch ppc"  LDFLAGS="-arch i386 -arch ppc" --disable-dependency-tracking --with-libtiff=yes --enable-libtiff=yes --with-imageio=no
 }}}
 We must obtain this kind of configuration :
 {{{
@@ -78,6 +80,18 @@ Use libtiff: yes
 Use libjasper: no
 Use libIlmImf: no
 }}}
+
+
+Universal binary package : http://www.ient.rwth-aachen.de/cms/software/opencv/
+
+{{{
+./configure CFLAGS="-arch i386 -arch ppc" CXXFLAGS="-arch i386 -arch ppc" --with-libtiff=yes --enable-libtiff=yes --with-imageio=no --with-gtk=no --with-ffmpeg=no --enable-apps=no --enable-static=yes
+}}}
+
+OpenCV wiki for more information : http://opencv.willowgarage.com/wiki/Mac_OS_X_OpenCV_Port
+
+Reference for configuring : _Building Universal Binaries from "configure"-based Open Source Projects_
+[http://developer.apple.com/technotes/tn2005/tn2137.html#TNTAG2]
 
 
 Or with MacPorts paths: 
