@@ -61,6 +61,10 @@ extern "C" {
 // OpenCV
 #include <cv.h>
 #include <cv.hpp>
+#include <cv.hpp>
+#include <highgui.h>
+
+#include "imgutils.h"
 
 
 #ifndef HAVE_GETOPT
@@ -85,7 +89,6 @@ static void swapBytesInScanline(void *, uint32, TIFFDataType);
 static int guessSize(char *, long, TIFFDataType, off_t, uint32, int,
 		     uint32 *, uint32 *);
 static double correlation(void *, void *, uint32, TIFFDataType);
-static void usage(void);
 static	int processCompressOptions(char*);
 
 //int main(int argc, char* argv[])
@@ -118,9 +121,10 @@ int saveIplImageAsTIFF(IplImage* img, const char * outfilename, char * compressi
 	//while ((c = getopt(argc, argv, "c:r:H:w:l:b:d:LMp:si:o:h")) != -1) {
 	//	switch (c) {
 	//	case 'c':		/* compression scheme */
-	if (!processCompressOptions(compressionarg))
-		usage();
-	
+	if (!processCompressOptions(compressionarg)) {
+	//	usage();
+	}
+
 	//case 'r':		/* rows/strip */
 	rowsperstrip = img->height; //atoi(optarg);
 	//	case 'H':		/* size of input image file header */
@@ -580,8 +584,8 @@ processCompressOptions(char* opt)
 			quality = atoi(cp+1);
                     else if (cp[1] == 'r' )
 			jpegcolormode = JPEGCOLORMODE_RAW;
-                    else
-                        usage();
+					//else
+					//    usage();
 
                     cp = strchr(cp+1,':');
                 }
@@ -600,77 +604,467 @@ processCompressOptions(char* opt)
 	return (1);
 }
 
-static char* stuff[] = {
-"raw2tiff --- tool for converting raw byte sequences in TIFF images",
-"usage: raw2tiff [options] input.raw output.tif",
-"where options are:",
-" -L		input data has LSB2MSB bit order (default)",
-" -M		input data has MSB2LSB bit order",
-" -r #		make each strip have no more than # rows",
-" -H #		size of input image file header in bytes (0 by default)",
-" -w #		width of input image in pixels",
-" -l #		length of input image in lines",
-" -b #		number of bands in input image (1 by default)",
-"",
-" -d data_type	type of samples in input image",
-"where data_type may be:",
-" byte		8-bit unsigned integer (default)",
-" short		16-bit unsigned integer",
-" long		32-bit unsigned integer",
-" sbyte		8-bit signed integer",
-" sshort		16-bit signed integer",
-" slong		32-bit signed integer",
-" float		32-bit IEEE floating point",
-" double		64-bit IEEE floating point",
-"",
-" -p photo	photometric interpretation (color space) of the input image",
-"where photo may be:",
-" miniswhite	white color represented with 0 value",
-" minisblack	black color represented with 0 value (default)",
-" rgb		image has RGB color model",
-" cmyk		image has CMYK (separated) color model",
-" ycbcr		image has YCbCr color model",
-" cielab		image has CIE L*a*b color model",
-" icclab		image has ICC L*a*b color model",
-" itulab		image has ITU L*a*b color model",
-"",
-" -s		swap bytes fetched from input file",
-"",
-" -i config	type of samples interleaving in input image",
-"where config may be:",
-" pixel		pixel interleaved data (default)",
-" band		band interleaved data",
-"",
-" -c lzw[:opts]	compress output with Lempel-Ziv & Welch encoding",
-" -c zip[:opts]	compress output with deflate encoding",
-" -c jpeg[:opts]	compress output with JPEG encoding",
-" -c packbits	compress output with packbits encoding",
-" -c none	use no compression algorithm on output",
-"",
-"JPEG options:",
-" #		set compression quality level (0-100, default 75)",
-" r		output color image as RGB rather than YCbCr",
-"For example, -c jpeg:r:50 to get JPEG-encoded RGB data with 50% comp. quality",
-"",
-"LZW and deflate options:",
-" #		set predictor value",
-"For example, -c lzw:2 to get LZW-encoded data with horizontal differencing",
-" -o out.tif	write output to out.tif",
-" -h		this help message",
-NULL
-};
 
-static void
-usage(void)
+//////////////////////////////////////////////////////////////////////////////////////
+//					 READ TIFF IMAGES SECTION
+// Reference : tiff-3.5.2/tools/tiff2rgba.c
+//////////////////////////////////////////////////////////////////////////////////////
+
+static	int tiffcvt(TIFF* in, IplImage ** out);
+#define	streq(a,b)	(strcmp(a,b) == 0)
+#define	CopyField(tag, v) \
+	TIFFGetField(in, tag, &v);
+
+uint32	rowsperstrip = (uint32) -1;
+int     no_alpha = 0;
+
+int	process_by_block = 0; /* default is whole image at once */
+
+IplImage * tmOpenTiffImage(const char * filename, int * dpi)
 {
-	char buf[BUFSIZ];
-	int i;
+	TIFF *in;
+	IplImage * out = NULL;
+	in = TIFFOpen(filename, "r");
+	if (in != NULL) {
+		do {
+			float resolution_x, resolution_y;
+			TIFFGetField(in, TIFFTAG_XRESOLUTION, &resolution_x);
+			TIFFGetField(in, TIFFTAG_YRESOLUTION, &resolution_y);
+			if(dpi) {
+				*dpi = (int)tmmax(resolution_x, resolution_y);
+			}
+			if(!tiffcvt(in, &out)
+			//CSE || !TIFFWriteDirectory(out)
+				) {
+				//(void) TIFFClose(out);
+				return cvLoadImage(filename,
+					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
+					);
+			}
+		} while (TIFFReadDirectory(in));
+		(void) TIFFClose(in);
+	}
 
-	setbuf(stderr, buf);
-        fprintf(stderr, "%s\n\n", TIFFGetVersion());
-	for (i = 0; stuff[i] != NULL; i++)
-		fprintf(stderr, "%s\n", stuff[i]);
-	exit(-1);
+	return out;
 }
 
-/* vim: set ts=8 sts=8 sw=8 noet: */
+
+static int
+cvt_by_tile( TIFF *in, IplImage *out )
+{
+	uint32* raster;			/* retrieve RGBA image */
+	uint32  width, height;		/* image width & height */
+	uint32  tile_width, tile_height;
+	uint32  row, col;
+	uint32  *wrk_line;
+	int	    ok = 1;
+
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+
+	if( !TIFFGetField(in, TIFFTAG_TILEWIDTH, &tile_width)
+		|| !TIFFGetField(in, TIFFTAG_TILELENGTH, &tile_height) ) {
+		TIFFError(TIFFFileName(in), "Source image not tiled");
+		return (0);
+	}
+
+	fprintf(stderr, "cv2tiff %s:%d : tile: %dx%d\n",
+			__func__, __LINE__, tile_width, tile_height);
+//	TIFFSetField(out, TIFFTAG_TILEWIDTH, tile_width );
+//	TIFFSetField(out, TIFFTAG_TILELENGTH, tile_height );
+//
+	/*
+	 * Allocate tile buffer
+	 */
+	raster = (uint32*)_TIFFmalloc(tile_width * tile_height * sizeof (uint32));
+	if (raster == 0) {
+		TIFFError(TIFFFileName(in), "No space for raster buffer");
+		return (0);
+	}
+
+	/*
+	 * Allocate a scanline buffer for swapping during the vertical
+	 * mirroring pass.
+	 */
+	wrk_line = (uint32*)_TIFFmalloc(tile_width * sizeof (uint32));
+	if (!wrk_line) {
+		TIFFError(TIFFFileName(in), "No space for raster scanline buffer");
+		ok = 0;
+	}
+
+	/*
+	 * Loop over the tiles.
+	 */
+	for( row = 0; ok && row < height; row += tile_height )
+	{
+		for( col = 0; ok && col < width; col += tile_width )
+		{
+			uint32 i_row;
+
+			/* Read the tile into an RGBA array */
+// CSE : FIXME : cconvert from RAW : see opencv patch l.
+			// UNSUPPORTED IN OpenCV Patch
+
+//			if (!TIFFReadRGBATile(in, col, row, raster)) {
+//				ok = 0;
+//				break;
+//			}
+
+			/*
+			 * For some reason the TIFFReadRGBATile() function chooses the
+			 * lower left corner as the origin.  Vertically mirror scanlines.
+			 */
+			for( i_row = 0; i_row < tile_height / 2; i_row++ )
+			{
+				uint32	*top_line, *bottom_line;
+
+				top_line = raster + tile_width * i_row;
+				bottom_line = raster + tile_width * (tile_height-i_row-1);
+
+				_TIFFmemcpy(wrk_line, top_line, 4*tile_width);
+				_TIFFmemcpy(top_line, bottom_line, 4*tile_width);
+				_TIFFmemcpy(bottom_line, wrk_line, 4*tile_width);
+			}
+
+			/*
+			 * Write out the result in a tile.
+			 */
+
+//			if( TIFFWriteEncodedTile( out,
+//									  TIFFComputeTile( out, col, row, 0, 0),
+//									  raster,
+//									  4 * tile_width * tile_height ) == -1 )
+//			{
+//				ok = 0;
+//				break;
+//			}
+		}
+	}
+
+	_TIFFfree( raster );
+	_TIFFfree( wrk_line );
+
+	return ok;
+}
+
+static int
+	cvt_by_strip( TIFF *in, IplImage *out )
+{
+	uint32* raster;			/* retrieve RGBA image */
+	uint32  width, height;		/* image width & height */
+	uint32  row;
+	uint32  *wrk_line;
+	int	    ok = 1;
+
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+
+	if( !TIFFGetField(in, TIFFTAG_ROWSPERSTRIP, &rowsperstrip) ) {
+		TIFFError(TIFFFileName(in), "Source image not in strips");
+		return (0);
+	}
+
+//	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip);
+
+	/*
+	 * Allocate strip buffer
+	 */
+	raster = (uint32*)_TIFFmalloc(width * rowsperstrip * sizeof (uint32));
+	if (raster == 0) {
+		TIFFError(TIFFFileName(in), "No space for raster buffer");
+		return (0);
+	}
+
+	/*
+	 * Allocate a scanline buffer for swapping during the vertical
+	 * mirroring pass.
+	 */
+	wrk_line = (uint32*)_TIFFmalloc(width * sizeof (uint32));
+	if (!wrk_line) {
+		TIFFError(TIFFFileName(in), "No space for raster scanline buffer");
+		ok = 0;
+	}
+
+	/*
+	 * Loop over the strips.
+	 */
+	for( row = 0; ok && row < height; row += rowsperstrip )
+	{
+		int	rows_to_write, i_row;
+/* CSE: commented 8bit version
+		// Read the strip into an RGBA array
+		if (!TIFFReadRGBAStrip(in, row, raster)) {
+			ok = 0;
+			break;
+		}
+*/
+		fprintf(stderr, "cv2tiff %s:%d : FIXME : use TIFF\n",
+			__func__, __LINE__);
+/* From CSE's opencv patch : begin
+
+   From CSE's opencv patch : end */
+		/*
+		 * Figure out the number of scanlines actually in this strip.
+		 */
+		if( row + rowsperstrip > height )
+			rows_to_write = height - row;
+		else
+			rows_to_write = rowsperstrip;
+
+		/*
+		 * For some reason the TIFFReadRGBAStrip() function chooses the
+		 * lower left corner as the origin.  Vertically mirror scanlines.
+		 */
+
+		for( i_row = 0; i_row < rows_to_write / 2; i_row++ )
+		{
+			uint32	*top_line, *bottom_line;
+
+			top_line = raster + width * i_row;
+			bottom_line = raster + width * (rows_to_write-i_row-1);
+
+			_TIFFmemcpy(wrk_line, top_line, 4*width);
+			_TIFFmemcpy(top_line, bottom_line, 4*width);
+			_TIFFmemcpy(bottom_line, wrk_line, 4*width);
+		}
+
+		/*
+		 * Write out the result in a strip
+		 */
+		fprintf(stderr, "cv2tiff %s:%d : FIXME : use TIFF\n",
+			__func__, __LINE__);
+
+//		if( TIFFWriteEncodedStrip( out, row / rowsperstrip, raster,
+//								   4 * rows_to_write * width ) == -1 )
+//		{
+//			ok = 0;
+//			break;
+//		}
+	}
+
+	_TIFFfree( raster );
+	_TIFFfree( wrk_line );
+
+	return ok;
+}
+
+/*
+ * cvt_whole_image()
+ *
+ * read the whole image into one big RGBA buffer and then write out
+ * strips from that.  This is using the traditional TIFFReadRGBAImage()
+ * API that we trust.
+ */
+
+static int
+cvt_whole_image( TIFF *in, IplImage *out )
+{
+	uint32  width, height;		/* image width & height */
+	int32 tile_rowperstrip = 0, tile_width = 0, tile_height = 0;
+
+	TIFFGetField( in, TIFFTAG_ROWSPERSTRIP, &tile_rowperstrip /*tile_height0 */) ||
+	TIFFGetField( in, TIFFTAG_TILEWIDTH, &tile_width );
+	TIFFGetField( in, TIFFTAG_TILELENGTH, &tile_height );
+
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+
+//	rowsperstrip = TIFFDefaultStripSize(out, rowsperstrip);
+//	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip);
+	fprintf(stderr, "cv2tiff %s:%d : TIFF Info : width=%d height=%d\n",
+			__func__, __LINE__,
+			(int)width, (int)height);
+
+	fprintf(stderr, "cv2tiff %s:%d : TIFF Info : "
+			"tile_width=%d tile_height=%d tile_rowperstrip=%d\n",
+			__func__, __LINE__,
+			(int)tile_width, (int)tile_height,
+			(int)tile_rowperstrip );
+	if( tile_width <= 0 )
+		tile_width = width;
+
+	// allocate
+	int32 bitpersample = 0;
+	TIFFGetField(in, TIFFTAG_BITSPERSAMPLE, &bitpersample);
+	int32 channels=1;		/* image width & height */
+	TIFFGetField(in, TIFFTAG_SAMPLESPERPIXEL, &channels);
+	if( tile_height <= 0 )
+		tile_height = 1; //height;
+
+	int bufsize = tile_height * tile_width * channels * bitpersample / 8;
+	uchar * buffer = new uchar[bufsize];
+	tdata_t buf = (tdata_t)0;
+	int step = out->widthStep;
+	int byte_depth = bitpersample/8;
+
+
+	uchar * data = (uchar *)(out->imageData);
+	/* Read the image in one chunk into an RGBA array *
+	fprintf(stderr, "cv2tiff %s:%d : => step: step=%d * tile_height=%d\n",
+			__func__, __LINE__, step, tile_height);
+	*/
+	uint32 y,x;
+	for( y = 0; y < height; y += tile_height,
+		 data += step*tile_height )
+	{
+		if( y + tile_height > height )
+			tile_height = height - y;
+
+		for( x = 0; x < width; x += tile_width )
+		{
+
+			if( x + tile_width > width )
+				tile_width = width - x;
+
+			if(bitpersample != 8) {
+				uint16  config = PLANARCONFIG_CONTIG;
+				TIFFGetField(in, TIFFTAG_PLANARCONFIG, &config);
+				if(!buf) {
+
+					buf = _TIFFmalloc(TIFFScanlineSize(in));
+					fprintf(stderr, "\t%s:%d : TIFFScanlineSize=%d\n",
+							__func__, __LINE__,
+							TIFFScanlineSize(in)
+							);fflush(stderr);
+				}
+				if (config == PLANARCONFIG_CONTIG) {
+					//for (row = 0; row < imagelength; row++)
+					//fprintf(stderr, "\r%s:%d : line %d : TIFFReadScanline(row=%d)...",
+					//      __func__, __LINE__, y, y); fflush(stderr);
+
+					if(TIFFReadScanline(in, buf, y) /*row*/ == 1) {
+/*
+fprintf(stderr, "\r%s:%d : line y=%d x=%d : copy buf=%p into "
+		"data=%p @offset=%d=>%p nbytes=%d",
+		__func__, __LINE__, y, x,
+		buf,
+		data, x + step*y, data + x + step*y,
+		tile_width*byte_depth*channels
+		); fflush(stderr);
+*/
+						memcpy(data,
+							   buf,
+							   tile_width*byte_depth*channels
+							   );
+						//else memset(data + x + step*y, 255, tile_width*m_bit_depth*m_channels/8);
+					}
+					else fprintf(stderr, "\t%s:%d : ERROR : failed for line %d\n", __func__, __LINE__, y);
+
+				} /*else if (config == planarconfig_separate) {
+														uint16 s, nsamples;
+
+														tiffgetfield(tif, tifftag_samplesperpixel, &nsamples);
+														for (s = 0; s < nsamples; s++)
+																for (row = 0; row < imagelength; row++)
+																		tiffreadscanline(tif, buf, row, s);
+												}*/
+
+			}
+		}
+	}
+
+
+	if(buf) {
+		_TIFFfree(buf);
+	}
+
+	delete [] buffer;
+
+	return 1;
+}
+
+
+static int
+	tiffcvt(TIFF* in, IplImage ** out)
+{
+	uint16 shortv;
+	char *stringv;
+	//uint32 longv;
+
+	uint32 width, height;
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+	int32 bitpersample = 0;
+	TIFFGetField(in, TIFFTAG_BITSPERSAMPLE, &bitpersample);
+	int32 channels=1;		/* image width & height */
+	TIFFGetField(in, TIFFTAG_SAMPLESPERPIXEL, &channels);
+
+	fprintf(stderr, "cv2tiff %s:%d : image : %d x %d x channels=%d x bitpersample=%d\n",
+			__func__, __LINE__,
+			(int)width, (int)height, (int)channels, (int)bitpersample);
+
+	int ipl_depth = IPL_DEPTH_8U;
+	switch(bitpersample) {
+	default:
+		fprintf(stderr, "\t%s:%d : unsupported bitpersample=%d\n", __func__ ,__LINE__, bitpersample);
+		break;
+	case 8:
+		ipl_depth = IPL_DEPTH_8U;
+
+		// Use OpenCV function to read this image !!
+
+		break;
+	case 16:
+		ipl_depth = IPL_DEPTH_16U;
+		break;
+	}
+
+
+	if(ipl_depth == IPL_DEPTH_8U) {
+		return -1; // no need for 16bit
+	}
+	fprintf(stderr, "cv2tiff %s:%d : create IplImage ((%d,%d), %d, %d)\n",
+			__func__, __LINE__,
+			(int)width, (int)height,
+			ipl_depth, (int)channels);
+	if(*out) {
+		tmReleaseImage(out);
+	}
+
+	*out = tmCreateImage(cvSize(width, height), ipl_depth, channels);
+
+	int16 fillorder=0;
+	TIFFGetField(in, TIFFTAG_PHOTOMETRIC, &shortv);
+	switch(shortv) {
+	default:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_RGB:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=PHOTOMETRIC_RGB\n",
+				__func__, __LINE__, shortv);
+		break;
+	}
+
+	TIFFGetField(in, TIFFTAG_FILLORDER, &fillorder);
+	switch(fillorder) {
+	default:
+		fprintf(stderr, "cv2tiff %s:%d : unknown fillorder=%u\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case PHOTOMETRIC_RGB:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=ORIENTATION_TOPLEFT \n",
+				__func__, __LINE__, fillorder);
+		break;
+	}
+
+	float resolution_x, resolution_y;
+	TIFFGetField(in, TIFFTAG_XRESOLUTION, &resolution_x);
+	TIFFGetField(in, TIFFTAG_YRESOLUTION, &resolution_y);
+	fprintf(stderr, "cv2tiff %s:%d : resolution: %gx%g\n",
+			__func__, __LINE__,
+			resolution_x, resolution_y);
+	CopyField(TIFFTAG_RESOLUTIONUNIT, shortv);
+//	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+//	TIFFSetField(out, TIFFTAG_SOFTWARE, TIFFGetVersion());
+	CopyField(TIFFTAG_DOCUMENTNAME, stringv);
+
+	if( process_by_block && TIFFIsTiled( in ) )
+		return( cvt_by_tile( in, *out ) );
+	else if( process_by_block )
+		return( cvt_by_strip( in, *out ) );
+	else
+		return( cvt_whole_image( in, *out ) );
+}
+
+

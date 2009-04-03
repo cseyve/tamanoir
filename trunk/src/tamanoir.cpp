@@ -215,6 +215,26 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				statusBar()->showMessage( tr("Loaded and pre-processed. Image: ") 
 					+ fi.fileName() + tr(". Size:") + str);
 				ui.loadingTextLabel->setText( fi.fileName() );
+
+				// Change resolution read in file
+				tm_options l_options = m_pImgProc->getOptions();
+				if(l_options.dpi != m_options.dpi
+				   && l_options.dpi > 0 ) {
+					m_options.dpi = l_options.dpi;
+					fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED ! resolution=%d dpi\n", __func__, __LINE__,
+						m_options.dpi);
+
+					// update resolution button
+					QString str;
+					str.sprintf("%d", m_options.dpi);
+					int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
+					if(ind >= 0)
+						ui.dpiComboBox->setCurrentIndex(ind);
+					else // add an item
+						ui.dpiComboBox->insertItem(str);
+
+				}
+
 			}
 			
 			ui.overAllProgressBar->setValue(0);
@@ -824,8 +844,9 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 			} else {
 				QFileInfo fi(argv[arg]);
 				if(fi.exists()) {
-					loadFile( argv[arg] );
-					open_load_dialog = false;
+					if( loadFile( argv[arg] ) >= 0)
+						// don't open the file
+						open_load_dialog = false;
 				}
 			}
 			
@@ -846,10 +867,10 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 
 
 
-void TamanoirApp::loadFile(QString s) {
+int TamanoirApp::loadFile(QString s) {
 	QFileInfo fi(s);
 	if(!fi.exists()) 
-		return;
+		return -1;
 	
 	
 	m_currentFile = s;
@@ -890,14 +911,17 @@ void TamanoirApp::loadFile(QString s) {
 		QMessageBox::critical( 0, tr("Tamanoir"),
 			tr("Cannot load file ") + s + tr(". Format or compression is not compatible"));
 		
-		return;
+		return -1;
 	}
 	
+
 	// Lock tool frame
 	lockTools(true);
 	
 	m_curCommand = m_pProcThread->getCommand();
 	refreshTimer.start(500);
+
+	return 0;
 }
 
 

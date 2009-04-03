@@ -248,7 +248,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	}
 
 
-	//if(displayImage) { return; }
+	if(!originalImage) { return; }
 	
 	IplImage * old_displayImg = displayBlockImage;
 	if(displayImage) {
@@ -346,7 +346,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 					lineGray[c] = COLORMARK_THRESHOLD;
 		}
 	} else {
-		if(originalImage->depth != IPL_DEPTH_8U) {
+/*		if(originalImage->depth != IPL_DEPTH_8U) {
 			fprintf(stderr, "TamanoirImgProc::%s:%d : invert R <-> B for 8 bit images\n", 
 					__func__, __LINE__);
 			for(int r=0; r<new_displayImage->height; r++)
@@ -362,6 +362,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 				}
 			}
 		}
+		*/
 	}
 	
 	if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, new_displayImage); }
@@ -401,11 +402,15 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		__func__, __LINE__, filename);
 	struct timeval tvLoad1;
 	gettimeofday(&tvLoad1, NULL);
-	originalImage = cvLoadImage(filename,
-					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
-					);
+	int file_dpi=0;
+	originalImage = tmLoadImage(filename, &file_dpi);
 	m_progress = 10;
 	
+	if(file_dpi > 0) {
+		// There were an resolution in file
+		m_options.dpi = file_dpi;
+	}
+
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : cannot open file '%s' !!\n",
 					__func__, __LINE__, filename);
@@ -488,25 +493,25 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	
 	switch(originalImage->depth) {
 	case IPL_DEPTH_8S: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_8S\n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_8S\n", __func__, __LINE__);
 		break;
 	case IPL_DEPTH_16S: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_16S\n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_16S\n", __func__, __LINE__);
 		break;
 	case IPL_DEPTH_32S: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_32S\n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_32S\n", __func__, __LINE__);
 		break;
 	case IPL_DEPTH_32F: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_32F\n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_32F\n", __func__, __LINE__);
 		break;
 	case IPL_DEPTH_64F: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_64F \n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_64F \n", __func__, __LINE__);
 		break;	
 	case IPL_DEPTH_8U: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_8U \n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_8U \n", __func__, __LINE__);
 		break;	
 	case IPL_DEPTH_16U: 
-		fprintf(logfile, "[imgutils] %s:%d : depth IPL_DEPTH_16U \n", __func__, __LINE__);
+		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_16U \n", __func__, __LINE__);
 		break;	
 	}
 	
@@ -2880,8 +2885,8 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 	if(undoImage && cropImage) {
 		if(pcorrection->crop_x != undoImage_x
 		   || pcorrection->crop_y != undoImage_y) {
-			resnap = true,
-			fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage\n", __func__, __LINE__);
+			resnap = true;
+			//fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage\n", __func__, __LINE__);
 		}
 
 		if( cropImage->width != undoImage->width
@@ -2900,8 +2905,8 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 		undoImage_y = pcorrection->crop_y;
 		tmCropImage(originalImage, undoImage, undoImage_x, undoImage_y);
 
-		fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage : top-left=%d,%d\n", __func__, __LINE__,
-				undoImage_x, undoImage_y);
+		//fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage : top-left=%d,%d\n", __func__, __LINE__,
+		//		undoImage_x, undoImage_y);
 	}
 
 	if(g_debug_imgverbose)
