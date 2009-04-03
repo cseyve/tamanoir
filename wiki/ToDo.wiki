@@ -12,12 +12,12 @@ By subject:
   * *Image processing*
     * Create a better dataset with different films (negatives and positives), resolution and scanner devices. Help needed !
         For the moment : mostly slide scans from Epson 4990
-    * Improve for negatives and B&W films
+    * _done_ Improve for negatives and B&W films
 
 
   * *User interface*
-    * Build under Windows
-    * Adapt size of display for larger screens than current size of GUI
+    * _done_ Build under Windows
+    * _done_ Adapt size of display for larger screens than current size of GUI
     * Backup copy of original as an option
 
 
@@ -29,4 +29,5 @@ By subject:
 
   * *Interoperability*
     * Interfacing with Adobe Lightroom (OK for file name as argument under Linux: works fine with _gqview_ for example).
+    * _done_ with _gqview_
     * Any interest for Gimp interaction ?
