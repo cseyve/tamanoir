@@ -134,7 +134,7 @@ public:
 	~TamanoirApp();
 	
 	void setArgs(int argc, char **argv);
-	void loadFile(QString s);
+	int loadFile(QString s);
 	
 	
 private:
