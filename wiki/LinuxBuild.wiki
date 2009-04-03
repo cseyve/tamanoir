@@ -98,18 +98,18 @@ svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
 Compile Tamanoir :
 {{{
 cd Tamanoir/
-qmake
+qmake Tamanoir.pro
 }}}
 
 or for Debian 4 Etch with both Qt3 and Qt4:
 {{{
-qmake-qt4
+qmake-qt4 Tamanoir.pro
 }}}
 
 Then build : 
 {{{
 make
-./Tamanoir
+./tamanoir
 }}}
 
 =Debian package=
@@ -118,7 +118,7 @@ Tamanoir use the "native Debian packagin" model, where the debian/ foler and its
 {{{
 $ svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
 $ cd tamanoir
-$ dpkg-buildpackage -uc -us -rfakeroot
+$ ./build_debian.sh
 }}}
 
-Binary packages for Debian Lenny i386 are available, see http://zerodeux.net/debian/
+The package is built in _/tmp_
