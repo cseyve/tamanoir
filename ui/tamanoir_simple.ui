@@ -21,8 +21,8 @@
    <string>Tamanoir - Dust removal tool</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
+   <layout class="QGridLayout" name="gridLayout_3">
+    <item row="0" column="0">
      <layout class="QGridLayout" name="gridLayout">
       <property name="sizeConstraint">
        <enum>QLayout::SetNoConstraint</enum>
@@ -555,7 +555,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string>diffPixmapLabel</string>
         </property>
        </widget>
       </item>
@@ -626,7 +626,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>464</width>
+           <width>548</width>
            <height>32</height>
           </rect>
          </property>
@@ -647,6 +647,32 @@
             </property>
             <property name="checked">
              <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="markButton">
+            <property name="toolTip">
+             <string>Mark a red rectangle in global view to correct a dust later</string>
+            </property>
+            <property name="text">
+             <string>Mark</string>
+            </property>
+            <property name="shortcut">
+             <string>M</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="undoButton">
+            <property name="toolTip">
+             <string>Undo last change</string>
+            </property>
+            <property name="text">
+             <string>Undo</string>
+            </property>
+            <property name="shortcut">
+             <string>Ctrl+Z</string>
             </property>
            </widget>
           </item>
@@ -681,28 +707,18 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="undoButton">
+           <widget class="QPushButton" name="fullScreenButton">
             <property name="toolTip">
-             <string>Undo last change</string>
+             <string>Toggle fullscreen mode</string>
             </property>
             <property name="text">
-             <string>Undo</string>
+             <string>Fullscreen</string>
             </property>
             <property name="shortcut">
-             <string>Ctrl+Z</string>
+             <string>Ctrl+F</string>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="markButton">
-            <property name="toolTip">
-             <string>Mark a red rectangle in global view to correct a dust later</string>
-            </property>
-            <property name="text">
-             <string>Mark</string>
-            </property>
-            <property name="shortcut">
-             <string>M</string>
+            <property name="checkable">
+             <bool>true</bool>
             </property>
            </widget>
           </item>

@@ -76,11 +76,13 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
 	ui.linearButton->setToggleButton(true);
+
 	m_draw_on = m_resize_rect = false;
-	
+
 	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
 	m_nav_x_block = m_nav_y_block = 0;
 #ifdef SIMPLE_VIEW
+	ui.fullScreenButton->setToggleButton(TRUE);
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
@@ -114,7 +116,13 @@ void TamanoirApp::purge() {
 	}
 }
 
-
+void TamanoirApp::on_fullScreenButton_clicked() {
+	fprintf(stderr, "TamanoirApp::%s:%d !\n", __func__, __LINE__);
+	if(	!isFullScreen())
+		showFullScreen();
+	else
+		showNormal();
+}
 
 void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	// Resize components
@@ -339,10 +347,12 @@ void TamanoirApp::on_markButton_clicked() {
 void TamanoirApp::moveBlock() {
 	if(!m_pImgProc) return;
 	CvSize blockSize = m_pImgProc->getDisplayCropSize();
-	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d / blocks of size %dx%d\n", __func__, __LINE__,
+
+/*	fprintf(stderr, "[TamanoirApp]::%s:%d block:%d,%d / blocks of size %dx%d\n", __func__, __LINE__,
 			m_nav_x_block, m_nav_y_block,
 			blockSize.width, blockSize.height
-			);
+			); */
+
 	if(blockSize.width <= 0 || blockSize.height <= 0) return;
 
 	IplImage * origImage = m_pImgProc->getGrayscale();
