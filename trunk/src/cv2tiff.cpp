@@ -851,23 +851,23 @@ static int
 /*
  * cvt_whole_image()
  *
- * read the whole image into one big RGBA buffer and then write out
+ * read the whole image into one big RGBxdepth buffer and then write out
  * strips from that.  This is using the traditional TIFFReadRGBAImage()
  * API that we trust.
  */
 
-static int
-cvt_whole_image( TIFF *in, IplImage *out )
+static int cvt_whole_image( TIFF *in, IplImage *out )
 {
 	uint32  width, height;		/* image width & height */
 	int32 tile_rowperstrip = 0, tile_width = 0, tile_height = 0;
 
-	TIFFGetField( in, TIFFTAG_ROWSPERSTRIP, &tile_rowperstrip /*tile_height0 */) ||
-	TIFFGetField( in, TIFFTAG_TILEWIDTH, &tile_width );
-	TIFFGetField( in, TIFFTAG_TILELENGTH, &tile_height );
 
 	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
 	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+
+	TIFFGetField( in, TIFFTAG_ROWSPERSTRIP, &tile_rowperstrip);
+	TIFFGetField( in, TIFFTAG_TILEWIDTH, &tile_width );
+	TIFFGetField( in, TIFFTAG_TILELENGTH, &tile_height );
 
 //	rowsperstrip = TIFFDefaultStripSize(out, rowsperstrip);
 //	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip);
@@ -912,15 +912,13 @@ cvt_whole_image( TIFF *in, IplImage *out )
 
 		for( x = 0; x < width; x += tile_width )
 		{
-
 			if( x + tile_width > width )
 				tile_width = width - x;
 
-			if(bitpersample != 8) {
+			/*if(bitpersample != 8)*/ {
 				uint16  config = PLANARCONFIG_CONTIG;
 				TIFFGetField(in, TIFFTAG_PLANARCONFIG, &config);
 				if(!buf) {
-
 					buf = _TIFFmalloc(TIFFScanlineSize(in));
 					fprintf(stderr, "\t%s:%d : TIFFScanlineSize=%d\n",
 							__func__, __LINE__,
@@ -1011,7 +1009,7 @@ static int
 
 
 	if(ipl_depth == IPL_DEPTH_8U) {
-		return -1; // no need for 16bit
+//		return -1; // no need for 16bit
 	}
 	fprintf(stderr, "cv2tiff %s:%d : create IplImage ((%d,%d), %d, %d)\n",
 			__func__, __LINE__,
@@ -1030,8 +1028,52 @@ static int
 		fprintf(stderr, "cv2tiff %s:%d : photometric=%u\n",
 				__func__, __LINE__, shortv);
 		break;
+	case PHOTOMETRIC_MINISWHITE:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      0       /* min value is white */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_MINISBLACK:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      1       /* min value is black */\n",
+				__func__, __LINE__, shortv);
+		break;
 	case PHOTOMETRIC_RGB:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=PHOTOMETRIC_RGB\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=             2       /* RGB color model */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_PALETTE:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=         3       /* color map indexed */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_MASK:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=            4       /* $holdout mask */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_SEPARATED:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=       5       /* !color separations */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_YCBCR:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=           6       /* !CCIR 601 */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_CIELAB:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          8       /* !1976 CIE L*a*b* */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_ICCLAB:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          9       /* ICC L*a*b* [Adobe TIFF Technote 4] */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_ITULAB:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          10      /* ITU L*a*b* */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_LOGL:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=            32844   /* CIE Log2(L) */\n",
+				__func__, __LINE__, shortv);
+		break;
+	case PHOTOMETRIC_LOGLUV:
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          32845   /* CIE Log2(L) (u',v') */\n",
 				__func__, __LINE__, shortv);
 		break;
 	}
@@ -1042,12 +1084,42 @@ static int
 		fprintf(stderr, "cv2tiff %s:%d : unknown fillorder=%u\n",
 				__func__, __LINE__, fillorder);
 		break;
-	case PHOTOMETRIC_RGB:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=ORIENTATION_TOPLEFT \n",
+	case ORIENTATION_TOPLEFT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         1       /* row 0 top, col 0 lhs */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_TOPRIGHT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        2       /* row 0 top, col 0 rhs */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_BOTRIGHT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        3       /* row 0 bottom, col 0 rhs */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_BOTLEFT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         4       /* row 0 bottom, col 0 lhs */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_LEFTTOP:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         5       /* row 0 lhs, col 0 top */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_RIGHTTOP:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        6       /* row 0 rhs, col 0 top */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_RIGHTBOT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        7       /* row 0 rhs, col 0 bottom */\n",
+				__func__, __LINE__, fillorder);
+		break;
+	case ORIENTATION_LEFTBOT:
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         8       /* row 0 lhs, col 0 bottom */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	}
 
+	// Read resolution in header
+	// => used in Tamanoir for setting dust detection sizes
 	float resolution_x, resolution_y;
 	TIFFGetField(in, TIFFTAG_XRESOLUTION, &resolution_x);
 	TIFFGetField(in, TIFFTAG_YRESOLUTION, &resolution_y);

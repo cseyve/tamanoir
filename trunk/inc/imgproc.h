@@ -189,6 +189,9 @@ public:
 	/** @brief Set all options in one single call */
 	int setOptions(tm_options opt);
 
+	/** @brief Get all options in one single call */
+	tm_options getOptions() { return m_options; };
+
 	/** @brief Set film type \param type : 0 for undefined, 1 for negative, 2 for positive */
 	void setFilmType(int type);
 	

@@ -1770,6 +1770,23 @@ void tmEraseRegion(
 
 extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);
 
+IplImage * tmLoadImage(const char *filename, int * dpi) {
+	IplImage * originalImage = NULL;
+	if(strcasestr(filename, ".tif")) {
+		originalImage  =
+			tmOpenTiffImage(filename, dpi);
+		if(originalImage) {
+			// Ok, loading is done
+			return originalImage;	
+		}
+	}
+
+	originalImage = cvLoadImage(filename,
+					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
+					);
+	return originalImage;
+}
+
 
 void tmSaveImage(const char * filename, IplImage * src) {
 	if(!src) { return; }
