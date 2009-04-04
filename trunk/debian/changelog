@@ -1,3 +1,10 @@
+tamanoir (0.svn20090404-1) unstable; urgency=low
+
+  * Release candidate
+  * Added 16bit TIFF support without patching OpenCV
+
+ -- Christophe Seyve <cseyve@free.fr>  Sat, 4 Apr 2009 21:42:10 +0200
+
 tamanoir (0.svn20090331-1) unstable; urgency=low
  
   * Fixes minor bugs
