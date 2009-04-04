@@ -30,7 +30,7 @@ Version plus ancienne pour Windows (sans support TIFF 16bit TIFF) :
 
 Version : beta. 
 
-Portabilité : Linux et MacOS X (Intel). Compile sous Windows mais problème d'exécution : un peu d'aide serait bienvenue ! Pour MacOS X / PowerPC, besoin d'aide aussi.
+Portabilité : Linux, MacOS X (Intel) et Windows. Pour MacOS X / PowerPC, besoin d'aide aussi.
 
 === Dépendances ===
 
