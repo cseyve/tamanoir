@@ -11,20 +11,11 @@ This page explains how to build Tamanoir on Linux.
 Building Tamanoir on Linux.
 
 You need :
-- OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
-- Qt4 for Mac
-- XCode
-- Tamanoir
+  * OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+  * libTIFF for 16bit TIFF support
+  * Qt4 for Linux
+  * Tamanoir
 
-If you want to manipulate 16bit TIFF, you have to patch OpenCV and to use libtiff. 
-If OpenCV uses ImageIO, it will not support import/export of 16bit images. When removing ImageIO from OpenCV, you need to add at least libPNG to open PNG pictures. The building of libJPEG is not needed.
-
-So, for 16bit support, you need to download and rebuild : 
-* libTIFF
-* libPNG
-* OpenCV 
-
-If you do not need 16bit TIFF support, jump to OpenCV section.
 
 ----
 ==Libtiff==
@@ -34,6 +25,58 @@ Compile and Install :
 {{{
 ./configure ; make ; sudo make install
 }}}
+
+Or simply use your distribution package : 
+{{{
+apt-get install libtiff-dev
+}}}
+
+----
+==OpenCV==
+
+Install a development version of OpenCV with your package manager, for example:
+{{{
+apt-get install libhighgui-dev
+}}}
+
+----
+== Qt4 ==
+
+Download : [http://trolltech.com/downloads/opensource]
+Install Qt4. For example: 
+{{{
+apt-get install qt4-dev
+}}}
+
+----
+== Tamanoir ==
+
+Download snapshot : 
+{{{
+# Non-members may check out a read-only working copy anonymously over HTTP.
+svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
+}}}
+
+Compile Tamanoir :
+{{{
+cd Tamanoir/
+qmake Tamanoir.pro
+}}}
+
+or for Debian 4 Etch with both Qt3 and Qt4:
+{{{
+qmake-qt4 Tamanoir.pro
+}}}
+
+Then build : 
+{{{
+make
+./tamanoir
+}}}
+
+
+----
+= Additional notes to rebuild OpenCV =
 
 ----
 ==libpng==
@@ -78,40 +121,6 @@ make install
 }}}
 
 ----
-== Qt4 ==
-
-Download : [http://trolltech.com/downloads/opensource]
-Install Qt4. For example: 
-{{{
-apt-get install qt4-dev
-}}}
-
-----
-== Tamanoir ==
-
-Download snapshot : 
-{{{
-# Non-members may check out a read-only working copy anonymously over HTTP.
-svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
-}}}
-
-Compile Tamanoir :
-{{{
-cd Tamanoir/
-qmake Tamanoir.pro
-}}}
-
-or for Debian 4 Etch with both Qt3 and Qt4:
-{{{
-qmake-qt4 Tamanoir.pro
-}}}
-
-Then build : 
-{{{
-make
-./tamanoir
-}}}
-
 =Debian package=
 
 Tamanoir use the "native Debian packagin" model, where the debian/ foler and its control files are maintained in the upstream repository. Instructions to build a Debian package should work on any Debian-based distribution (Ubuntu for instance):
