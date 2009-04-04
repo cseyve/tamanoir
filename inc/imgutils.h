@@ -126,7 +126,13 @@ IplImage * tmFastConvertToGrayscale(IplImage * img);
 /** @brief Process a dilatation */
 void tmDilateImage(IplImage * src, IplImage * dst);
 
-/** S@brief ave an OpenCV IplImage as file */
+/** @brief Load a TIFF file in an OpenCV IplImage */
+IplImage * tmOpenTiffImage(const char * filename, int * dpi);
+
+/** @brief Load an OpenCV IplImage as file */
+IplImage * tmLoadImage(const char * filename, int * dpi = NULL);
+
+/** @brief Save an OpenCV IplImage as file */
 void tmSaveImage(const char * filename, IplImage * src);
 
 /** @brief Do a contrained region growing around a seed */ 
