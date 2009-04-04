@@ -6,27 +6,71 @@
 This page explains how to build Tamanoir on Mac OS X.
 
 
-= Details =
+= Required =
 
 Building Tamanoir on Mac OS X.
 
 You need :
   * OpenCV : to load/save images, to manipulate some image buffers (libs cxcore, highgui)
+  * libTIFF for 16bit TIFF support
   * Qt4 for Mac
-  * XCode
+  * XCode or QtCreator for development GUI
   * Tamanoir
 
-If you want to manipulate 16bit TIFF, you have to patch OpenCV and to use libtiff. 
-If OpenCV uses ImageIO, it will not support import/export of 16bit images. When removing ImageIO from OpenCV, you need to add at least libPNG to open PNG pictures. The building of libJPEG is not needed.
+----
+== OpenCV + libtiff ==
 
-So, for 16bit support, you need to download and rebuild : 
-  * libTIFF
-  * libPNG
-  * OpenCV 
+Install a development version of OpenCV with Fink or MacPorts
+{{{
+sudo port install opencv libtiff-dev
+}}}
+or
+{{{
+sudo fink install opencv libtiff-dev
+}}}
 
-If you do not need 16bit TIFF support, jump to Qt4 section.
+Project page: [http://www.intel.com/technology/computing/opencv/]
 
 ----
+== Qt4 ==
+
+Download : [http://www.qtsoftware.com/downloads] Choose GPL/LGPL version.
+Install Qt4 Framework or SDK (for QtCreator).
+
+----
+== Tamanoir ==
+
+Download snapshot : 
+{{{
+# Non-members may check out a read-only working copy anonymously over HTTP.
+svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
+}}}
+
+2 methods : with command lines within a terminal or with an IDE (XCode or QtCreator)
+  * Command line : compile Tamanoir : within a terminal :
+{{{
+cd tamanoir/
+/Developer/Tools/Qt/qmake Tamanoir.pro 
+}}}
+
+  * XCode : launch the command line above to create a xcode project
+    Then you can choose your IDE :
+    * open the _Tamanoir.xcodeproj_ with XCode then build, run...
+
+
+  * QtCreator use _Tamanoir.pro_ to create project
+
+
+After building, you can copy the Tamanoir (_Tamanoir.app_) in your "Application" directory in Finder.
+
+
+
+
+
+----
+= Additional notes and build information for a few components used by Tamanoir =
+----
+
 ==Libtiff==
 
 Download : http://www.libtiff.org/
@@ -48,20 +92,6 @@ make ; sudo make install
 
 ----
 == OpenCV ==
-
-=== OpenCV *without* 16bit TIFF support ===
-
-Install a development version of OpenCV with Fink or MacPorts
-{{{
-sudo port install opencv
-}}}
-or
-{{{
-sudo fink install opencv
-}}}
-
-Project page: [http://www.intel.com/technology/computing/opencv/]
-
 
 === OpenCV *with* 16bit TIFF support ===
 Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
@@ -138,33 +168,6 @@ Wrappers for other languages =========================================
 Additional build settings ============================================
     Build demo apps           yes
 }}}
-
-----
-== Qt4 ==
-
-Download : [http://trolltech.com/downloads/opensource]
-Install Qt4.
-
-----
-== Tamanoir ==
-
-Download snapshot : 
-{{{
-# Non-members may check out a read-only working copy anonymously over HTTP.
-svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir-read-only
-}}}
-
-
-Compile Tamanoir :
-{{{
-cd Tamanoir/
-/Developer/Tools/Qt/qmake Tamanoir.pro 
-}}}
-
-Then you can choose your IDE :
-- open the _Tamanoir.xcodeproj_ with XCode then build, run...
-- use QtCreator to create project with the single file Tamanoir.pro 
-    see http://trolltech.com/developer/qt-creator
 
 ----
 == Building packages ==
