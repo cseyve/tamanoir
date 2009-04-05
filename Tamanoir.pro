@@ -193,14 +193,15 @@ DYN_LIBS += -lcvaux \
     -lhighgui
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
     $$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
-    $$OPENCV_STATIC_LIBDIR/libjpeg.a \
     $$OPENCV_STATIC_LIBDIR/libtiff.a \
     $$OPENCV_STATIC_LIBDIR/lib_highgui.a
-
+#$$OPENCV_STATIC_LIBDIR/libjpeg.a 
 # Build static if linked statically with a patched version of OpenCV for 16bit TIFF pictures
 # ./configure --with-ffmpeg=no --with-tiff=yes --with-v4l=no --with-v4l2=no --with-gtk=no
 BUILD_STATIC = $$(BUILD_STATIC)
-contains(BUILD_STATIC, true) { 
+#contains(BUILD_STATIC, true)
+
+macx: {
     message("Building static version of binary :")
     
     # Test for building releases
@@ -234,6 +235,8 @@ CONFIG += qt \
     release \
     build_all
 
+macx:CONFIG += x86 ppc
+
 # # INSTALLATION
 # target.path = /usr/local/tamanoir
 # INSTALLS += target
@@ -242,9 +245,11 @@ message( "")
 message( "")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "Configuration : ")
+message( " config : $$CONFIG ")
 message( " defs : $$DEFINES ")
 message( " libs : $$LIBS ")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "")
 message( "")
 RESOURCES += tamanoir.qrc
+
