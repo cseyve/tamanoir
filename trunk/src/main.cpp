@@ -107,10 +107,13 @@ MacApp::MacApp(int & argc, char ** argv)
     }
     if(!MacAPP_Log) MacAPP_Log = fopen("/tmp/MacAPP.log", "w");
 
-    AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments,
+#ifdef Q_WS_MACX
+	AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments,
                              NewAEEventHandlerUPP(handleOpenDocuments),
                              0, false);
+#endif
 }
+
 
 #ifdef Q_WS_MACX
 OSErr MacApp::handleOpenDocuments(const AppleEvent* inEvent,
