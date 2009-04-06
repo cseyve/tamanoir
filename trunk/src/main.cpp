@@ -26,6 +26,11 @@
 
 #include "tamanoir.h"
 
+#ifdef Q_WS_MACX
+#include <Carbon/Carbon.h>
+#include <time.h>
+#include <sys/time.h>
+#endif
 
 /*
 Linux : 
@@ -62,6 +67,119 @@ void displayHelp() {
 					"\t--minimized : display without full screen and at normal size (not maximized)\n"
 					);
 }
+
+int m_argc = 0;
+char ** m_argv = NULL;
+FILE * MacAPP_Log = NULL;
+
+TamanoirApp * tmApp = NULL;
+
+
+class MacApp : public QApplication {
+public:
+    MacApp(int & argc, char ** argv);
+
+#ifdef Q_WS_MACX
+ //    bool macEventFilter ( EventHandlerCallRef caller, EventRef event );
+private:
+    static pascal OSErr     handleOpenDocuments(
+               const AppleEvent* inEvent, AppleEvent*, long);
+#endif
+};
+
+MacApp::MacApp(int & argc, char ** argv)
+        : QApplication( argc, argv)
+{
+	m_argc = argc;
+	m_argv = new char * [m_argc + 10]; // Leave one more space for "Open with"
+	memset(m_argv, 0, sizeof(char *)*m_argc + 10);
+	if(m_argc == 0) {
+	}
+    else {
+		// Copy strings
+        for(int c=0; c<m_argc; c++) {
+            m_argv[c] = NULL;
+            if(strlen(argv[c])>0) {
+                m_argv[c]= new char [strlen(argv[c])+1];
+                strcpy(m_argv[c], argv[c]);
+            }
+        }
+    }
+    if(!MacAPP_Log) MacAPP_Log = fopen("/tmp/MacAPP.log", "w");
+
+    AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments,
+                             NewAEEventHandlerUPP(handleOpenDocuments),
+                             0, false);
+}
+
+#ifdef Q_WS_MACX
+OSErr MacApp::handleOpenDocuments(const AppleEvent* inEvent,
+								  AppleEvent* /*reply*/, long /*refCon*/) {
+
+	QString s_arg;
+	AEDescList documentList;
+	OSErr err = AEGetParamDesc(inEvent, keyDirectObject, typeAEList,
+							   &documentList);
+	if (err != noErr) {
+		return err;
+	}
+
+	//              err = checkAppleEventForMissingParams(*inEvent);
+	if (err == noErr) {
+		long documentCount;
+		err = AECountItems(&documentList, &documentCount);
+		for (long documentIndex = 1;
+			 err == noErr && documentIndex <= documentCount;
+			 documentIndex++) {
+			DescType returnedType;
+			Size actualSize;
+			AEKeyword keyword;
+			FSRef ref;
+			char qstr_buf[1024];
+			err = AESizeOfNthItem(&documentList, documentIndex,
+								  &returnedType, &actualSize);
+			if (err == noErr) {
+				err = AEGetNthPtr(&documentList, documentIndex,
+								  typeFSRef, &keyword,
+								  &returnedType, (Ptr)&ref,
+								  sizeof(FSRef), &actualSize);
+				if (err == noErr) {
+					FSRefMakePath(&ref, (UInt8*)qstr_buf,
+								  1024);
+					s_arg=QString::fromUtf8(qstr_buf);
+					if(MacAPP_Log) {
+						struct timeval nowtv;
+						gettimeofday(&nowtv, NULL);
+						fprintf(MacAPP_Log, "%03d.%03d : new doc : '%s'\n",
+								(int)(nowtv.tv_sec % 1000),  (int)(nowtv.tv_usec / 1000),
+								qstr_buf);
+						fflush(MacAPP_Log);
+					}
+					m_argv[m_argc] = new char [512];
+					memset(m_argv[m_argc], 0, 512);
+					strcpy(m_argv[m_argc], qstr_buf);
+					m_argc++;
+					if(tmApp) {
+						tmApp->loadFile(s_arg);
+					}
+					break;
+				}
+			}
+		} // for ...
+	}
+	AEDisposeDesc(&documentList);
+
+    return 0;
+}
+#endif
+/*
+
+bool MacApp::macEventFilter ( EventHandlerCallRef caller, EventRef event ) {
+    if(!MacAPP_log) MacAPP_log = fopen("/Users/tof/MacApp.log", "w");
+  //  if(MacAPP_log)
+  //QString s_arg;  fprintf(MacAPP_log, "macEventFilter(caller=%d, event=%d) \n", (int)caller, (int)event);
+    return false;
+}*/
 
 int main(int argc, char *argv[])
 {
@@ -118,7 +236,7 @@ int main(int argc, char *argv[])
 
 	
 	
-	QApplication a(argc, argv);
+	MacApp a(argc, argv);
 	QTranslator tor( 0 );
 
   	// set the location where your .qm files are in load() below as the last parameter instead of "."
@@ -141,11 +259,28 @@ int main(int argc, char *argv[])
 				dir.absolutePath() );
 	
 	a.installTranslator( &tor );
-	
+#ifdef Q_WS_MACX
+
+	if(MacAPP_Log) {
+		struct timeval nowtv;
+		gettimeofday(&nowtv, NULL);
+		fprintf(MacAPP_Log, "%03d.%03d : lauching app\n",
+				(int)(nowtv.tv_sec % 1000),  (int)(nowtv.tv_usec / 1000));
+		fflush(MacAPP_Log);
+	}
+	if(MacAPP_Log) {
+		struct timeval nowtv;
+		gettimeofday(&nowtv, NULL);
+		fprintf(MacAPP_Log, "%03d.%03d : lauching app with args=\n",
+				(int)(nowtv.tv_sec % 1000),  (int)(nowtv.tv_usec / 1000));
+		for(int i=0; i<m_argc; i++) fprintf(MacAPP_Log, "argv[%d]='%s' ", i, m_argv[i]);
+		fflush(MacAPP_Log);
+	}
+#endif
 	/* --- Create application ---*/
-	TamanoirApp sA;
-	sA.setArgs(argc, argv);
-	sA.show();
+	tmApp = new TamanoirApp();
+	tmApp->setArgs(m_argc, m_argv);
+	tmApp->show();
 	
 	return a.exec();
 }

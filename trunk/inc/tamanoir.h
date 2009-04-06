@@ -35,6 +35,7 @@
 #endif
 
 #include <QtGui>
+#include <QFileDialog>
 
 
 // Tamanoir processing thread commands
@@ -141,6 +142,8 @@ private:
 	
 	Ui::Tamanoir ui;
 	
+        QFileDialog * m_fileDialog;
+
 	/** @brief Delete allocated structures */
 	void purge();
 	

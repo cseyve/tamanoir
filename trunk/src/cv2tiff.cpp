@@ -923,7 +923,7 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 					buf = _TIFFmalloc(TIFFScanlineSize(in));
 					fprintf(stderr, "\t%s:%d : TIFFScanlineSize=%d\n",
 							__func__, __LINE__,
-							TIFFScanlineSize(in)
+							(int)TIFFScanlineSize(in)
 							);fflush(stderr);
 				}
 				if (config == PLANARCONFIG_CONTIG) {
