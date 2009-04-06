@@ -129,6 +129,19 @@
              </property>
             </spacer>
            </item>
+           <item>
+            <widget class="QPushButton" name="aboutButton">
+             <property name="toolTip">
+              <string>About: Tamanoir verison and link to online help</string>
+             </property>
+             <property name="text">
+              <string>About</string>
+             </property>
+             <property name="shortcut">
+              <string>Ctrl+H</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
          <item>
@@ -543,7 +556,7 @@
         </layout>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="7" column="1">
        <widget class="QLabel" name="diffPixmapLabel">
         <property name="enabled">
          <bool>false</bool>
@@ -560,25 +573,6 @@
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QPushButton" name="autoButton">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="toolTip">
-         <string>Automatically correct the whole image</string>
-        </property>
-        <property name="text">
-         <string>Auto</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
        <widget class="QLabel" name="loadingTextLabel">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -594,7 +588,7 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="growPixmapLabel">
         <property name="enabled">
          <bool>false</bool>
@@ -610,7 +604,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <widget class="QFrame" name="hiddenFrame">
         <property name="enabled">
          <bool>true</bool>
@@ -813,6 +807,19 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QPushButton" name="autoButton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="toolTip">
+         <string>Automatically correct the whole image</string>
+        </property>
+        <property name="text">
+         <string>Auto</string>
+        </property>
        </widget>
       </item>
      </layout>
