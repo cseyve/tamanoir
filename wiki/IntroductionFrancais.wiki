@@ -20,7 +20,7 @@ Merci de lire le [ModeDEmploiTamanoir]
 === Paquets ===
 
 Candidats à la première version (_release candidate_) : 
-  * Linux Debian Lenny / Ubuntu >8.04 package : [http://tamanoir.googlecode.com/files/tamanoir_0.svn20090404-1_i386.deb tamanoir_0.svn20090404-1_i386.deb] (94 ko, lié dynamiquement à Qt4)
+  * Linux Debian Lenny / Ubuntu >8.04 package : [http://tamanoir.googlecode.com/files/tamanoir_0.svn20090407-1_i386.deb tamanoir_0.svn20090407-1_i386.deb] (94 ko, lié dynamiquement à Qt4)
   * MacOS X : [http://cseyve.free.fr/tamanoir/Tamanoir-MacOSX-svn20090407.zip Tamanoir-MacOSX-svn200900407.zip] (140 Mo avec Qt4.5 statique)
   
 Version plus ancienne pour Windows (sans support TIFF 16bit TIFF) : 
