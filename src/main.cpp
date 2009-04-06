@@ -42,7 +42,7 @@ OR even easier : use QtCreator :)
 
 // Main GUI display
 bool maximized = false, full = false;
-
+QString g_application_path;
 extern u8 g_debug_imgverbose;
 extern u8 g_debug_imgoutput;
 extern u8 g_debug_correlation;
@@ -127,9 +127,11 @@ int main(int argc, char *argv[])
 	QLocale localLang;
 
 #ifdef LINUX
+	g_application_path = QString("/usr/share/tamanoir");
 	QDir dir("/usr/share/tamanoir");
 #else
 	QDir dir(QApplication::applicationDirPath());
+	g_application_path = QApplication::applicationDirPath();
 #endif
 	QString translationFile = QString("tamanoir_") +
 			  localLang.languageToString(localLang.language()) +

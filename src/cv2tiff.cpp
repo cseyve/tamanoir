@@ -915,7 +915,8 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 			if( x + tile_width > width )
 				tile_width = width - x;
 
-			/*if(bitpersample != 8)*/ {
+			/*if(bitpersample != 8)*/
+			{
 				uint16  config = PLANARCONFIG_CONTIG;
 				TIFFGetField(in, TIFFTAG_PLANARCONFIG, &config);
 				if(!buf) {

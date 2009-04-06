@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/" >
         <file>icon/tamanoir32.png</file>
+        <file>icon/tamanoir_splash.png</file>
     </qresource>
 </RCC>

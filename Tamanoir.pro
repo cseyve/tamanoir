@@ -2,7 +2,7 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
-
+DEFINES += TMVERSION=\"`date +%Y%m%d`\"
 # Use lowercase name for Linux
 linux-g++::TARGET = tamanoir
 # and an uppercase first letter for Mac & Windows

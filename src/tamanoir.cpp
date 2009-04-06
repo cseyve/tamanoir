@@ -31,7 +31,7 @@
 // include files for QT
 #include <QFileInfo>
 #include <QFileDialog>
-
+#include <QSplashScreen>
 
 /* File for logging messages */
 extern FILE * logfile;
@@ -42,7 +42,7 @@ extern u8 g_debug_savetmp;
 extern u8 g_debug_correlation;
 extern u8 g_evaluate_mode;
 
-
+extern QString g_application_path;
 u8 g_debug_TmThread = 0; 
 u8 g_debug_displaylabel = 0;
 
@@ -86,8 +86,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
+// Hide auto button because its use if not very well defined
 	ui.autoButton->hide();
-	//ui.overAllProgressBar->hide();
 	ui.loadingTextLabel->hide();
 	//ui.hiddenFrame->hide();
 #endif
@@ -116,8 +116,22 @@ void TamanoirApp::purge() {
 	}
 }
 
-void TamanoirApp::on_fullScreenButton_clicked() {
+QSplashScreen * g_splash = NULL;
+void TamanoirApp::on_aboutButton_clicked() {
 	fprintf(stderr, "TamanoirApp::%s:%d !\n", __func__, __LINE__);
+	QDir dir(g_application_path);
+	QPixmap pix(":/icon/tamanoir_splash.png");
+	if(!g_splash)
+		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
+	g_splash->showMessage(tr("<b>Tamanoir</b> version:") + "TMVERSION"
+						 + QString("<br><a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a>")
+						 );
+	g_splash->show();
+	g_splash->update();
+repaint();// to force display of splash
+}
+
+void TamanoirApp::on_fullScreenButton_clicked() {
 	if(	!isFullScreen())
 		showFullScreen();
 	else
