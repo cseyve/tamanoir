@@ -132,7 +132,7 @@
            <item>
             <widget class="QPushButton" name="aboutButton">
              <property name="toolTip">
-              <string>About: Tamanoir verison and link to online help</string>
+              <string>About: Tamanoir version and link to online help</string>
              </property>
              <property name="text">
               <string>About</string>

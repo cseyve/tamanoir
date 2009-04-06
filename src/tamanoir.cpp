@@ -30,7 +30,6 @@
 
 // include files for QT
 #include <QFileInfo>
-#include <QFileDialog>
 #include <QSplashScreen>
 
 /* File for logging messages */
@@ -52,7 +51,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 {
 	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	statusBar()->showMessage( QString("") );
-	
+        m_fileDialog = NULL;
 	m_pImgProc = NULL;
 	m_pProcThread = NULL;
 	force_mode = false;
@@ -123,7 +122,10 @@ void TamanoirApp::on_aboutButton_clicked() {
 	QPixmap pix(":/icon/tamanoir_splash.png");
 	if(!g_splash)
 		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
-	g_splash->showMessage(tr("<b>Tamanoir</b> version:") + "TMVERSION"
+	QString verstr;
+
+	g_splash->showMessage(tr("<b>Tamanoir</b> version: ") + verstr.sprintf("svn%04d%02d%02d",VERSION_YY, VERSION_MM, VERSION_DD)
+
 						 + QString("<br><a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a>")
 						 );
 	g_splash->show();
@@ -882,11 +884,22 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 
 
 int TamanoirApp::loadFile(QString s) {
+	if(m_fileDialog) {
+		m_fileDialog->hide();
+		m_fileDialog->close();
+
+		//delete m_fileDialog;
+	}
+
 	QFileInfo fi(s);
 	if(!fi.exists()) 
 		return -1;
-	
-	
+	ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
+	show();
+
+	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
+	statusBar()->update();
+
 	m_currentFile = s;
 	
 	strcpy(m_options.currentDir, fi.absolutePath().ascii());
@@ -897,9 +910,7 @@ int TamanoirApp::loadFile(QString s) {
 	skipped_list.clear();
 	
 	
-	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
-	statusBar()->update();
-	
+
 	fprintf(stderr, "TamanoirApp::%s:%d : file='%s'...\n", 
 		__func__, __LINE__, s.latin1());
 	// Open file
@@ -950,19 +961,30 @@ void TamanoirApp::lockTools(bool lock) {
 /****************************** Button slots ******************************/
 void TamanoirApp::on_loadButton_clicked() 	
 {
-	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-	QString s = QFileDialog::getOpenFileName(this,
+	if(!m_fileDialog) {
+		m_fileDialog = new QFileDialog(this,
 						tr("Tamanoir - Open a picture to be cleaned"),
 						m_options.currentDir,
 						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 							"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
+		m_fileDialog->setFileMode(QFileDialog::ExistingFile);
+	}
+
+	m_fileDialog->show();
+	QStringList fileNames;
+	if (m_fileDialog->exec())
+		fileNames = m_fileDialog->selectedFiles();
+	else
+		return;
+
+	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+	QString s = fileNames.at(0);
 	if(s.isEmpty()) {
 		//fprintf(stderr, "TamanoirApp::%s:%d : cancelled...\n", __func__, __LINE__);
 		return;
 	}
 	
-	ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
-	
+
 	loadFile( s);
 }
 
@@ -1280,7 +1302,7 @@ void TamanoirApp::on_autoButton_clicked()
 	statusBar()->update();
 	
 	fprintf(stderr, "TamanoirApp::%s:%d : AUTO MODE ...\n", __func__, __LINE__);
-	if(logfile == stderr) {
+        /*if(logfile == stderr) {
 		char logfilename[512] = TMP_DIRECTORY "tamanoir.txt";
 		
 		QFileInfo fi(m_currentFile);
@@ -1297,18 +1319,16 @@ void TamanoirApp::on_autoButton_clicked()
 			fprintf(stderr, "TamanoirApp::%s:%d : Logging messages in '%s'\n", __func__, __LINE__,
 				logfilename);
 		}
-	} else {
+        } else */
+        {
 		g_debug_imgverbose = 0;
 	}	
 	g_debug_savetmp = 0;
         
 	// Apply previous correction
 	if(m_pProcThread) {
-		
-		
-		m_pProcThread->setModeAuto(true);
-		
-	}
+                m_pProcThread->setModeAuto(true);
+        }
 	fflush(logfile);
 	
         
@@ -2038,8 +2058,12 @@ void TamanoirThread::setModeAuto(bool on) {
 			start();
 		
 		req_command = PROTH_SEARCH;
+		m_options = m_pImgProc->getOptions();
 		m_options.trust = 1;
+                
 		m_pImgProc->setOptions(m_options);
+                m_pImgProc->firstDust();
+
 		// Unlock thread 
 		mutex.lock();
 		waitCond.wakeAll();
