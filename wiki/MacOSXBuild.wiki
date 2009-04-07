@@ -58,19 +58,39 @@ cd tamanoir/
     * open the _Tamanoir.xcodeproj_ with XCode then build, run...
 
 
-  * QtCreator use _Tamanoir.pro_ to create project
+  * QtCreator use _Tamanoir.pro_ to create project, and build with the build command.
 
 
 After building, you can copy the Tamanoir (_Tamanoir.app_) in your "Application" directory in Finder.
 
+----
 
+== Releasing MacOS X package ==
 
-
+This is still poorly done : 
+   * Build with QtCreator to link with Universal binary libraries
+   * launch the _ build_macosx_pkg.sh _ to create bundle and an archive (ZIP) of the application. It still has QtGui_debug inside, so the archive is huge (140 MB !)
 
 ----
+----
+
 = Additional notes and build information for a few components used by Tamanoir =
+
+This section is only for developers's information, it's not anymore needed for building Tamanoir or enabling some feature.
+
+All the information for building is above.
+
 ----
 
+==MacOS Notes==
+
+Using the "Open with" of Finder, or of any other "external applications" (Adobe Lightroom...).
+
+We have to overload the QApplication to handle MacOS X Carbon events.
+Example : http://www.mail-archive.com/lyx-devel@lists.lyx.org/msg94792.html
+
+
+----
 ==Libtiff==
 
 Download : http://www.libtiff.org/
@@ -175,9 +195,3 @@ Additional build settings ============================================
 Reference : http://www.siteduzero.com/forum-83-234070-p1-un-bundle-mac-pour-vos-applications-qt4.html
 
 (Required : Python : http://www.python.org/download/)
-
-Build and make dependencies : 
-{{{
-rm -fr Tamanoir.app ; BUILD_STATIC=true qmake-4.5 Tamanoir.pro && make clean && make
-./build_mac_bundle.sh Tamanoir.app Tamanoir.app/Contents/MacOS/Tamanoir
-}}}
