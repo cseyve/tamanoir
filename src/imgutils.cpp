@@ -991,19 +991,19 @@ float tmCorrelation(
 	// Don't process on borders
 	if(x1<0 || y1<0 || x1+w>img1->width || y1+h>=img1->height) 
 	{
-		*pmaxdiff = 1000;
-		return 1000.f;
+		*pmaxdiff = 1001;
+		return 1001.f;
 	}
 	if(x2<0 || y2<0 || x2+w>img2->width || y2+h>=img2->height) 
 	{
-		*pmaxdiff = 1000;
-		return 1000.f;
+		*pmaxdiff = 1002;
+		return 1002.f;
 	}
 	/* IplImage:
 	int  depth; // pixel depth in bits: IPL_DEPTH_8U, IPL_DEPTH_8S, IPL_DEPTH_16S,
                            IPL_DEPTH_32S, IPL_DEPTH_32F and IPL_DEPTH_64F are supported 
 	*/
-	*pmaxdiff = 1000;
+	*pmaxdiff = 1003;
 	long diff = 0;
 	long nbpix = 0;
 	long nbdiff = 0;
@@ -1049,33 +1049,41 @@ float tmCorrelation(
 		for(int dy = 0; dy<h; dy++) {
 			u8 * img1pos = img1buffer + (y1+dy)*pitch1   	+ x1_x_depth;
 			u8 * maskpos = maskbuffer + (y1+dy)*pitchmask	+ x1;
+
 			u8 * img2pos = img2buffer + (y2+dy)*pitch2		+ x2_x_depth;
 			
 			for(int dx=0; dx<w; dx++) {
 				// Don't compute if there is a doubt about this image (dust presence)
 				// Compute only if mask is 0
-				if(*maskpos == 0) {
+				if( *maskpos == 0 ) {
 					for(int d=0; d<channels; d++) {
-						long l_diff = abs( (long)*img1pos - (long)*img2pos);
+
+						long l_diff = abs( (long)(*img1pos) - (long)(*img2pos) );
+
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
-							if(nbdiff>wxh_4) {// Too many pixels different / surface of object
-								if(pnbdiff)
+							if(nbdiff > wxh_4) {// Too many pixels different / surface of object
+								if(pnbdiff) {
 									*pnbdiff = nbdiff;
-								return 1001.f;
+								}
+								return 1004.f;
 							}
 						}
 
+						// If difference is too high, return false
 						if(l_diff > maxdiff)
 						{
 							maxdiff = l_diff;
-							if(l_diff > difftolerance) // Abort correlation
-							{
+							if(l_diff > difftolerance) { // Abort correlation
+								if(pmaxdiff)
+									*pmaxdiff = maxdiff;
 								return l_diff;
 							}
 						}
 						
-						diff += l_diff; nbpix++;
+						diff += l_diff;
+						nbpix++;
+
 						img1pos++;
 						img2pos++;
 					}
@@ -1122,7 +1130,7 @@ float tmCorrelation(
 							if(nbdiff>wxh_4) {// Too many pixels different / surface of object
 								if(pnbdiff)
 									*pnbdiff = nbdiff;
-								return 1002.f;
+								return 1005.f;
 							}
 						}
 						if(l_diff > maxdiff)
@@ -1130,6 +1138,8 @@ float tmCorrelation(
 							maxdiff = l_diff;
 							if(l_diff > difftolerance) // Abort correlation
 							{
+								if(pmaxdiff)
+									*pmaxdiff = maxdiff;
 								return l_diff;
 							}
 						}
@@ -1158,12 +1168,13 @@ float tmCorrelation(
 	if(pnbdiff)
 		*pnbdiff = nbdiff;
 	if(nbpix == 0) 
-		return 4999.f;
+		return 1006.f;
 	
 	if(nbdiff > nbpix/4) {
 		// Too many different pixels / surface of search rectangle
 		return maxdiff;
 	}
+
 	if(nbdiff > (w*h-nbpix)/2) {
 		// Too many different pixels / surface of dust
 		return maxdiff;
@@ -1171,7 +1182,7 @@ float tmCorrelation(
 
 
 	// Return best 
-	return (float)((float)diff / (float)nbpix);
+	return (float)((double)diff / (double)nbpix);
 }
 
 
@@ -1224,15 +1235,21 @@ int tmSearchBestCorrelation(
 	*/
 
 	// Try out with only 2x size (half size on both side)
-	int correl_width  = 2 * seed_width;
-	int correl_height = 2 * seed_height;
+	int correl_width  = seed_width;
+	int correl_height = seed_height;
+
+	// Try out with only 5/2x size (half size on both side)
+//	int correl_width  = 5 * seed_width/2;
+//	int correl_height = 5 * seed_height/2;
 
 
 	// Wa use top-left for correlation (fewer computations in tmCorrelation)
-	int seed_x = seed_center_x - correl_width/2; if(seed_x<0) seed_x = 0;
-	int seed_y = seed_center_y - correl_height/2;if(seed_y<0) seed_y = 0;
+	int seed_x = seed_center_x - correl_width; if(seed_x<0) seed_x = 0;
+	int seed_y = seed_center_y - correl_height;if(seed_y<0) seed_y = 0;
 	
-	
+	correl_width *= 2;
+	correl_height *= 2;
+
 	int search_width  = 3 * correl_width;
 	int search_height = 3 * correl_height;
 
@@ -1269,11 +1286,12 @@ int tmSearchBestCorrelation(
 	best_dist *= depth_coef;
 	best_best *= depth_coef;
 	least_worst *= depth_coef;
+
 //Do not work with image with grain : 	int difftolerance = (int)best_dist;
 	int difftolerance = (int)(depth_coef*100.f);
 	//int difftolerance = (int)((*best_correl)*depth_coef);
 
-	best_dist = (*best_correl) * depth_coef;
+	best_dist = (*best_correl) * depth_coef + 1;
 
 	// Try with fix value, not depending on input best_correl
 	best_dist = tmmin(40.f, tmmax(9.f,  (float)(*best_correl))) * depth_coef;
@@ -1301,8 +1319,8 @@ int tmSearchBestCorrelation(
 						least_worst = l_dist;
 
 					if(g_debug_correlation) {
-						fprintf(logfile, "\timgutils %s:%d : (+%d,+%d) = %f / difftol=%d maxdiff=%d\n",
-								__func__, __LINE__,	dx, dy, l_dist, difftolerance, maxdiff);
+						fprintf(logfile, "\timgutils %s:%d : (+%d,+%d) = %f / difftol=%d maxdiff=%d bestbest=%g\n",
+								__func__, __LINE__,	dx, dy, l_dist, difftolerance, maxdiff, best_best);
 						u8 * correlationImageBuffer = (u8 *)correlationImage->imageData;
 						correlationImageBuffer[ correlationImage->widthStep * (seed_center_y + dy)
 												+ seed_center_x + dx] = (u8)l_dist;
@@ -1320,12 +1338,14 @@ int tmSearchBestCorrelation(
 
 
 						retval = 1;
+
 						if(g_debug_imgverbose || g_debug_correlation)
 							fprintf(logfile, "\timgutils %s:%d : current best = "
-								"(+%d,+%d) = %f / %d  (%dx%d)\n",
+								"(+%d,+%d) = %f / %d  (%dx%d) bestbest=%g\n",
 								__func__, __LINE__,
 								dx, dy, l_dist, difftolerance,
-								correl_width, correl_height
+								correl_width, correl_height,
+								best_best
 								);
 
 						// Top quality correlation : exist asap
@@ -1337,9 +1357,9 @@ int tmSearchBestCorrelation(
 							*copy_width = correl_width;
 							*copy_height = correl_height;
 
-							if(best_correl)
+							if(best_correl) {
 								*best_correl = (int)least_worst;
-
+							}
 							return 1;
 						}
 					}

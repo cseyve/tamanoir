@@ -124,13 +124,17 @@ void TamanoirApp::on_aboutButton_clicked() {
 		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
 	QString verstr;
 
-	g_splash->showMessage(tr("<b>Tamanoir</b> version: ") + verstr.sprintf("svn%04d%02d%02d",VERSION_YY, VERSION_MM, VERSION_DD)
+	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
+						  + verstr.sprintf("svn%04d%02d%02d",VERSION_YY, VERSION_MM, VERSION_DD)
 
-						 + QString("<br><a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a>")
+						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
+						  + tr("Developer: ") + QString("C. Seyve - ")
+						  + tr("Artist: ") + QString("M. Lecarme<br>")
 						 );
-	g_splash->show();
-	g_splash->update();
 repaint();// to force display of splash
+	g_splash->show();
+	g_splash->raise(); // for full screen mode
+	g_splash->update();
 }
 
 void TamanoirApp::on_fullScreenButton_clicked() {
@@ -232,7 +236,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					+ fi.fileName() + tr(". Size:") + str);
 				ui.loadingTextLabel->setText( fi.fileName() );
 
-				// Change resolution read in file
+				// Change resolution after reading in file
 				tm_options l_options = m_pImgProc->getOptions();
 				if(l_options.dpi != m_options.dpi
 				   && l_options.dpi > 0 ) {
@@ -248,9 +252,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						ui.dpiComboBox->setCurrentIndex(ind);
 					else // add an item
 						ui.dpiComboBox->insertItem(str);
-
 				}
-
 			}
 			
 			ui.overAllProgressBar->setValue(0);
@@ -1189,7 +1191,6 @@ void TamanoirApp::on_rewindButton_clicked() {
 
 void TamanoirApp::on_skipButton_clicked()
 {
-	
 	if(m_pProcThread) {
 		// Mark skip on image
 		if(m_pImgProc) {
@@ -1803,20 +1804,7 @@ void TamanoirApp::updateDisplay()
 
 
 			QImage mainImage(gray_width, displayImage->height, 32); //8*displayImage->nChannels);
-			if(mainImage.depth() == 8) {
-				memcpy(mainImage.bits(), displayImage->imageData, displayImage->widthStep * displayImage->height);
-				mainImage.setNumColors(256);
-				for(int c=0; c<256; c++) 
-					mainImage.setColor(c, qRgb(c,c,c));
-
-				mainImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
-				mainImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
-				mainImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
-				mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
-			}
-			else { // use false colors
-				mainImage = iplImageToQImage(displayImage, true, false);
-			}
+			mainImage = iplImageToQImage(displayImage, true, false);
 
 			QPixmap pixmap;
 			pixmap.convertFromImage( mainImage );
@@ -1926,16 +1914,6 @@ void TamanoirApp::updateDisplay()
 												 true, // false colors
 												 true // with only red as false color
 												 ); //.scaledToWidth(label_width);
-			if(grayQImage.depth() == 8) {
-				grayQImage.setNumColors(256);
-				for(int c=0; c<256; c++)
-					grayQImage.setColor(c, qRgb(c,c,c));
-
-				//grayQImage.setColor(255, qRgb(0,255,0));
-				if(m_overCorrected) {
-					grayQImage.setColor(COLORMARK_FAILED, qRgb(255, 127, 0));
-				}
-			}
 
 			QPixmap pixmap;
 			pixmap.convertFromImage( 
@@ -2072,7 +2050,6 @@ void TamanoirThread::setModeAuto(bool on) {
 }
 
 int TamanoirThread::setOptions(tm_options options) {
-	m_options = options;
 	if(!m_pImgProc) 
 		return 0;
 	if(!m_run) {
@@ -2081,6 +2058,9 @@ int TamanoirThread::setOptions(tm_options options) {
 
 	// If something changed, clear already known dusts
 	if(m_options.filmType != options.filmType) {
+		dust_list.clear();
+	}
+	if(m_options.trust != options.trust) {
 		dust_list.clear();
 	}
 	if(m_options.dpi != options.dpi) {
@@ -2093,6 +2073,7 @@ int TamanoirThread::setOptions(tm_options options) {
 		dust_list.clear();
 	}
 
+	m_options = options;
 	int ret = req_command = PROTH_OPTIONS;
 	
 	// Unlock thread 
@@ -2338,6 +2319,7 @@ void TamanoirThread::run() {
 	*/
 			m_pImgProc->setOptions(m_options);
 
+			// There will be new dusts
 			no_more_dusts = false;
 			
 			// Search for next dust 

@@ -1659,7 +1659,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 
 				// ====== THEN WE FOUND A REPLACEMENT ==============
-				
+				// Use a bigger region for cloning
+				copy_width = copy_width * 3/2;
+				copy_height = copy_height * 3/2;
+
 				// Store correction in full image buffer
 #ifdef SIMPLE_VIEWER
 				if(!force_search)
@@ -1801,7 +1804,6 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 //					if(connect_area<STATS_MAX_SURF) {
 //						m_dust_stats.grown_size_replaced[connect_area]++;
 //					}
-
 				}
 
 				// Trust mode : check if neighbour is empty enough to correct by default
@@ -2202,7 +2204,7 @@ bool TamanoirImgProc::neighbourhoodEmpty(t_correction * pcorrection)
 		rect_rmin = tmmax(0,
 						  tmmin(pcorrection->rel_src_y - pcorrection->copy_height,
 							pcorrection->rel_dest_y - pcorrection->copy_height)),
-		rect_cmax = tmmin(cropImage->height,
+		rect_cmax = tmmin(cropImage->width,
 						  tmmax(pcorrection->rel_src_x + pcorrection->copy_width,
 							pcorrection->rel_dest_x + pcorrection->copy_width)),
 		rect_rmax = tmmin(cropImage->height,
@@ -2247,11 +2249,15 @@ bool TamanoirImgProc::neighbourhoodEmpty(t_correction * pcorrection)
 
 	if(smooth_diff < 0) {
 		fprintf(stderr, "\t%s:%d : ERROR: smooth "
-				"in %d,%d - %d,%d "
+				"in %d,%d - %d,%d  (rect=%d,%d - %d,%d smooth_size=%d)"
+				" copy : %dx%d"
 				"=> min/max=%d / %d => diff=%d\n",
 			__func__, __LINE__,
 			smooth_cmin, smooth_rmin,
 				smooth_cmax, smooth_rmax,
+			rect_cmin, rect_rmin, rect_cmax, rect_rmax,
+				l_smooth_size,
+				pcorrection->copy_width, pcorrection->copy_height,
 			(int)smooth_pixmin, (int)smooth_pixmax,
 			smooth_diff);
 	}
@@ -2740,7 +2746,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 						&copy_rect,
 						false, false,
 						disp_dilateImage);
-			} else
+			}
+			else
 			{
 				fprintf(stderr, "[imgproc]::%s:%d : size does not fit : disp_dilateImage:%dx%d != correctImage:%dx%d\n",
 						__func__, __LINE__,
