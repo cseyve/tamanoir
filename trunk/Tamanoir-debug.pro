@@ -4,6 +4,8 @@
 
 TEMPLATE = app
 TARGET = Tamanoir-debug
+mac::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
+linux-g++::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d  | sed 's/0//'`"
 
 DEPENDPATH += . inc src ui
 INCLUDEPATH += . inc ui

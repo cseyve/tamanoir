@@ -348,7 +348,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>40</y>
+         <y>50</y>
          <width>111</width>
          <height>21</height>
         </rect>
@@ -395,6 +395,50 @@
         <bool>false</bool>
        </property>
       </widget>
+      <widget class="QCheckBox" name="emptyCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>116</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="toolTip">
+        <string>Detect dusts only in empty areas (sky, ...)</string>
+       </property>
+       <property name="text">
+        <string>Empty only</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QComboBox" name="sensitivityComboBox">
+      <property name="geometry">
+       <rect>
+        <x>330</x>
+        <y>0</y>
+        <width>117</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>Sensitivity of dust detection : from highly sensitive (smallest dusts) to low (bigger dusts)</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Sensitive</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Medium</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Rough</string>
+       </property>
+      </item>
      </widget>
      <zorder>autoButton</zorder>
      <zorder>skipButton</zorder>
@@ -403,6 +447,7 @@
      <zorder>frame_6</zorder>
      <zorder>prevButton</zorder>
      <zorder>rewindButton</zorder>
+     <zorder>sensitivityComboBox</zorder>
     </widget>
     <widget class="QGroupBox" name="cropGroupBox">
      <property name="geometry">
