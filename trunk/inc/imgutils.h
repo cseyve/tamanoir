@@ -124,7 +124,7 @@ void tmCopyImage(IplImage * img_src, IplImage * img_dest);
 IplImage * tmFastConvertToGrayscale(IplImage * img);
 
 /** @brief Process a dilatation */
-void tmDilateImage(IplImage * src, IplImage * dst);
+void tmDilateImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
 
 /** @brief Load a TIFF file in an OpenCV IplImage */
 IplImage * tmOpenTiffImage(const char * filename, int * dpi);
@@ -179,7 +179,7 @@ IplImage * tmAddBorder4x(IplImage * originalImage);
 /** @brief Return correlation image */
 IplImage * getCorrelationImage();
 
-#define VISIBLE_DIFF	40
+
 
 /** @brief Return correlation between 2 images
 	@param[in] img1 input image 1

@@ -117,7 +117,6 @@ private:
 	QList<t_correction> dust_list;
 	
 	bool no_more_dusts;
-	bool m_modeAuto;
 };
 
 
