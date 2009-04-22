@@ -156,6 +156,7 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 /** @brief Test if dust is already knwon */
 bool testKnownDust(t_correction, int img_w, int img_h); 
 
+
 /** @brief Tamanoir settings/options */
 typedef struct {
 	char currentDir[512];
@@ -169,6 +170,8 @@ typedef struct {
 } tm_options;
 
 
+/** @brief Print Tamanoir options on file ou stdout/err */
+void fprintfOptions(FILE * f, tm_options * p_options);
 
 /** @brief main image processing class
 

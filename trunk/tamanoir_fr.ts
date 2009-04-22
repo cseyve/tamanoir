@@ -431,42 +431,42 @@
 <context>
     <name>TamanoirApp</name>
     <message>
-        <location filename="src/tamanoir.cpp" line="231"/>
+        <location filename="src/tamanoir.cpp" line="240"/>
         <source>Could not load file </source>
         <translation>Impossible d&apos;ouvrir le fichier </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="236"/>
+        <location filename="src/tamanoir.cpp" line="245"/>
         <source>Loaded and pre-processed. Image: </source>
         <translation>Image chargée et pré-traitée. Image : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="236"/>
+        <location filename="src/tamanoir.cpp" line="245"/>
         <source>. Size:</source>
         <translation>. Taille :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="855"/>
+        <location filename="src/tamanoir.cpp" line="900"/>
         <source>Args=</source>
         <translation>Args=</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="908"/>
+        <location filename="src/tamanoir.cpp" line="953"/>
         <source>Loading and pre-processing </source>
         <translation>Chargement et pré-traitement </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1308"/>
+        <location filename="src/tamanoir.cpp" line="1340"/>
         <source>Tamanoir</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="945"/>
+        <location filename="src/tamanoir.cpp" line="990"/>
         <source>Cannot load file </source>
         <translation>Impossible d&apos;ouvrir le fichier </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="945"/>
+        <location filename="src/tamanoir.cpp" line="990"/>
         <source>. Format or compression is not compatible</source>
         <translation>. Le format ou la compression est incompatible</translation>
     </message>
@@ -475,7 +475,7 @@
         <translation type="obsolete">Ouvrir un fichier</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="977"/>
+        <location filename="src/tamanoir.cpp" line="1022"/>
         <source>Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)</source>
         <translation></translation>
     </message>
@@ -484,17 +484,17 @@
         <translation type="obsolete">Chargement...</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1009"/>
+        <location filename="src/tamanoir.cpp" line="1054"/>
         <source>-copy.</source>
         <translation>-copie.</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1011"/>
+        <location filename="src/tamanoir.cpp" line="1056"/>
         <source>Saving </source>
         <translation>Sauvegarde </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1018"/>
+        <location filename="src/tamanoir.cpp" line="1063"/>
         <source> + backup as </source>
         <translation>+ copie dans </translation>
     </message>
@@ -506,57 +506,57 @@ Do you want to rewind to first dust?</source>
 Voulez-vous revenir au début ?</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1195"/>
+        <location filename="src/tamanoir.cpp" line="1227"/>
         <source>Rewind to first dust.</source>
         <translation>Retour au début.</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1226"/>
+        <location filename="src/tamanoir.cpp" line="1258"/>
         <source>Finished</source>
         <translation>Terminé</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1233"/>
+        <location filename="src/tamanoir.cpp" line="1265"/>
         <source>NONE</source>
         <translation>AUCUN</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1240"/>
+        <location filename="src/tamanoir.cpp" line="1272"/>
         <source>After background processing =&gt; </source>
         <translation>Après traitement en tâche de fond =&gt;</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1242"/>
+        <location filename="src/tamanoir.cpp" line="1274"/>
         <source>True positive:</source>
         <translation>Vrais positifs : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1247"/>
+        <location filename="src/tamanoir.cpp" line="1279"/>
         <source>No proposal:</source>
         <translation>Aucune proposition :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1252"/>
+        <location filename="src/tamanoir.cpp" line="1284"/>
         <source>False positive:</source>
         <translation>Faux positifs : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1257"/>
+        <location filename="src/tamanoir.cpp" line="1289"/>
         <source>False negative:</source>
         <translation>Faux négatifs :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1263"/>
+        <location filename="src/tamanoir.cpp" line="1295"/>
         <source>Performances</source>
         <translation>Performances</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1264"/>
+        <location filename="src/tamanoir.cpp" line="1296"/>
         <source> </source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1318"/>
+        <location filename="src/tamanoir.cpp" line="1350"/>
         <source>Auto-correct running... please wait.</source>
         <translation>Auto-correction en cours : merci de patienter.</translation>
     </message>
@@ -566,42 +566,42 @@ Voulez-vous revenir au début ?</translation>
         <translation type="obsolete">Auto-correction : terminée.</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1369"/>
+        <location filename="src/tamanoir.cpp" line="1402"/>
         <source>Changed film type: please wait...</source>
         <translation>Changement du type de films : merci de patienter...</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1392"/>
+        <location filename="src/tamanoir.cpp" line="1425"/>
         <source>Changed sensitivity: please wait...</source>
         <translation>Changement de sensibilité : merci de patienter...</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1415"/>
+        <location filename="src/tamanoir.cpp" line="1448"/>
         <source>Changed resolution: please wait...</source>
         <translation>Changement de résolution : merci de patienter...</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1434"/>
+        <location filename="src/tamanoir.cpp" line="1467"/>
         <source>Changed to &apos;trust&apos; mode : </source>
         <translation>Passage en mode &quot;confiance&quot; :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1434"/>
+        <location filename="src/tamanoir.cpp" line="1467"/>
         <source>ON</source>
         <translation>ACTIF</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1434"/>
+        <location filename="src/tamanoir.cpp" line="1467"/>
         <source>OFF</source>
         <translation>INACTIF</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1447"/>
+        <location filename="src/tamanoir.cpp" line="1480"/>
         <source>Changed empty area filter: please wait...</source>
         <translation>Changement de mode &quot;Vide seulement&quot; : merci de patienter...</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1462"/>
+        <location filename="src/tamanoir.cpp" line="1495"/>
         <source>Changed hot pixels filter: please wait...</source>
         <translation>Activation du filtre pixels chauds : merci de patienter...</translation>
     </message>
@@ -610,48 +610,70 @@ Voulez-vous revenir au début ?</translation>
         <translation type="obsolete">Poussière :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="974"/>
+        <location filename="src/tamanoir.cpp" line="1019"/>
         <source>Tamanoir - Open a picture to be cleaned</source>
         <translation>Tamanoir - Choisissez une photo à nettoyer</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="905"/>
+        <location filename="src/tamanoir.cpp" line="950"/>
         <source>Loading </source>
         <translation>Chargement de </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="128"/>
+        <location filename="src/tamanoir.cpp" line="129"/>
         <source>&lt;b&gt;Tamanoir&lt;/b&gt; version: </source>
         <translation>&lt;b&gt;Tamanoir&lt;/b&gt; version : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1976"/>
+        <location filename="src/tamanoir.cpp" line="2052"/>
         <source>Corrected: dust: </source>
         <translation>Corrigée : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="131"/>
+        <location filename="src/tamanoir.cpp" line="132"/>
         <source>Developer: </source>
         <translation>Développeur : </translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="132"/>
+        <location filename="src/tamanoir.cpp" line="133"/>
         <source>Artist: </source>
         <translation>Artiste :</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1179"/>
+        <location filename="src/tamanoir.cpp" line="1210"/>
         <source>Rewind to first dust will make the application ask you another time to refuse the dusts you have already seen.
 Do you want to rewind to first dust ?</source>
         <translation>Le retour au début va entraîner que le logiciel redemandera de confirmer pour les poussières déjà traitées.
 Voulez-vous revenir au début ?</translation>
     </message>
     <message>
-        <location filename="src/tamanoir.cpp" line="1311"/>
+        <location filename="src/tamanoir.cpp" line="1343"/>
         <source>The auto mode will rewind to the first dust, and will validate every dust correction without asking for confirmation.
 Do you want to process with the Auto mode ?</source>
         <translation>Le mode automatique redémarre au début de l&apos;image et valide toutes les propositions de correction sans demander de confirmation.
 Voulez-vous vraiment traiter l&apos;image en mode Auto ?</translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="261"/>
+        <source>The resolution of </source>
+        <translation>La résolution de </translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="265"/>
+        <source> dpi, read in file, may be too low for the scanner resolution. It may be the print resolution. 
+Do you want to apply this resolution of </source>
+        <translation> dpi, lue dans le fichier, est probablement trop faible pour être celle du scanner. Il s&apos;agit peut-être de la résolution projetée pour l&apos;impression.
+Voulez-vous appliquer cette résolution de </translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="265"/>
+        <source> dpi ?</source>
+        <translation> dpi ?</translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="1169"/>
+        <source> dpi</source>
+        <translation></translation>
     </message>
 </context>
 </TS>

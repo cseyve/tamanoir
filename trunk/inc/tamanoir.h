@@ -93,7 +93,10 @@ public:
 	
 	/** @brief set auto mode flag */ 
 	void setModeAuto(bool on);
-	
+
+	/** @brief get auto mode flag */
+	bool getModeAuto() { return m_options.mode_auto ; };
+
 private:
 	
 	/** @brief Current running command */
@@ -141,7 +144,7 @@ private:
 	
 	Ui::Tamanoir ui;
 	
-        QFileDialog * m_fileDialog;
+	QFileDialog * m_fileDialog;
 
 	/** @brief Delete allocated structures */
 	void purge();
@@ -168,6 +171,11 @@ private:
 	
 	/** Update all displays */
 	void updateDisplay();
+	/** Update global view */
+	void updateMainDisplay();
+	/** Update cropped images views */
+	void updateCroppedDisplay();
+
 
 	QTimer refreshTimer;
 	int m_curCommand;
