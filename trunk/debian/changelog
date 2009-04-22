@@ -1,3 +1,9 @@
+tamanoir (0.svn20090422-1) unstable; urgency=low
+
+  * Added auto mode, and a few minor bug fixes in correlation 
+
+ -- Christophe Seyve <cseyve@free.fr>  Wed, 22 Apr 2009 08:59:00 +0200
+
 tamanoir (0.svn20090407-1) unstable; urgency=low
 
   * Added 'about' splashscreen and a few features for MacOS X
