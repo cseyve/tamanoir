@@ -256,10 +256,8 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		if(w == displayImage->width && h == displayImage->height)
 			return; // Already displayed
 	}
-	displayBlockImage = NULL;
-	
-	tmReleaseImage(&old_displayImg);
-	tmReleaseImage(&displayImage);
+
+
 
 	// Get best fit w/h for display in main frame
 	int gray_width = grayImage->width;
@@ -280,15 +278,24 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	if(factor>1.f) factor = 1.f;
 	scaled_width = (int)(factor*grayImage->width);
 	scaled_height = (int)(factor*grayImage->height);
+	// Use only size with 4xN dimensions
+	while(scaled_width % 4) { scaled_width--; }
+	while(scaled_height % 4) { scaled_height--; }
 
+	if(displayImage
+	   && displayImage->width == scaled_width
+	   && displayImage->height == scaled_height) {
+		return;
+	}
+
+	tmReleaseImage(&old_displayImg);
+	tmReleaseImage(&displayImage);
+	displayBlockImage = NULL;
 	fprintf(stderr, "TamanoirImgProc::%s:%d : factor=%g => scaled size %dx%d\n", __func__, __LINE__,
 			factor,
 			scaled_width, scaled_height);
 	
-	// Use only size with 4xN dimensions
-	while(scaled_width % 4) { scaled_width--; }
-	while(scaled_height % 4) { scaled_height--; }
-	
+
 	displaySize = cvSize(scaled_width, scaled_height);
 	
 	// Resize
@@ -330,10 +337,10 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	// Main display image (with permanent modification)
 	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
 
-	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%d -> %dx%d...\n",
+	fprintf(stderr, "TamanoirImgProc::%s:%d scaling %dx%dx%d -> %dx%dx%d...\n",
 		__func__, __LINE__,
-		originalImage->width, originalImage->height,
-		new_displayImage->width, new_displayImage->height
+		originalImage->width, originalImage->height,originalImage->nChannels,
+		new_displayImage->width, new_displayImage->height, new_displayImage->nChannels
 		);
 	
 	if(originalImage->nChannels == 1) {
@@ -403,7 +410,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		__func__, __LINE__, filename);
 	struct timeval tvLoad1;
 	gettimeofday(&tvLoad1, NULL);
-	int file_dpi=0;
+	int file_dpi = 0;
 	originalImage = tmLoadImage(filename, &file_dpi);
 	m_progress = 10;
 	
@@ -531,82 +538,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			originalImage->width, originalImage->height, originalImage->nChannels,
 			tmByteDepth(originalImage),
 			dt_ms);
-	
-	// convert to Grayscaled image
-	if(1 // || dt_ms > 2000 : it's faster anyway than loading the grayscaled buffer from file
-	   ) {
-		// Huge file : should use faster method than reload to convert to grayscale
-		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
-			__func__, __LINE__);
-		grayImage = tmFastConvertToGrayscale(originalImage);
-
-		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "grayImage-fastConv" IMG_EXTENSION, grayImage); }
-
-		m_progress = 20;
-	}
-	
-	
-	#ifdef CV_LOAD_IMAGE_GRAYSCALE
-	if(originalImage->depth != IPL_DEPTH_8U
-			&& !grayImage
-		//&& dt_ms < 5000 // Maybe the hard drive is a removable disk, so it will be faster to convert from already read data
-		) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : reload as grayscaled image...\n",
-			__func__, __LINE__);
-		grayImage = cvLoadImage(filename, CV_LOAD_IMAGE_GRAYSCALE);
-		m_progress = 20;
-		grayImage = tmAddBorder4x(grayImage);
-		m_progress = 25;
-		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "grayImage-reload" IMG_EXTENSION, grayImage); }
-	}
-	else
-	#endif
-	if(!grayImage) {
-		m_progress = 20;
-
-		// convert full image to grayscale
-		grayImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
-		fprintf(logfile, "TamanoirImgProc::%s:%d : created grayscaled "
-				"=> w=%d x h=%d x channels=%d => %d byte(s) per pixel\n",
-				__func__, __LINE__,
-				grayImage->width, grayImage->height, grayImage->nChannels,
-				tmByteDepth(originalImage));
-
-		switch(originalImage->nChannels) {
-		default:
-		case 1:
-			fprintf(logfile, "TamanoirImgProc::%s:%d : copy to Grayscaled image...\n",
-				__func__, __LINE__);
-			tmCopyImage(originalImage, grayImage);
-			break;
-		case 3:
-			fprintf(logfile, "TamanoirImgProc::%s:%d : convert RGB24 to Grayscaled image...\n",
-				__func__, __LINE__);
-			cvCvtColor(originalImage, grayImage, CV_RGB2GRAY);
-			break;
-		case 4:
-			fprintf(logfile, "TamanoirImgProc::%s:%d : convert BGRA to Grayscaled image...\n",
-				__func__, __LINE__);
-			cvCvtColor(originalImage, grayImage, CV_BGRA2GRAY);
-			break;
-		}
-		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "grayImage-cvCvtColor" IMG_EXTENSION, grayImage); }
-	}
-	m_progress = 25;
-	
-	if(displaySize.width > 0) {
-		setDisplaySize(displaySize.width, displaySize.height);
-	}
-
 	m_lock = false;
-	
-	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
-	int uniform = findUniform(&mean, &diff_mean, &variance);
-	if(uniform >= 0) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => mean=%g, diff=%g, var=%g\n",
-			__func__, __LINE__, mean, diff_mean, variance);
-	}
-	
+
 	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
 		__func__, __LINE__);
 	preProcessImage();
@@ -624,11 +557,46 @@ int TamanoirImgProc::preProcessImage() {
                 tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
-	if(m_lock)
+	if(m_lock) {
 		return -1;
-	
+	}
+
 	m_lock = true;
-	
+
+	// We need to process again the conversion to graycale
+	// because grayscale image may be blurred
+
+	// convert to Grayscaled image
+	 {
+		// Huge file : should use faster method than reload to convert to grayscale
+		fprintf(logfile, "TamanoirImgProc::%s:%d : fast conversion to grayscaled image...\n",
+			__func__, __LINE__);
+		grayImage = tmFastConvertToGrayscale(originalImage);
+
+		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "grayImage-fastConv" IMG_EXTENSION, grayImage); }
+
+		m_progress = 20;
+	}
+
+
+
+	if(displaySize.width > 0) {
+		setDisplaySize(displaySize.width, displaySize.height);
+	}
+	m_progress = 25;
+
+
+
+	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
+	int uniform = findUniform(&mean, &diff_mean, &variance);
+	if(uniform >= 0) {
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => mean=%g, diff=%g, var=%g\n",
+			__func__, __LINE__, mean, diff_mean, variance);
+	}
+
+
+	//
+
 	
 	memset(&m_last_correction, 0, sizeof(t_correction));
 	memset(&m_correct, 0, sizeof(t_correction));
@@ -734,7 +702,7 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 45;
 	
 	// If image is really noisy, for example with B&W grain (or High sensitivity films), pre-process a 3x3 blur filter
-	if( cdgH >= /*3.0*/ 2.8 ) {
+	if(cdgH >= /*3.0*/ 2.8 ) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
 			__func__, __LINE__);
 		cvSmooth(grayImage, diffImage, 
@@ -745,11 +713,26 @@ int TamanoirImgProc::preProcessImage() {
 		memcpy(grayImage->imageData, diffImage->imageData, 
 			diffImage->widthStep*diffImage->height);
 
+		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayImage-smoothed" IMG_EXTENSION, medianImage);
+
+		// Of smooth size was already 3, increase smooth
+		if(m_smooth_size == 3) {
+			m_smooth_size += 2;
+			cvSmooth(grayImage, medianImage,
+					CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+					m_smooth_size, m_smooth_size );
+		}
+
+		// For debug, save image in temporary directory
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "medianImage-resmoothed" IMG_EXTENSION, medianImage);
+		}
+
 		unsigned long diffHisto2[256];
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 		
-		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : process difference on blurred image ...\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : RE-process difference on blurred image ...\n",
 			__func__, __LINE__);
 		tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
 	}
@@ -1046,28 +1029,44 @@ int TamanoirImgProc::saveFile(const char * filename) {
 
 
 
+/* Tamanoir settings/options *
+typedef struct {
+	QString currentDir;
+	bool trust;		/ *! Trust mode activated * /
+	bool hotPixels;	/ *! Hot pixels detection activated * /
+	int filmType;	/ *! Film type * /
+	int dpi;		/ *! Scan resolution in dot per inch * /
+	int sensitivity;
+} tm_options;
+*/
+void fprintfOptions(FILE * f, tm_options * p_options) {
+	if(!f) return;
+
+	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
+	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
+	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
+	fprintf(f, "OnlyEmpty:%c\n", p_options->onlyEmpty ? 'T' : 'F');
+	fprintf(f, "FilmType:%d\n", p_options->filmType);
+	fprintf(f, "DPI:%d\n", p_options->dpi);
+	fprintf(f, "Sensitivity:%d\n", p_options->sensitivity);
+	fflush(f);
+}
+
 
 int TamanoirImgProc::setOptions(tm_options opt) {
 	bool rewind_to_start = false;
 	bool rewind_to_previous = false;
 
-	/* For auto mode, rewind to start */
-	if(opt.mode_auto && !m_options.mode_auto) {
-		rewind_to_start = true;
-	}
-
+	fprintf(stderr, "TamanoirImgProc::%s:%d : current options : ", __func__, __LINE__);
+	fprintfOptions(stderr, &m_options);
+	fprintf(stderr, "TamanoirImgProc::%s:%d : new options : ", __func__, __LINE__);
+	fprintfOptions(stderr, &opt);
 	/*
 	 * Film type change
 	 */
 	if(m_options.filmType != opt.filmType) {
-		// We need to reprocess al image
 		rewind_to_start = true;
 	}
-
-	/*
-	 * Change film resolution
-	 */
-
 	/*
 	 * Activate/desactivate trust on good corrections
 	 */
@@ -1123,6 +1122,9 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	m_options = opt;
 
 	if(rewind_to_start && originalImage) {
+		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to START "
+				"corrected dust : %d,%d\n",
+				__func__, __LINE__, m_seed_x, m_seed_y);
 		preProcessImage();
 		firstDust();
 	}
@@ -1130,7 +1132,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		// use previous values
 		m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
 		m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
-		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to last "
+		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to LAST "
 				"corrected dust : %d,%d\n",
 				__func__, __LINE__, m_seed_x, m_seed_y);
 		if(growImage) {
@@ -1139,6 +1141,26 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 
 		// Then search next
 		nextDust();
+	} else {
+
+		/*
+		 * Mode auto
+		 */
+		if(opt.mode_auto) {
+			// We need to reprocess al image
+			m_seed_x = m_seed_y = 0;
+			fprintf(stderr, "[TamanoiImgProc]::%s:%d : MODE AUTO => rewind to START "
+				" : %d,%d\n",
+				__func__, __LINE__, m_seed_x, m_seed_y);
+			if(growImage) {
+				cvZero(growImage);
+			}
+			// Re-process diffImage, because it may change the diffImage
+			preProcessImage();
+
+			//
+			nextDust();
+		}
 	}
 
 	m_options = opt;
@@ -1168,11 +1190,12 @@ int TamanoirImgProc::processResolution(int dpi) {
 
 		m_dust_area_min = DUST_MIN_SIZE * (dpi * dpi)/ (2400*2400)
 						  * coef_sensitivity[ m_options.sensitivity ] ;
-		if(m_options.hotPixels) {
+		if(m_options.hotPixels
+		   || m_dust_area_min<HOTPIXEL_MIN_SIZE) {
 			m_dust_area_min = HOTPIXEL_MIN_SIZE;
 		}
 
-		fprintf(logfile, "TamanoirImgProc::%s:%d : dust min area %d pixels^2\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d => dust min area %d pixels^2\n",
 			__func__, __LINE__, m_dust_area_min);
 
 		m_dust_area_max = 800 * dpi / 2400;
@@ -1227,9 +1250,10 @@ int TamanoirImgProc::firstDust()
 	m_progress = 0;
 	
 	// Clear buffer of known dusts
-	if(growImage)
+	if(growImage) {
 		memset(growImage->imageData, 0, growImage->widthStep * growImage->height);
-	
+	}
+
 	// Disable trust for first image
 	bool old_trust = m_options.trust;
 	int ret = nextDust();
@@ -1246,12 +1270,14 @@ int TamanoirImgProc::nextDust() {
 
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-                tmsleep(1); retry++;
+		tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
-	if(m_lock)
+
+	if(m_lock) {
 		return -1;
-	
+	}
+
 	m_lock = true;
 	
 	
@@ -1845,7 +1871,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 
 				// Trust mode : check if neighbour is empty enough to correct by default
-				if( (m_options.trust || m_options.mode_auto)// || m_options.onlyEmpty)
+				if( (m_options.trust //|| m_options.mode_auto
+					 )// || m_options.onlyEmpty)
 				   && return_now) {
 					// Check if correction area is in diff image
 					/* OBSOLETE : use percentage of dusts pixels in copy+src bounding box
@@ -1872,7 +1899,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						&& pcorrection->equivalent_diff < TRUST_EQUIV_DIFF
 						)
 						// or if mode auto, apply now !
-						|| m_options.mode_auto
+						//|| m_options.mode_auto
 
 						) {
 
@@ -1883,13 +1910,16 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 								pcorrection->equivalent_diff //fill_failure
 								);
 						}
+
 						// We can correct and return later
 						forceCorrection(*pcorrection, true);
 
 						// With auto mode, we need to refresh display
-						if(!m_options.mode_auto) {
-							return_now = 0;
+						if(m_options.mode_auto) {
+
 						}
+
+						return_now = 0;
 					}
 				}
 				
@@ -2601,7 +2631,7 @@ bool TamanoirImgProc::dilateDust(
 			int histoDustDil[512];
 			memset(histoDustDil, 0, 512*sizeof(int));
 			if(force_search
-			   || g_debug_dust_seek) {
+			   && g_debug_dust_seek) {
 				fprintf(stderr, "TamanoirImgProc::%s:%d : Dust: %d,%d + %dx%d\n",
 						__func__, __LINE__,
 						(int)crop_connect.rect.x, (int)crop_connect.rect.y,
@@ -2672,14 +2702,18 @@ bool TamanoirImgProc::dilateDust(
 			if(force_search) {
 	#ifdef SIMPLE_VIEWER
 				// Force search to be more selective
-				best_correl = 20;
+				if(!g_debug_dust_seek)
+					best_correl = 20;
+
 	#endif
-				fprintf(stderr, "\tDust(Dilated): min-max / mean = %d-%d / %g (nb=%d)\n",
-						min_dustDil, max_dustDil, sum_dustDil, nb_dustDil);
-				fprintf(stderr, "\tNeighbour: min-max / mean = %d-%d / %g / tolerance=%d\n",
-						min_neighbour, max_neighbour, sum_neighbour, best_correl);
-				fprintf(stderr, "\tContrast = %g / %g = %g\n",
-						(sum_dust - sum_neighbour), (sum_neighbour + sum_dust), contrast);
+				if(g_debug_dust_seek) {
+					fprintf(stderr, "\tDust(Dilated): min-max / mean = %d-%d / %g (nb=%d)\n",
+							min_dustDil, max_dustDil, sum_dustDil, nb_dustDil);
+					fprintf(stderr, "\tNeighbour: min-max / mean = %d-%d / %g / tolerance=%d\n",
+							min_neighbour, max_neighbour, sum_neighbour, best_correl);
+					fprintf(stderr, "\tContrast = %g / %g = %g\n",
+							(sum_dust - sum_neighbour), (sum_neighbour + sum_dust), contrast);
+				}
 			}
 
 			// test if colour is different enough

@@ -61,6 +61,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
 		homeDirStr = QString(getenv("HOME"));
+	memset(&m_options, 0, sizeof(tm_options));
 	strcpy(m_options.currentDir, homeDirStr.ascii());
 	
 	ui.setupUi((QMainWindow *)this);
@@ -177,8 +178,9 @@ void TamanoirApp::on_refreshTimer_timeout() {
 	if(m_pProcThread) {
 		if(refreshTimer.isActive() && 
 			m_pProcThread->getCommand() == PROTH_NOTHING) {
-			// Stop timer
-			refreshTimer.stop();
+			// Stop timer only if not in auto mode
+			if( !m_pProcThread->getModeAuto())
+				refreshTimer.stop();
 			
 			lockTools(false);
 		}
@@ -192,13 +194,19 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				m_curCommand, m_pProcThread->getCommand());
 		
 		// If nothing changed, just update GUI
-		if( m_curCommand == m_pProcThread->getCommand()) {
+		if( m_curCommand == m_pProcThread->getCommand()
+			|| m_pProcThread->getModeAuto()
+			) {
+
 			// Update Progress bar
 			ui.overAllProgressBar->setValue( m_pImgProc->getProgress() );
 			
 			// Do specific updates
 			switch(m_curCommand) {
 			default:
+				if( m_pProcThread->getModeAuto()) {
+					updateMainDisplay();
+				}
 				break;
 			case PROTH_LOAD_FILE:
 				#ifdef SIMPLE_VIEW
@@ -209,7 +217,6 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				updateDisplay();
 				break;
 			case PROTH_SEARCH:
-				refreshMainDisplay();
 				updateDisplay();
 				break;
 			}
@@ -238,26 +245,65 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 				// Change resolution after reading in file
 				tm_options l_options = m_pImgProc->getOptions();
-				if(l_options.dpi != m_options.dpi
-				   && l_options.dpi > 0 ) {
+				fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
+						"resolution=%d dpi (current=%d)\n", __func__, __LINE__,
+						l_options.dpi, m_options.dpi);
+				
+				// lower than 300 dpi is the resolution of print, not of scan
+				if( l_options.dpi >0 && l_options.dpi<300
+					&& m_options.dpi != l_options.dpi) {
+					QString str;
+					str.sprintf("%d", l_options.dpi);
+					int ret = QMessageBox::warning(this,
+												   tr("Tamanoir"),
+												   tr("The resolution of ") + str
+												   + tr(" dpi, read in file, may be too low for the scanner resolution. "
+														"It may be the print resolution. \n"
+													  "Do you want to apply this resolution of ")
+												   + str + tr(" dpi ?"),
+												   QMessageBox::Apply,
+												   QMessageBox::Cancel);
+
+					if(ret == QMessageBox::Cancel) {
+						l_options.dpi = 0;
+						fprintf(stderr, "TamanoirApp::%s:%d : FORCE FORMER RESOLUTION => "
+							"resolution=%d dpi => current=%d\n", __func__, __LINE__,
+							l_options.dpi, m_options.dpi);
+						// apply old resolution
+						m_curCommand = PROTH_OPTIONS;
+						m_pProcThread->setOptions(m_options);
+					}
+					
+				}
+
+
+				if( l_options.dpi > 0 
+					) {
 					m_options.dpi = l_options.dpi;
-					fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED ! resolution=%d dpi\n", __func__, __LINE__,
-						m_options.dpi);
+
 
 					// update resolution button
 					QString str;
 					str.sprintf("%d", m_options.dpi);
 					int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
-					if(ind >= 0)
+					if(ind >= 0) {
 						ui.dpiComboBox->setCurrentIndex(ind);
-					else // add an item
-						ui.dpiComboBox->insertItem(str);
+					}
+					else { // add an item
+						ui.dpiComboBox->insertItem(str + tr(" dpi"));
+						fprintf(stderr, "TamanoirApp::%s:%d : A a resolution: resolution=%d dpi\n", __func__, __LINE__,
+							m_options.dpi);
+
+						ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
+						if(ind >= 0) ui.dpiComboBox->setCurrentIndex(ind);
+					}
 				}
 			}
 			
 			ui.overAllProgressBar->setValue(0);
 			fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED ! m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
 				m_curCommand, m_pProcThread->getCommand());
+
 			if(m_curCommand == PROTH_LOAD_FILE) {
 				on_skipButton_clicked();
 			}
@@ -1041,7 +1087,7 @@ int TamanoirApp::loadOptions() {
 	}
 	optionsFile = QString(homedir) + QString("/.tamanoirrc");
 
-        memset(&m_options, 0, sizeof(tm_options));
+	memset(&m_options, 0, sizeof(tm_options));
 
 	
 	// Read 
@@ -1107,7 +1153,9 @@ int TamanoirApp::loadOptions() {
 	}
 	
 	fclose(foptions);
-	
+	fprintf(stderr, "TamanoirApp::%s:%d: read options : \n", __func__, __LINE__);
+	fprintfOptions(stderr, &m_options);
+
 	// Update GUI with those options
 	ui.typeComboBox->setCurrentIndex( m_options.filmType );
 	ui.trustCheckBox->setChecked( m_options.trust );
@@ -1118,33 +1166,17 @@ int TamanoirApp::loadOptions() {
 	int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 	if(ind >= 0)
 		ui.dpiComboBox->setCurrentIndex(ind);
+	else { // add an item
+		ui.dpiComboBox->insertItem(str + tr(" dpi"));
+		fprintf(stderr, "TamanoirApp::%s:%d : Add a resolution: resolution=%d dpi\n", __func__, __LINE__,
+				m_options.dpi);
 
+		ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
+		if(ind >= 0) ui.dpiComboBox->setCurrentIndex(ind);
+	}
 	ui.sensitivityComboBox->setCurrentIndex(m_options.sensitivity);
 
 	return 1;
-}
-
-/* Tamanoir settings/options *
-typedef struct {
-	QString currentDir;
-	bool trust;		/ *! Trust mode activated * /
-	bool hotPixels;	/ *! Hot pixels detection activated * /
-	int filmType;	/ *! Film type * /
-	int dpi;		/ *! Scan resolution in dot per inch * /
-	int sensitivity;
-} tm_options;
-*/
-void fprintfOptions(FILE * f, tm_options * p_options) {
-	if(!f) return;
-	
-	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
-	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
-	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
-	fprintf(f, "OnlyEmpty:%c\n", p_options->onlyEmpty ? 'T' : 'F');
-	fprintf(f, "FilmType:%d\n", p_options->filmType);
-	fprintf(f, "DPI:%d\n", p_options->dpi);
-	fprintf(f, "Sensitivity:%d\n", p_options->sensitivity);
-	fflush(f);
 }
 
 void TamanoirApp::saveOptions() {
@@ -1185,8 +1217,9 @@ void TamanoirApp::on_rewindButton_clicked() {
 	
 	
 	memset(&current_dust, 0, sizeof(t_correction));
-	if(m_pImgProc)
+	if(m_pImgProc) {
 		m_pImgProc->firstDust();
+	}
 	if(m_pProcThread) {
 		m_pProcThread->firstDust();
 	}
@@ -1345,12 +1378,13 @@ void TamanoirApp::on_autoButton_clicked()
 	// Apply previous correction
 	if(m_pProcThread) {
 		m_pProcThread->setModeAuto(true);
+		refreshTimer.start(1000);
 	}
 	fflush(logfile);
 
 
 
-	ui.overAllProgressBar->setValue(100);
+	ui.overAllProgressBar->setValue(0);
 	
 	// Update little frame displays
 	updateDisplay();
@@ -1552,6 +1586,17 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 	QImage qImage(orig_width, iplImage->height, 8*depth);
 	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 	
+	/*
+	if(iplImage->nChannels == 4)
+	{
+		fprintf(stderr, "[TamanoirApp]::%s:%d : ORIGINAL DEPT IS RGBA depth = %d\n"
+				"\trgb24_to_bgr32=%c gray_to_bgr32=%c\n",
+				__func__, __LINE__, iplImage->nChannels,
+				rgb24_to_bgr32? 'T':'F',
+				gray_to_bgr32 ? 'T':'F'
+				);
+	}*/
+
 	switch(iplImage->depth) {
 	default:
 		fprintf(stderr, "[TamanoirApp]::%s:%d : Unsupported depth = %d\n", __func__, __LINE__, iplImage->depth);
@@ -1559,9 +1604,28 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 	
 	case IPL_DEPTH_8U: {
 		if(!rgb24_to_bgr32 && !gray_to_bgr32) {
-			for(int r=0; r<iplImage->height; r++) // Limit to
-				memcpy(qImage.bits() + r*orig_width,
-					iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
+			if(iplImage->nChannels != 4) {
+				for(int r=0; r<iplImage->height; r++) {
+					// NO need to swap R<->B
+					memcpy(qImage.bits() + r*orig_width*depth,
+						iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
+				}
+			} else {
+				for(int r=0; r<iplImage->height; r++) {
+					// need to swap R<->B
+					u8 * buf_out = (u8 *)(qImage.bits()) + r*orig_width*depth;
+					u8 * buf_in = (u8 *)(iplImage->imageData) + r*iplImage->widthStep;
+					memcpy(qImage.bits() + r*orig_width*depth,
+						iplImage->imageData + r*iplImage->widthStep, orig_width*depth);
+
+					for(int pos4 = 0 ; pos4<orig_width*depth; pos4+=depth,
+						buf_out+=4, buf_in+=depth
+						 ) {
+						buf_out[2] = buf_in[0];
+						buf_out[0] = buf_in[2];
+					}
+				}
+			}
 		}
 		else if(rgb24_to_bgr32) {
 			// RGB24 to BGR32
@@ -1786,31 +1850,30 @@ void TamanoirApp::refreshMainDisplay() {
 	// image proc will only store this size at first call
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
-
-
-void TamanoirApp::updateDisplay()
-{
+void TamanoirApp::updateDisplay() {
 	if(m_pImgProc) {
-		// After pre-processing, we can get the grayscale version of input image
+		updateMainDisplay();
+		updateCroppedDisplay();
+	}
+}
+
+void TamanoirApp::updateMainDisplay() {
+
+	if(m_pImgProc) {
+	// After pre-processing, we can get the grayscale version of input image
 		IplImage * displayImage = m_pImgProc->getDisplayImage();
-		
-		
+
+
 		if(!displayImage) {
 			refreshMainDisplay ();
 			displayImage = m_pImgProc->getDisplayImage();
 			if(!displayImage) return;
 		}
 
-		// Update cropped buffers
-		if(m_pProcThread) {
-			current_dust.crop_width = ui.cropPixmapLabel->size().width();
-			current_dust.crop_height = ui.cropPixmapLabel->size().height();
 
-			m_pImgProc->cropCorrectionImages(current_dust);
-		}
 
 		if(displayImage) {
-			
+
 			// Display in main frame
 			int gray_width = displayImage->width;
 			//int scaled_width = displayImage->width;
@@ -1826,13 +1889,27 @@ void TamanoirApp::updateDisplay()
 			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
 									__func__, __LINE__,
 									m_main_display_rect.width(),m_main_display_rect.height() );
-			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__, 
+			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__,
 									pixmap.width(), pixmap.height(),
 									scaled_width, scaled_height);
 			*/
 			ui.mainPixmapLabel->setPixmap(pixmap);
 		}
-		
+	}
+}
+
+void TamanoirApp::updateCroppedDisplay()
+{
+	if(m_pImgProc) {
+
+		// Update cropped buffers
+		if(m_pProcThread) {
+			current_dust.crop_width = ui.cropPixmapLabel->size().width();
+			current_dust.crop_height = ui.cropPixmapLabel->size().height();
+
+			m_pImgProc->cropCorrectionImages(current_dust);
+		}
+
 //unused #define LABELWIDTH_MARGIN	2
 		IplImage * curImage;
 		
@@ -2025,7 +2102,8 @@ void TamanoirApp::updateDisplay()
 
 TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	m_pImgProc = p_pImgProc;
-	
+	memset(&m_options, 0, sizeof(tm_options));
+
 	req_command = current_command = PROTH_NOTHING;
 	no_more_dusts = false;
 	m_run = m_running = false;
@@ -2047,15 +2125,16 @@ void TamanoirThread::setModeAuto(bool on) {
 			return;
 		if(!m_run)
 			start();
-		
-		req_command = PROTH_SEARCH;
+
+		fprintf(stderr, "TamanoirThread::%s:%d : SET MODE AUTO !!\n", __func__, __LINE__);
+		req_command = PROTH_SEARCH; //PROTH_OPTIONS;
 		m_options = m_pImgProc->getOptions();
 
-		m_options.mode_auto = 1;
-
-		m_pImgProc->setOptions(m_options);
+		m_options.mode_auto = true;
+		no_more_dusts = false;
 
 		dust_list.clear();
+		m_pImgProc->setOptions(m_options);
 
 		// Unlock thread 
 		mutex.lock();
@@ -2074,7 +2153,7 @@ int TamanoirThread::setOptions(tm_options options) {
 		start();
 	}
 
-	// If something changed, clear already known dusts
+	// If something2388  changed, clear already known dusts
 	if(m_options.filmType != options.filmType) {
 		dust_list.clear();
 	}
@@ -2307,12 +2386,12 @@ void TamanoirThread::run() {
 					dust_list.append(l_dust);
 				} else {
 
-//					fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n",
-//						__func__, __LINE__);
+					//fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n",
+					//	__func__, __LINE__);
 					m_pImgProc->applyCorrection(l_dust);
 
 					// Fasten next search
-					req_command = PROTH_SEARCH;
+					//req_command = PROTH_SEARCH;
 				}
 				
 			} else {

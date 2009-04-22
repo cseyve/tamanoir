@@ -288,60 +288,41 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 	cvReleaseStructuringElement(&elt);
 }
 
+CvScalar getFakeColor(int nChannels, unsigned char color)
+{
+	if(nChannels == 1) return cvScalarAll(color);
+
+	int R=0,G=0,B=0;
+	switch(color) {
+	case COLORMARK_CORRECTED:
+		R=0; G=255; B=0;// Green
+		break;
+	case COLORMARK_REFUSED:
+		R=255; G=255; B=0;// Yellow
+		break;
+	case COLORMARK_FAILED:
+		R=255; G=0; B=0;// Red
+		break;
+	case COLORMARK_CURRENT:
+		G = 255; // Blue
+		break;
+	default:
+		break;
+	}
+	if(nChannels == 4) // invert
+		return CV_RGB(B,G,R);
+
+	return CV_RGB(R,G,B);
+}
+
 void tmMarkFailureRegion(IplImage * origImage, 
 	int x, int y, int w, int h, unsigned char color) {
 	
-	
-	if(origImage->nChannels == 1)
-	{
-		cvRectangle(origImage, 
+	CvScalar col = getFakeColor(origImage->nChannels, color);
+	cvRectangle(origImage,
 			cvPoint(x - 1, y-1),
 			cvPoint(x + w + 1, y + h + 1),
-			cvScalar(color), 1);
-	} else {
-		switch(color) {
-		//grayQImage.setColor(COLORMARK_CORRECTED, qRgb(0,255,0));
-		case COLORMARK_CORRECTED:
-			cvRectangle(origImage, 
-				cvPoint(x - 1, y-1),
-				cvPoint(x +w + 1, y+h+1),
-				CV_RGB(0,255,0), 1);
-			break;
-		//grayQImage.setColor(COLORMARK_REFUSED, qRgb(255,255,0));
-		case COLORMARK_REFUSED:
-			cvRectangle(origImage, 
-				cvPoint(x - 1, y-1),
-				cvPoint(x +w + 1, y+h+1),
-				CV_RGB(255,255,0)
-				//CV_RGB(0,255,255)
-				, 1);
-			break;
-		//grayQImage.setColor(COLORMARK_FAILED, qRgb(255,0,0));
-		case COLORMARK_FAILED:
-			cvRectangle(origImage, 
-				cvPoint(x - 1, y-1),
-				cvPoint(x +w + 1, y+h+1),
-				CV_RGB(255,0,0)
-				//CV_RGB(0,0,255)
-				, 1);
-			break;
-		//grayQImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
-		case COLORMARK_CURRENT:
-			cvRectangle(origImage, 
-				cvPoint(x - 1, y-1),
-				cvPoint(x +w + 1, y+h+1),
-				//CV_RGB(255,0,0)	
-				CV_RGB(0,0,255)
-				, 1);
-			break;
-		default:
-			cvRectangle(origImage, 
-				cvPoint(x - 1, y-1),
-				cvPoint(x +w + 1, y+h+1),
-				CV_RGB(color,color,color), 1);
-			break;
-		}
-	}
+			col, 1);
 }
 
 /** Return the ratio of pixels non 0 in an IplImage in a region */
@@ -720,7 +701,6 @@ void tmCropImage(IplImage * origImage,
 	int crop_x, int crop_y,
 	bool threshold_false_colors)
 {
-	
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
 	
@@ -876,8 +856,10 @@ void tmCropImage(IplImage * origImage,
 			} else {
 
 				for(int y=ytop; y<ybottom; ly++, y++) {
-					u8 * origLine = (u8 *)(origImage->imageData + y * origImage->widthStep);
-					u8 * cropLine = (u8 *)(cropImage->imageData + ly * cropImage->widthStep);
+					u8 * origLine = (u8 *)(origImage->imageData
+										   + y * origImage->widthStep);
+					u8 * cropLine = (u8 *)(cropImage->imageData
+										   + ly * cropImage->widthStep);
 					int c = 0;
 					for(int x=xleft; x<xright; x++, c++) {
 						u8 val = origLine[x];
@@ -889,13 +871,22 @@ void tmCropImage(IplImage * origImage,
 				}
 			}
 		} else {
-			for(int y=ytop; y<ybottom; ly++, y++)
+			for(int y=ytop; y<ybottom; ly++, y++) {
 				memcpy(cropImageBuffer + ly * cropImage->widthStep,
 					origImageBuffer + xmin_x_depth + y * origImage->widthStep, copywidth);
+			}
 		}
-
-		//tmSaveImage ("/dev/shm/tmCropImage_cropImage.ppm", cropImage);
-		//tmSaveImage ("/dev/shm/tmCropImage_origImage.ppm", origImage);
+/*
+		if(cropImage->nChannels == 4) {
+			FILE * f = fopen("/dev/shm/tmCropImage_cropImage-nChannels4.ppm", "wb");
+			if(f) {
+				fprintf(f, "P5\n%d %d\n255\n", cropImage->widthStep, cropImage->height);
+				fwrite( cropImage->imageData, cropImage->widthStep, cropImage->height, f);
+				fclose(f);
+			}
+		//	tmSaveImage ("/dev/shm/tmCropImage_cropImage-nChannels4.ppm", cropImage);
+		}*/
+	//tmSaveImage ("/dev/shm/tmCropImage_origImage.ppm", origImage);
 	}
 }
 
@@ -1882,8 +1873,11 @@ void tmSaveImage(const char * filename, IplImage * src) {
 		int byte_per_sample = tmByteDepth(src);
 		int maxval = 255;
 		switch(byte_per_sample) {
-		case 3:
 		default:
+			fprintf(f, "P2\n"); // 32bit depth is not supported... => save RAW
+			width = src->widthStep;
+			break;
+		case 3:
 			fprintf(f, "P6\n"); // 24bit depth if default mode
 			break;
 		case 1:
