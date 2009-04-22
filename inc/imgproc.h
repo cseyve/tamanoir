@@ -165,6 +165,7 @@ typedef struct {
 	int filmType;		/*! Film type */
 	int dpi;			/*! Scan resolution in dot per inch */
 	int sensitivity;	/*! Sensitivity (0 means highly sensitive to small dust, bigger needs bigger dusts) */
+	bool mode_auto;		/*! Automatic mode : not saved in preferences */
 } tm_options;
 
 

@@ -86,7 +86,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
 // Hide auto button because its use if not very well defined
-	ui.autoButton->hide();
+	//ui.autoButton->hide();
 	ui.loadingTextLabel->hide();
 	//ui.hiddenFrame->hide();
 #endif
@@ -569,6 +569,12 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				// Move src
 				current_dust.rel_src_x = e->pos().x();
 				current_dust.rel_src_y = e->pos().y();
+
+				if(g_debug_displaylabel) {
+					// FIXME : affichage
+
+				}
+
 			} else {
 				// Move dest
 				current_dust.rel_dest_x = e->pos().x();
@@ -1170,7 +1176,7 @@ void TamanoirApp::on_rewindButton_clicked() {
 	int ret = QMessageBox::warning(this, tr("Tamanoir"),
 			tr("Rewind to first dust will make the application ask you "
 			"another time to refuse the dusts you have already seen.\n"
-			"Do you want to rewind to first dust?"),
+			"Do you want to rewind to first dust ?"),
 			QMessageBox::Apply, 
 			QMessageBox::Cancel);
 
@@ -1299,6 +1305,16 @@ void TamanoirApp::on_correctButton_clicked()
 
 void TamanoirApp::on_autoButton_clicked()
 {
+	int ret = QMessageBox::warning(this, tr("Tamanoir"),
+			tr("The auto mode will rewind to the first dust, and will validate "
+			"every dust correction without asking for confirmation.\n"
+			"Do you want to process with the Auto mode ?"),
+			QMessageBox::Apply,
+			QMessageBox::Cancel);
+
+	if(ret == QMessageBox::Cancel)
+		return;
+
 	statusBar()->showMessage(tr("Auto-correct running... please wait."));
 	statusBar()->update();
 	
@@ -1325,23 +1341,21 @@ void TamanoirApp::on_autoButton_clicked()
 		g_debug_imgverbose = 0;
 	}	
 	g_debug_savetmp = 0;
-        
+
 	// Apply previous correction
 	if(m_pProcThread) {
-                m_pProcThread->setModeAuto(true);
-        }
+		m_pProcThread->setModeAuto(true);
+	}
 	fflush(logfile);
-	
-        
+
+
+
 	ui.overAllProgressBar->setValue(100);
 	
 	// Update little frame displays
 	updateDisplay();
-        
-        
-	statusBar()->showMessage( tr("Auto-correct : done.") );
-	
-	fprintf(stderr, "TamanoirApp::%s:%d : AUTO MODE FINISHED\n", __func__, __LINE__);
+
+	fprintf(stderr, "TamanoirApp::%s:%d : AUTO MODE RUNNING", __func__, __LINE__);
 }
 
 
@@ -2014,7 +2028,7 @@ TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 	
 	req_command = current_command = PROTH_NOTHING;
 	no_more_dusts = false;
-	m_modeAuto = m_run = m_running = false;
+	m_run = m_running = false;
 	
 	start();
 }
@@ -2028,7 +2042,6 @@ int TamanoirThread::getCommand() {
 
 /* set auto mode flag */ 
 void TamanoirThread::setModeAuto(bool on) {
-	m_modeAuto = on;
 	if(on) {
 		if(!m_pImgProc) 
 			return;
@@ -2037,15 +2050,20 @@ void TamanoirThread::setModeAuto(bool on) {
 		
 		req_command = PROTH_SEARCH;
 		m_options = m_pImgProc->getOptions();
-		m_options.trust = 1;
-                
+
+		m_options.mode_auto = 1;
+
 		m_pImgProc->setOptions(m_options);
-                m_pImgProc->firstDust();
+
+		dust_list.clear();
 
 		// Unlock thread 
 		mutex.lock();
 		waitCond.wakeAll();
 		mutex.unlock();
+
+	} else {
+		m_options.mode_auto = 0;
 	}
 }
 
@@ -2228,8 +2246,12 @@ void TamanoirThread::run() {
 	
 	no_more_dusts = false;
 	while(m_run) {
+		int wait_ms = 20;
+		if(m_options.mode_auto && !no_more_dusts) {
+			wait_ms = 1;
+		}
 		mutex.lock();
-		waitCond.wait(&mutex, 20);
+		waitCond.wait(&mutex, wait_ms);
 		mutex.unlock();
 		
 		if(req_command != PROTH_NOTHING && g_debug_TmThread)
@@ -2262,7 +2284,7 @@ void TamanoirThread::run() {
 		case PROTH_LOAD_FILE:
 			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n", 
 				__func__, __LINE__, m_filename.ascii());
-			
+			m_options.mode_auto = false;
 			ret = m_pImgProc->loadFile(m_filename);
 			no_more_dusts = false;
 			fprintf(stderr, "TmThread::%s:%d : file '%s' LOADED => search for first dust\n", 
@@ -2281,12 +2303,14 @@ void TamanoirThread::run() {
 				// Add to list
 				t_correction l_dust = m_pImgProc->getCorrection();
 				no_more_dusts = false;
-				if(!m_modeAuto) {
+				if(!m_options.mode_auto) {
 					dust_list.append(l_dust);
 				} else {
-					fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n", 
-						__func__, __LINE__);
+
+//					fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n",
+//						__func__, __LINE__);
 					m_pImgProc->applyCorrection(l_dust);
+
 					// Fasten next search
 					req_command = PROTH_SEARCH;
 				}
@@ -2294,7 +2318,8 @@ void TamanoirThread::run() {
 			} else {
 				if(ret == 0) {
 					no_more_dusts = true;
-					
+					// Stop auto mode
+					m_options.mode_auto = false;
 					fprintf(stderr, "TmThread::%s:%d : no more dust (ret=%d)\n", 
 						__func__, __LINE__, ret);
 				}
@@ -2321,7 +2346,7 @@ void TamanoirThread::run() {
 
 			// There will be new dusts
 			no_more_dusts = false;
-			
+
 			// Search for next dust 
 			req_command = PROTH_SEARCH;
 			

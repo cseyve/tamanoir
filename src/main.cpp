@@ -55,6 +55,7 @@ extern u8 g_dataset_mode;
 extern u8 g_evaluate_mode;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_displaylabel;
+extern u8 g_debug_dust_seek;
 
 void displayHelp() {
 	fprintf(stderr, "Usage : ./tamanoir [options]\n"
@@ -209,6 +210,11 @@ int main(int argc, char *argv[])
 			if(strstr(argv[argcount], "debug")) {
 				g_debug_imgverbose = 1;
 				g_debug_imgoutput = 1;
+			}
+			if(strstr(argv[argcount], "seek")
+				|| strstr(argv[argcount], "search")) {
+				g_debug_dust_seek = 1;
+				//g_debug_imgoutput = 1;
 			}
 			if(strstr(argv[argcount], "output")) {
 				g_debug_savetmp = 2;

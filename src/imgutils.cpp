@@ -180,12 +180,35 @@ void tmReleaseImage(IplImage ** img) {
 }
 
 /** process a dilatation around the dust */
-void tmDilateImage(IplImage * src, IplImage * dst) {
+void tmDilateImage(IplImage * src, IplImage * dst,
+				   int kernel_size, // default: 3
+				   int iterations // default: 1
+				   ) {
 	// Ref. : http://opencvlibrary.sourceforge.net/CvReference#cv_imgproc_morphology
-	cvDilate(src, dst, 
-		NULL /* e.g. 3x3 kernel */, 
-		1 // # iterations
-		);
+	if(kernel_size <= 3) {
+		cvDilate(src, dst,
+			NULL /* e.g. 3x3 kernel */,
+			iterations // # iterations
+			);
+	} else {
+		// Avoid multiple dynamic allocations
+		static IplConvKernel *elt = NULL;
+		static int last_elt_size = 0;
+		if(!elt || last_elt_size != kernel_size) {
+			if(elt) {
+				cvReleaseStructuringElement(&elt);
+			}
+			elt = tmCreateStructElt( kernel_size ); // with ellipse shape by default
+			last_elt_size = kernel_size;
+		}
+
+
+		cvDilate(src, dst,
+			elt,
+			iterations // # iterations
+			);
+
+	}
 }
 
 
@@ -229,7 +252,7 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 IplConvKernel * tmCreateStructElt(int size)
 {
 	IplConvKernel *elt;
-	int shape = 1;
+	int shape = 2;
 	CvElementShape shapes[3] = { CV_SHAPE_RECT, //a rectangular element;
 								 CV_SHAPE_CROSS, //a cross-shaped element;
 								 CV_SHAPE_ELLIPSE};
@@ -480,13 +503,15 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 			dest_x, dest_y);
 		return;
 	}
-	if(g_debug_imgverbose)
+
+	/*
+	if(g_debug_imgverbose) {
 		fprintf(logfile, "imgutils : %s:%d : clone %d,%d+%dx%d => %d,%d\n", 
 			__func__, __LINE__, 
 			src_x, src_y, copy_width, copy_height,
 			dest_x, dest_y);
-	
-	// FIXME : ROUGH copy for the moment (the regions must not be connected !)
+	}*/
+
 	// Copy buffer
 	int pitch = origImage->widthStep;
 	int byte_depth = tmByteDepth(origImage);
@@ -503,7 +528,7 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 				origImageBuffer + src_y * pitch + src_x*byte_depth, 
 				copylength);
 		}
-	} else {
+	} else { // Copy with fading on borders
 		int y,x;
 		int height_margin = copy_height / 4;
 		if(height_margin < 2) height_margin = 2;
@@ -1018,7 +1043,7 @@ float tmCorrelation(
 	//int w_x_channels = w * channels;
 	int x1_x_depth = x1 * tmByteDepth(img1); // e.g. nChannel * pixel byte depth
 	int x2_x_depth = x2 * tmByteDepth(img2);
-	int wxh_4 = w * h / 4;
+	int wxh_4 = w * h * channels / 4;
 	long maxdiff = 0;
 	
 	switch(img1->depth) {
@@ -1063,9 +1088,10 @@ float tmCorrelation(
 						if(l_diff > VISIBLE_DIFF) {
 							nbdiff++;
 							if(nbdiff > wxh_4) {// Too many pixels different / surface of object
-								if(pnbdiff) {
+								if(pnbdiff)
 									*pnbdiff = nbdiff;
-								}
+								if(pmaxdiff)
+									*pmaxdiff = maxdiff;
 								return 1004.f;
 							}
 						}
@@ -1075,6 +1101,8 @@ float tmCorrelation(
 						{
 							maxdiff = l_diff;
 							if(l_diff > difftolerance) { // Abort correlation
+								if(pnbdiff)
+									*pnbdiff = nbdiff;
 								if(pmaxdiff)
 									*pmaxdiff = maxdiff;
 								return l_diff;
@@ -1130,6 +1158,8 @@ float tmCorrelation(
 							if(nbdiff>wxh_4) {// Too many pixels different / surface of object
 								if(pnbdiff)
 									*pnbdiff = nbdiff;
+								if(pmaxdiff)
+									*pmaxdiff = maxdiff;
 								return 1005.f;
 							}
 						}
@@ -1138,6 +1168,8 @@ float tmCorrelation(
 							maxdiff = l_diff;
 							if(l_diff > difftolerance) // Abort correlation
 							{
+								if(pnbdiff)
+									*pnbdiff = nbdiff;
 								if(pmaxdiff)
 									*pmaxdiff = maxdiff;
 								return l_diff;
