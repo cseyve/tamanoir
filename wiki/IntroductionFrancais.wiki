@@ -3,6 +3,8 @@
 
 *Tamanoir est un outil de dépoussiérage de scans par traitement d'images*
 
+http://tamanoir.googlecode.com/svn/trunk/screenshots/Tamanoir-FR-Global.png
+
 = Introduction =
 
 ----
