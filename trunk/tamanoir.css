@@ -20,8 +20,8 @@ QComboBox{
 }
 
 QDialog {
-	color: back;
-	alternate-background-color: re
+	color: black;
+	alternate-background-color: red;
 }
 
 QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel {

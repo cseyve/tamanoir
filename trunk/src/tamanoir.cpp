@@ -135,6 +135,7 @@ void TamanoirApp::on_aboutButton_clicked() {
 							+ item + cmd + tr("O: Open a picture file") + itend
 							+ item + cmd + tr("S: Save corrected image") + itend
 							+ item + cmd + tr("H: Display version information") + itend
+							+ item + cmd + tr("M: Mark current crop area in red") + itend
 							+ item + tr("A: Apply proposed correction") + itend
 							+ item + tr("&rarr;: Go to next proposal") + itend
 							+ item + tr("&larr;: Go to previous proposal") + itend
