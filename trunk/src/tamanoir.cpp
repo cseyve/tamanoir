@@ -118,31 +118,46 @@ void TamanoirApp::purge() {
 
 QSplashScreen * g_splash = NULL;
 void TamanoirApp::on_aboutButton_clicked() {
-	fprintf(stderr, "TamanoirApp::%s:%d !\n", __func__, __LINE__);
 	QDir dir(g_application_path);
 	QPixmap pix(":/icon/tamanoir_splash.png");
-	if(!g_splash)
+	if(!g_splash) {
 		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
-	QString verstr;
-
+	}
+	QString verstr, cmd = QString("Ctrl+");
+	QString item = QString("<li>"), itend = QString("</li>\n");
 	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
 						  + verstr.sprintf("svn%04d%02d%02d",VERSION_YY, VERSION_MM, VERSION_DD)
 
 						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
 						  + tr("Developer: ") + QString("C. Seyve - ")
-						  + tr("Artist: ") + QString("M. Lecarme<br>")
-						 );
-repaint();// to force display of splash
+						  + tr("Artist: ") + QString("M. Lecarme<br><br>")
+						  + tr("Shortcuts :<br><li>\n")
+							+ item + cmd + tr("O: Open a picture file") + itend
+							+ item + cmd + tr("S: Save corrected image") + itend
+							+ item + cmd + tr("H: Display version information") + itend
+							+ item + tr("A: Apply proposed correction") + itend
+							+ item + tr("&rarr;: Go to next proposal") + itend
+							+ item + tr("&larr;: Go to previous proposal") + itend
+							+ item + tr("C: Switch to clone tool mode") + itend
+//							+ item + tr("") + itend
+//							+ item + cmd + tr("") + itend
+//							+ item + tr("") + itend
+//							+ item + cmd + tr("") + itend
+						+ QString("</li>\n")
+							);
+	repaint();// to force display of splash
+
 	g_splash->show();
 	g_splash->raise(); // for full screen mode
 	g_splash->update();
 }
 
 void TamanoirApp::on_fullScreenButton_clicked() {
-	if(	!isFullScreen())
+	if(	!isFullScreen()) {
 		showFullScreen();
-	else
+	} else {
 		showNormal();
+	}
 }
 
 void TamanoirApp::resizeEvent(QResizeEvent * e) {
@@ -617,7 +632,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				current_dust.rel_src_y = e->pos().y();
 
 				if(g_debug_displaylabel) {
-					// FIXME : affichage
+					// FIXME : display info on source
 
 				}
 
@@ -1920,11 +1935,11 @@ void TamanoirApp::updateCroppedDisplay()
 			//unused int label_width = pLabel->width()-LABELWIDTH_MARGIN;
 			if(g_debug_displaylabel) {
 				QString propStr;
-				propStr.sprintf("Dist=%g BgDiff=%g %.1f %% smD=%d s/d={d=%g max=%g}",
+				propStr.sprintf("Dist=%g BgDif=%g %.1f%% smD=%d s/d={d=%g max=%g}",
 								current_dust.proposal_diff, current_dust.bg_diff,
 								current_dust.equivalent_diff*100.f,
 								current_dust.smooth_diff,
-								current_dust.srcdest_correl,current_dust.srcdest_maxdiff
+								current_dust.srcdest_correl, current_dust.srcdest_maxdiff
 								);
 				ui.proposalLabel->setText( propStr );
 			}
@@ -1964,19 +1979,22 @@ void TamanoirApp::updateCroppedDisplay()
 #define DUST_MARK_R		255
 #define DUST_MARK_G		0
 #define DUST_MARK_B		0
+				int RGB24[4] = { DUST_MARK_B, DUST_MARK_G,DUST_MARK_R, 0 };
+				int BGR32[4] = { DUST_MARK_R, DUST_MARK_G, DUST_MARK_B, 0 };
+
 				if(growImage) {
 					for(int r = 0; r<growImage->height; r++) {
 						u8 * correctLine = (u8 *)(curImage->imageData + r * curImage->widthStep);
 						u8 * growLine = (u8 *)(growImage->imageData + r * growImage->widthStep);
-						if(curImage->nChannels == 1) {
+						switch(curImage->nChannels)  {
+						case 1:
 							for(int c = 0; c<growImage->width; c++) {
 								if(growLine[c]>0) {
 									correctLine[c] = COLORMARK_FAILED;
 								}
 							}
-						}
-						else {
-							int RGB[4] = { DUST_MARK_B, DUST_MARK_G,DUST_MARK_R, 0 };
+							break;
+						case 3: {
 							int kc = 0;
 							for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
 								if(growLine[c]>30) {
@@ -1990,10 +2008,31 @@ void TamanoirApp::updateCroppedDisplay()
 
 									for(int k=0; k<curImage->nChannels; k++) {
 										//correctLine[kc+k] = (u8) (RGB[k] * (int)correctLine[kc+k] / 255);
-										correctLine[kc+k] = (u8) (RGB[k]);
+										correctLine[kc+k] = (u8) (RGB24[k]);
 									}
 								}
 							}
+							}
+							break;
+						case 4: {
+							int kc = 0;
+							for(int c = 0; c<growImage->width; c++, kc+=curImage->nChannels) {
+								if(growLine[c]>30) {
+									/*int col = growLine[c];
+
+									// False colors
+									if(col<128) RGB[2] = (255-2*col); else RGB[2] = 0;
+									if(col>128) RGB[0] = 2*(col-128); else RGB[0] = 0;
+									RGB[2] = 256 - abs(128-col)*2; if(RGB[1]>255) RGB[1] = 255;
+									*/
+
+									for(int k=0; k<curImage->nChannels; k++) {
+										//correctLine[kc+k] = (u8) (RGB[k] * (int)correctLine[kc+k] / 255);
+										correctLine[kc+k] = (u8) (BGR32[k]);
+									}
+								}
+							}
+							}break;
 						}
 					}
 				}

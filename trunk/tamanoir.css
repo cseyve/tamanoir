@@ -31,7 +31,7 @@ QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel {
 	selection-color: red;
 	selection-background-color: white;
 }
-
+/*
 QCheckBox::indicator::checked {
 	background-color: #20A020;
 	color: white;
@@ -41,6 +41,7 @@ QCheckBox::indicator::unchecked {
 	background-color: #A02020;
 	color: black;
 }
+*/
 
 QStatusBar {
 	background-color: #303030;

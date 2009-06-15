@@ -382,11 +382,16 @@
                <string>Scan resolution, used to guess the size on minimal dust</string>
               </property>
               <property name="currentIndex">
-               <number>3</number>
+               <number>0</number>
               </property>
               <item>
                <property name="text">
                 <string>Undefined</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>300 dpi</string>
                </property>
               </item>
               <item>

@@ -30,6 +30,7 @@
 #ifdef WIN32
 #define tmsleep(s)	Sleep((s)*1000)
 #define strcasestr	strstr
+#include <sys/timeb.h>
 #else // Unix
 #define tmsleep(s)  sleep((s))
 #endif
