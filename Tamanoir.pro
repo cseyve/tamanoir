@@ -4,6 +4,7 @@
 TEMPLATE = app
 mac::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
 linux-g++::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
+
 # Use lowercase name for Linux
 linux-g++::TARGET = tamanoir
 # and an uppercase first letter for Mac & Windows

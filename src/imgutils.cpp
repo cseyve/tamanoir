@@ -290,25 +290,32 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 
 CvScalar getFakeColor(int nChannels, unsigned char color)
 {
-	if(nChannels == 1) return cvScalarAll(color);
+	// Grayscaled image use a colormap, so we return the same color
+	if(nChannels == 1) {
+		return cvScalarAll(color);
+	}
+
 
 	int R=0,G=0,B=0;
+
+	// RGB24
 	switch(color) {
-	case COLORMARK_CORRECTED:
-		R=0; G=255; B=0;// Green
-		break;
-	case COLORMARK_REFUSED:
-		R=255; G=255; B=0;// Yellow
-		break;
-	case COLORMARK_FAILED:
-		R=255; G=0; B=0;// Red
-		break;
-	case COLORMARK_CURRENT:
-		G = 255; // Blue
-		break;
-	default:
-		break;
+		case COLORMARK_CORRECTED:
+			R=0; G=255; B=0;// Green
+			break;
+		case COLORMARK_REFUSED:
+			R=255; G=255; B=0;// Yellow
+			break;
+		case COLORMARK_FAILED:
+			R=255; G=0; B=0;// Red
+			break;
+		case COLORMARK_CURRENT:
+			G = 255; // Blue
+			break;
+		default:
+			break;
 	}
+
 	if(nChannels == 4) // invert
 		return CV_RGB(B,G,R);
 
