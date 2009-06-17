@@ -1825,6 +1825,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// check the source and the destination
 				// are in the same extended grown region,
 				// (tree branch, building edge...)
+		// FIXME : improve this connection search
 				is_a_dust = srcNotConnectedToDest(pcorrection);
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
@@ -1844,6 +1845,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 				// Dust and correction must be different (for avoiding periodical patterns)
 				if(is_a_dust) {
+		// FIXME : to be improved for windows edges, building windows...
 					is_a_dust = srcDifferentFromDest(pcorrection);
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)

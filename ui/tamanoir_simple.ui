@@ -61,6 +61,9 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Open an image file</string>
+             </property>
              <property name="text">
               <string>Load</string>
              </property>

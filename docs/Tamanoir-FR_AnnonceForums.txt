@@ -1,0 +1,57 @@
+Bonjour,
+
+j'ai développé un petit logiciel de dépoussiérage de scans. Je l'ai réalisé pour mes besoins personnels à l'origine, et le distribue en Logiciel Libre (sous licence GPL v3), donc gratuit.
+
+Il s'agit d'un outil de détection automatique des poussières puis de recherche de correction automatique, mais qui propose les corrections à l'utilisateur au lieu de les appliquer sans demander. L'idée n'est pas de faire un Digital ICE tout automatique, mais de donner la main à l'opérateur pour l'assister.
+
+Voici l'introduction que vous pouvez lire sur le site du projet : [url]http://code.google.com/p/tamanoir/wiki/IntroductionFrancais[/url]
+
+----------
+
+La plupart des scanners à plat ne fournissent pas de dépoussiérage optique (Optical ICE). Les modèles moyenne gamme (Epson 4490, 4990, v700 ...) fournissent un dépoussiérage logiciel, ou Digital ICE, qui n'est de plus pas accessible avec n'importe que logiciel (en particulier sous Linux) mais surtout génère fréquemment des artéfacts sur les images produites.
+
+L'objectif de Tamanoir est de fournir un outil intéractif de pré-traitement des photos avec une interface utilisateur simple et efficace. L'objectif est d'enlever 90% des poussières sur le scan brut avec Tamanoir, rapidement, de manière à effectuer le plus gros du travail avec le moins de manipulations possibles.
+
+Tamanoir détecte les petites poussières dans l'image, et essaie de trouver une zone de couleur et texture identique dans le voisinage des poussières détectées, puis les propose à l'utilisateur qui valide ou non la correction.
+
+Environ 80 à 90 % des poussières sont détectées sur des films avec peu de grain (ex: diapo 100 ISO). Les 10% restants ainsi que les fibres, rayures... pourront être enlevés dans un logiciel tiers (Gimp, Photoshop, Krita, Lightroom...).
+
+----------
+Le mode d'emploi pour avoir les copies d'écran : [url]http://code.google.com/p/tamanoir/wiki/ModeDEmploiTamanoir[/url]
+----------
+
+Des paquets/archives sont disponibles pour :
+- Linux : sous forme d'une archive Debian (5.0 "Lenny") qui devrait marcher sur Ubuntu (>= 8.04).
+- MacOS X, que je n'ai testé que sur Leopard (10.5)
+- pour Windows, le soft compile, mais je n'ai pas réussi à le lancer sur mon VMWare. Donc si vous avez envie d'installer Qt4 et d'essayer, faites vous plaisir ;o)
+
+Voilà pour la présentation.
+
+Si vous l'essayez, je souhaiterais avoir des retours sur :
+- l'ergonomie
+- les bugs logiciels ou les fautes d'orthographe ou de langue
+- son efficacité sur différents types de films.
+	Je l'utilise sur mes scans de diapos depuis quelques mois, en Provia 100F ou en TriX à 2400 dpi essentiellement.
+	Si vous avez des scans sur lesquels cela ne se passe pas bien, merci de m'en envoyer un morceau (crop), si possible non compressé (PNG/TIFF).
+
+Les contributions sous forme d'exemples de scans sur divers types de films, diverses résolutions, et divers types de scanners sont bienvenues !
+
+Pour ceux tentés par le développement, on peut aussi en discuter ! (le code des traitements d'images et celui de l'interface sont complètement indépendants, donc on peut imaginer tous les plugins possibles : Gimp, Krita...)
+
+Je vous remercie d'avance pour vos contributions !!
+
+Christophe
+
+====================================================================
+
+Raccourcis  :
+
+Ctrl+F : mode plein écran
+C : outil de clonage
+M : marquage du bloc courant
+-> : poussière suivante (refus de celle proposée)
+<- : poussière précédente
+====================================================================
+
+Shortcuts :
+
