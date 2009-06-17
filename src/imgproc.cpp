@@ -1,8 +1,8 @@
 /***************************************************************************
- *           imgproc.cpp - Main image processing 
+ *           imgproc.cpp - Main image processing
  *
  *  Tue Oct 23 22:10:56 2007
- *  Copyright  2007  Christophe Seyve 
+ *  Copyright  2007  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
 
@@ -71,9 +71,9 @@ double orig_width=0, orig_height=0;
 
 
 TamanoirImgProc::TamanoirImgProc(int bw, int bh) {
-	fprintf(logfile, "TamanoirImgProc::%s:%d block %dx%d...\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d block %dx%d...\n",
 		__func__, __LINE__, bw, bh);
-	
+
 	init();
 	blockSize = cvSize(bw, bh);
 }
@@ -91,21 +91,20 @@ void TamanoirImgProc::init() {
 	m_show_crop_debug = true;
 #endif
 	m_lock = false;
-	
-	
-	m_options.filmType = FILM_UNDEFINED;
-	m_options.hotPixels = false;
-	m_options.sensitivity = 0;
 
-	/* Default values : 
+
+	/* Default values :
 	- Trust good correction proposals : no
 	- DPI : 2400 dpi
 	- hot pixels : no (scan from film !)
 	*/
+	m_options.filmType = FILM_UNDEFINED;
+	m_options.hotPixels = false;
+	m_options.sensitivity = 0;
 	m_options.trust = false;
 	m_options.dpi = 2400;
 	m_options.hotPixels = false;
-	
+
 	/** Original image size */
 	originalSize = cvSize(0,0);
 
@@ -120,13 +119,13 @@ void TamanoirImgProc::init() {
 	undoImage = NULL;
 	undoImage_x = undoImage_y = -1;
 
-	// Working images : full size 
+	// Working images : full size
 	grayImage = NULL;
 	medianImage = NULL;
 	diffImage = NULL;
 	varianceImage = NULL;
 	growImage = NULL;
-	
+
 	// Working images : cropped
 	cropImage = NULL;
 	dilateImage = NULL;
@@ -135,22 +134,22 @@ void TamanoirImgProc::init() {
 	cropColorImage = NULL;
 	correctColorImage = NULL;
 	sobelImage = NULL;
-	
+
 	// Display images
 	displayImage = displayBlockImage = NULL;
 	originalSmallImage = NULL;
 
 	disp_cropColorImage =
 		disp_correctColorImage =
-		disp_dilateImage = 
+		disp_dilateImage =
 		disp_cropImage = NULL;
-	
+
 	displaySize = cvSize(0,0);
 	displayCropSize = cvSize(0,0);
-	
+
 	memset(&m_correct, 0, sizeof(t_correction));
 	memset(&m_last_correction, 0, sizeof(t_correction));
-	
+
 	/** Clear stats */
 	memset(&m_dust_stats, 0, sizeof(dust_stats_t));
 }
@@ -172,7 +171,7 @@ void TamanoirImgProc::purge() {
 			// Print performance statistics
 			m_perf_stats.false_negative = nb_known_dusts  // ground truth
 					- m_perf_stats.true_positive;
-			
+
 			fprintf(stderr, "[ImgProc]::%s:%d : PERFORMANCES / Ground Truth\n"
 					"\tGround truth : %d dusts / %d forced\n"
 					"\tTrue positive : %d / GT:%d = %g %%\n"
@@ -183,9 +182,9 @@ void TamanoirImgProc::purge() {
 					m_perf_stats.false_positive, nb_known_dusts, 100.f*(float)m_perf_stats.false_positive/(float)nb_known_dusts
 					);
 		}
-		
+
 		fclose(g_dataset_f);
-		
+
 		g_dataset_f = NULL;
 	}
 
@@ -250,7 +249,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 
 	if(!originalImage) { return; }
-	
+
 	IplImage * old_displayImg = displayBlockImage;
 	if(displayImage) {
 		if(w == displayImage->width && h == displayImage->height)
@@ -263,9 +262,9 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	int gray_width = grayImage->width;
 	while((gray_width % 4) > 0)
 		gray_width--;
-	
+
 	//tmReleaseImage(&displayImage); displayImage = NULL;
-	
+
 	int scaled_width = w;
 	int scaled_height = h;
 
@@ -294,10 +293,10 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 	fprintf(stderr, "TamanoirImgProc::%s:%d : factor=%g => scaled size %dx%d\n", __func__, __LINE__,
 			factor,
 			scaled_width, scaled_height);
-	
+
 
 	displaySize = cvSize(scaled_width, scaled_height);
-	
+
 	// Resize
 //	displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, 1);
 	IplImage * new_displayImage = tmCreateImage(displaySize, IPL_DEPTH_8U, originalImage->nChannels);
@@ -324,7 +323,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
 		if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "new_displayImage-depthConverted" IMG_EXTENSION, new_displayImage); }
-		
+
 		tmReleaseImage(&tmpDisplayImage);
 	} else {
 		cvResize(originalImage, new_displayImage, CV_INTER_LINEAR );
@@ -342,12 +341,12 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		originalImage->width, originalImage->height,originalImage->nChannels,
 		new_displayImage->width, new_displayImage->height, new_displayImage->nChannels
 		);
-	
+
 	if(originalImage->nChannels == 1) {
 		// Prevent image values to be > 253
 		for(int r=0; r<new_displayImage->height; r++)
 		{
-			u8 * lineGray = (u8 *)new_displayImage->imageData 
+			u8 * lineGray = (u8 *)new_displayImage->imageData
 				+ r * new_displayImage->widthStep;
 			for(int c = 0 ; c<new_displayImage->width; c++)
 				if(lineGray[c] > COLORMARK_THRESHOLD)
@@ -355,11 +354,11 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		}
 	} else {
 /*		if(originalImage->depth != IPL_DEPTH_8U) {
-			fprintf(stderr, "TamanoirImgProc::%s:%d : invert R <-> B for 8 bit images\n", 
+			fprintf(stderr, "TamanoirImgProc::%s:%d : invert R <-> B for 8 bit images\n",
 					__func__, __LINE__);
 			for(int r=0; r<new_displayImage->height; r++)
 			{
-				u8 * lineGray = (u8 *)new_displayImage->imageData 
+				u8 * lineGray = (u8 *)new_displayImage->imageData
 					+ r * new_displayImage->widthStep;
 				for(int c = 0 ; c< new_displayImage->width * new_displayImage->nChannels; c+=new_displayImage->nChannels) {
 					u8 tmp = lineGray[c];
@@ -372,7 +371,7 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		}
 		*/
 	}
-	
+
 	if(g_debug_savetmp) { tmSaveImage(TMP_DIRECTORY "displayImage" IMG_EXTENSION, new_displayImage); }
 
 	cvCopy(new_displayImage, displayImage);
@@ -386,34 +385,34 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 
 int TamanoirImgProc::loadFile(const char * filename) {
-	
+
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-                tmsleep(1); retry++;
+				tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
-	
+
 	if(m_lock) {
 		return -1;
 	}
 	m_lock = true;
-	
+
 	m_progress = 0;
-	
+
 	// Clear display and processing images
 	purge();
-	
-	/* Load with OpenCV cvLoadImage 
+
+	/* Load with OpenCV cvLoadImage
 	IplImage* cvLoadImage( const char* filename, int iscolor CV_DEFAULT(1));
 	*/
-	fprintf(logfile, "TamanoirImgProc::%s:%d : loading '%s'...\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : loading '%s'...\n",
 		__func__, __LINE__, filename);
 	struct timeval tvLoad1;
 	gettimeofday(&tvLoad1, NULL);
 	int file_dpi = 0;
 	originalImage = tmLoadImage(filename, &file_dpi);
 	m_progress = 10;
-	
+
 	if(file_dpi > 0) {
 		// There were an resolution in file
 		m_options.dpi = file_dpi;
@@ -433,29 +432,29 @@ int TamanoirImgProc::loadFile(const char * filename) {
 				 + (tvLoad2.tv_usec - tvLoad1.tv_usec)/1000;
 
 	tmPrintProperties (originalImage);
-	
+
 	// Save image in /dev/shm
 	//tmSaveImage ("/dev/shm/originalImage.ppm", originalImage );
-	
+
 	strcpy(m_filename, filename);
-	
+
 	// Reset evaluation
 	memset(&m_perf_stats, 0, sizeof(t_perf_stats));
-	
+
 	if(g_dataset_mode || g_evaluate_mode) {
 		if(g_dataset_f) {
 			fclose(g_dataset_f);
 			g_dataset_f = NULL;
 		}
-		
+
 
 		if(!g_dataset_f) {
 			char datafile[512];
 			sprintf(datafile, "%s.data", m_filename);
-			
+
 			if(g_evaluate_mode) {
 				g_dataset_f = fopen(datafile, "r");
-				
+
 				// Reset evaluation
 				if(known_dusts) delete [] known_dusts;
 				known_dusts = NULL;
@@ -465,7 +464,7 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			} else {
 				g_dataset_f = fopen(datafile, "w");
 			}
-			
+
 			if(!g_dataset_f) {
 				fprintf(stderr, "[imgproc]::%s:%d : cannot open file %s\n", __func__, __LINE__,
 					datafile);
@@ -477,16 +476,16 @@ int TamanoirImgProc::loadFile(const char * filename) {
 
 			// Write header
 			if(g_dataset_f && g_dataset_mode) {
-				
-				fprintf(g_dataset_f, "# Tamanoir dataset for file '%s'\n\n", 
+
+				fprintf(g_dataset_f, "# Tamanoir dataset for file '%s'\n\n",
 							m_filename);
-				fprintf(g_dataset_f, "Path\t%s\n", 
+				fprintf(g_dataset_f, "Path\t%s\n",
 							m_filename);
 				fprintf(g_dataset_f, "Size\t%dx%d\n", originalImage->width, originalImage->height);
 				fprintf(g_dataset_f, "Channels\t%d\n", originalImage->nChannels);
 				fprintf(g_dataset_f, "Depth\t%d\n", tmByteDepth(originalImage) );
-				
-				
+
+
 				fprintf(g_dataset_f, "\n[Settings]\n");
 				fprintf(g_dataset_f, "FilmType\t%d\n", m_options.filmType);
 				fprintf(g_dataset_f, "Dpi\t%d\n", m_options.dpi);
@@ -498,52 +497,52 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			}
 		}
 	}
-	
+
 	switch(originalImage->depth) {
-	case IPL_DEPTH_8S: 
+	case IPL_DEPTH_8S:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_8S\n", __func__, __LINE__);
 		break;
-	case IPL_DEPTH_16S: 
+	case IPL_DEPTH_16S:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_16S\n", __func__, __LINE__);
 		break;
-	case IPL_DEPTH_32S: 
+	case IPL_DEPTH_32S:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_32S\n", __func__, __LINE__);
 		break;
-	case IPL_DEPTH_32F: 
+	case IPL_DEPTH_32F:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_32F\n", __func__, __LINE__);
 		break;
-	case IPL_DEPTH_64F: 
+	case IPL_DEPTH_64F:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_64F \n", __func__, __LINE__);
-		break;	
-	case IPL_DEPTH_8U: 
+		break;
+	case IPL_DEPTH_8U:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_8U \n", __func__, __LINE__);
-		break;	
-	case IPL_DEPTH_16U: 
+		break;
+	case IPL_DEPTH_16U:
 		fprintf(logfile, "TamanoirImgProc::%s:%d : depth IPL_DEPTH_16U \n", __func__, __LINE__);
-		break;	
+		break;
 	}
-	
-	
+
+
 	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x depth=%d x %d bytes : read time= %ld ms\n",
-		__func__, __LINE__, filename, 
+		__func__, __LINE__, filename,
 		originalImage->width, originalImage->height, originalImage->nChannels,
 		tmByteDepth(originalImage), dt_ms);
-	
+
 
 	originalImage = tmAddBorder4x(originalImage);
 	m_progress = 15;
 	fprintf(logfile, "TamanoirImgProc::%s:%d : '%s' => w=%d x h=%d x channels=%d => %d bytes per pixel\n"
 			"\tLoaded in %ld ms\n",
-			__func__, __LINE__, filename, 
+			__func__, __LINE__, filename,
 			originalImage->width, originalImage->height, originalImage->nChannels,
 			tmByteDepth(originalImage),
 			dt_ms);
 	m_lock = false;
 
-	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : pre-processing image...\n",
 		__func__, __LINE__);
 	preProcessImage();
-	
+
 	return 0;
 }
 
@@ -551,10 +550,10 @@ int TamanoirImgProc::loadFile(const char * filename) {
  * IMAGE PRE-PROCESSING => DUST DETECTION MAP
  */
 int TamanoirImgProc::preProcessImage() {
-	
+
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-                tmsleep(1); retry++;
+				tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	if(m_lock) {
@@ -597,21 +596,26 @@ int TamanoirImgProc::preProcessImage() {
 
 	//
 
-	
+
 	memset(&m_last_correction, 0, sizeof(t_correction));
 	memset(&m_correct, 0, sizeof(t_correction));
 	m_seed_x = m_seed_y = 0; // Reset search position
-	
+	m_block_seed_x = m_block_seed_y = 0;
+
+	fprintf(stderr, "[imgproc]::%s:%d : using m_block_width/height = %dx%d\n",
+			__func__, __LINE__,
+			m_block_seed_width, m_block_seed_height);
+
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
-	
-	// Blurred grayscaled image (Gaussian blur) 
+
+	// Blurred grayscaled image (Gaussian blur)
 	if(!medianImage) {
 		medianImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
 	}
 
-	// Difference (allocated here because it may be used for Open filter 
+	// Difference (allocated here because it may be used for Open filter
 	if(!diffImage) {
 		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
@@ -629,7 +633,7 @@ int TamanoirImgProc::preProcessImage() {
 	m_smooth_size = 1 + 2*(int)(4 * m_options.dpi / 2400);
 	if(m_smooth_size < 3)
 		m_smooth_size = 3;
-	
+
 	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image => median image... size %d x %d\n",
 		__func__, __LINE__, m_smooth_size, m_smooth_size);
 
@@ -642,7 +646,7 @@ int TamanoirImgProc::preProcessImage() {
 
 	// FOR GRAINY IMAGES, SMOOTH ORIGINAL IMAGE TOO
 	if(0) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n",
 			__func__, __LINE__);
 		int orig_smooth_size = 1 + 2*(int)(4 * m_options.dpi / 2400);
 
@@ -657,17 +661,17 @@ int TamanoirImgProc::preProcessImage() {
 					 // FIXME : adapt size to resolution
 	}
 
-	
+
 	m_progress = 40;
-	
-	
-	
+
+
+
 	// ********* DIFFERENCE BETWEEN ORIGINAL AND BLURRED ****************
 	// Also compute variance image
 	fprintf(logfile, "TamanoirImgProc::%s:%d : difference processing image...\n",
 		__func__, __LINE__);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
-	
+
 	// Difference histogram
 	unsigned long diffHisto[256];
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
@@ -676,14 +680,14 @@ int TamanoirImgProc::preProcessImage() {
 	if(var_size < 3) var_size = 3;
 
 	tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
-	
-	// Process difference histogram analysis : 
+
+	// Process difference histogram analysis :
 	unsigned long maxHisto = 0;
 	double cdgH = 0;
 	unsigned long cdgnb = 0;
-	
+
 	int indexMaxHisto = 0;
-	
+
 	for(int h=1; h<256; h++) {
 		cdgH += h * diffHisto[h];
 		cdgnb += diffHisto[h];
@@ -695,22 +699,22 @@ int TamanoirImgProc::preProcessImage() {
 	if(cdgnb>0)
 		cdgH /= (double)cdgnb;
 	m_threshold = (u8)roundf(cdgH * 2.0);
-	
+
 	fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g threshold=%d\n",
 			__func__, __LINE__, cdgH, (int)m_threshold);
-	
+
 	m_progress = 45;
-	
+
 	// If image is really noisy, for example with B&W grain (or High sensitivity films), pre-process a 3x3 blur filter
 	if(cdgH >= /*3.0*/ 2.8 ) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
 			__func__, __LINE__);
-		cvSmooth(grayImage, diffImage, 
+		cvSmooth(grayImage, diffImage,
 			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 			3, 3 );
 		m_progress = 50;
 
-		memcpy(grayImage->imageData, diffImage->imageData, 
+		memcpy(grayImage->imageData, diffImage->imageData,
 			diffImage->widthStep*diffImage->height);
 
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayImage-smoothed" IMG_EXTENSION, medianImage);
@@ -731,17 +735,17 @@ int TamanoirImgProc::preProcessImage() {
 		unsigned long diffHisto2[256];
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
-		
+
 		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : RE-process difference on blurred image ...\n",
 			__func__, __LINE__);
 		tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
 	}
 	m_progress = 60;
-	
+
 	if(m_threshold < 4)
 		m_threshold = 4;
-	
-	
+
+
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
 //	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	//unused unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
@@ -782,7 +786,7 @@ int TamanoirImgProc::preProcessImage() {
 		}
 		break;
 	case FILM_NEGATIVE: {
-		for(pos=0; pos<width*height; pos++) 
+		for(pos=0; pos<width*height; pos++)
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
 			// Try with signal/noise approach
@@ -804,12 +808,12 @@ int TamanoirImgProc::preProcessImage() {
 		}
 
 		}break;
-	case FILM_POSITIVE: 
-		for(pos=0; pos<width*height; pos++) 
+	case FILM_POSITIVE:
+		for(pos=0; pos<width*height; pos++)
 		{
 			u8 diff = (u8)diffImageBuffer[pos];
-		
-			if(diff >= m_threshold) 
+
+			if(diff >= m_threshold)
 				diffImageBuffer[pos] = DIFF_THRESHVAL;
 			else
 				if(diff >= tmmax(3, m_threshold-2))
@@ -839,7 +843,7 @@ int TamanoirImgProc::preProcessImage() {
 		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage" IMG_EXTENSION, diffImage);
 	m_progress = 70;
-	
+
 	// Do a close operation on diffImage
 	if(1) {
 		tmCloseImage(diffImage, medianImage, grayImage, 1);
@@ -849,38 +853,41 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 	m_progress = 80;
-	
-	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n", 
+
+	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n",
 		__func__, __LINE__); fflush(stderr);
-	
-	
-	
-	
-	// Difference 
-	fprintf(logfile, "TamanoirImgProc::%s:%d : create grow image...\n", 
+
+
+
+
+	// Difference
+	fprintf(logfile, "TamanoirImgProc::%s:%d : create grow image...\n",
 		__func__, __LINE__); fflush(stderr);
 	if(!growImage)
 		growImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
-	
-	
-	
-	fprintf(logfile, "TamanoirImgProc::%s:%d : create crop images....\n", 
+
+
+
+	fprintf(logfile, "TamanoirImgProc::%s:%d : create crop images....\n",
 		__func__, __LINE__); fflush(stderr);
-	
+
 	// Cropped image
-	processingSize = cvSize( tmmin(blockSize.width, originalImage->width), 
+	processingSize = cvSize( tmmin(blockSize.width, originalImage->width),
 							tmmin(blockSize.height, originalImage->height));
+	// Use processing size for block, and do not change after
+	m_block_seed_width = processingSize.width;
+	m_block_seed_height = processingSize.height;
 
 	allocCropped();
 	processResolution(m_options.dpi);
 
 	m_lock = false;
 
-	
+
 	// Then process
 	m_progress = 100;
-	
+
 	return 0;
 }
 
@@ -918,21 +925,21 @@ void TamanoirImgProc::allocCropped() {
  Epson 4990 :
 	N&B, 2400dpi, 400ISO: Tile 225,344 : diff_mean=2.24707 variance = 6.97754
 	Provia 100, 2400 dpi, Tile 284,186 : diff_mean=1.09766 variance = 2.06445
-	
- 
+
+
 */
 
 int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p_variance) {
 	if(!grayImage) return -1;
-	
+
 	int tile_x, tile_y, tile_step = 32;
 	u8 * buffer = (u8 *)grayImage->imageData;
 	int pitch = grayImage->widthStep;
 	int width = grayImage->width;
 	int height = grayImage->height;
-	
+
 	for(tile_y = height/10; tile_y < height*9/10-tile_step*2; tile_y += tile_step ) {
-		
+
 		for(tile_x = width/10; tile_x < width*9/10-tile_step*2; tile_x += tile_step) {
 			int x, y;
 			int val_topleft = buffer[ tile_y * pitch + tile_x ];
@@ -941,21 +948,21 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 
 			// Get mean of pixel values
 			for(y=tile_y; y<tile_y+tile_step; y++) {
-				
+
 				for(x=tile_x; x<tile_x+tile_step; x++) {
 					int val = buffer[y * pitch + x];
 					if(abs(val - val_topleft) > 16) {
 						// Break
 						x = width;
 						y = height;
-						
+
 						resume = false;
 					}
-					
+
 					val_mean += val;
 				}
 			}
-			
+
 			// Get dispersion
 			if(resume) {
 				*p_mean = (float)val_mean / (float)(tile_step * tile_step);
@@ -965,24 +972,24 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 					long val_diff2 = 0;
 					// Get mean of pixel values
 					for(y=tile_y; y<tile_y+tile_step; y++) {
-						
+
 						for(x=tile_x; x<tile_x+tile_step; x++) {
 							int val = buffer[y * pitch + x];
-							
+
 							int diff = abs(val - val_mean);
 							val_diff += diff;
 							val_diff2 += diff * diff;
 						}
 					}
-					
+
 					float diff_mean = (float)val_diff / (float)(tile_step * tile_step);
 					float variance = (float)val_diff2 / (float)(tile_step * tile_step);
 					// If variance is low, choose this region
-					
+
 		//			fprintf(stderr, "Tile %d,%d : variance = %g", tile_x, tile_y, variance);
 					if(diff_mean < 4) {
 						fprintf(stderr, "Tile %d,%d : diff_mean=%g variance = %g\n", tile_x, tile_y, diff_mean, variance);
-						
+
 						if(diff_mean < 3) {
 							*p_diff_mean = diff_mean;
 							*p_variance = variance;
@@ -993,21 +1000,21 @@ int TamanoirImgProc::findUniform(float * p_mean, float  * p_diff_mean, float * p
 			}
 		}
 	}
-	
+
 	return -1;
 }
 
 int TamanoirImgProc::saveFile(const char * filename) {
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-                tmsleep(1); retry++;
+				tmsleep(1); retry++;
 		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
 	}
 	if(m_lock)
 		return -1;
-	
+
 	m_lock = true;
-	fprintf(logfile, "TamanoirImgProc::%s:%d : saving '%s'...\n", 
+	fprintf(logfile, "TamanoirImgProc::%s:%d : saving '%s'...\n",
 		__func__, __LINE__, filename);
 
 		// Save for debug
@@ -1132,9 +1139,15 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		// use previous values
 		m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
 		m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
+
+		// Recompute block
+		m_block_seed_x = (m_seed_x / m_block_seed_width)*m_block_seed_width;
+		m_block_seed_y = (m_seed_y / m_block_seed_height)*m_block_seed_height;
+
 		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to LAST "
-				"corrected dust : %d,%d\n",
-				__func__, __LINE__, m_seed_x, m_seed_y);
+				"corrected dust : %d,%d block=%d,%d\n",
+				__func__, __LINE__, m_seed_x, m_seed_y,
+				m_block_seed_x, m_block_seed_y);
 		if(growImage) {
 			cvZero(growImage);
 		}
@@ -1243,12 +1256,12 @@ int TamanoirImgProc::getProgress() {
 	return m_progress;
 }
 
-int TamanoirImgProc::firstDust() 
+int TamanoirImgProc::firstDust()
 {
 	// Reset last dust position
 	m_seed_x = m_seed_y = 0;
 	m_progress = 0;
-	
+
 	// Clear buffer of known dusts
 	if(growImage) {
 		memset(growImage->imageData, 0, growImage->widthStep * growImage->height);
@@ -1258,7 +1271,7 @@ int TamanoirImgProc::firstDust()
 	bool old_trust = m_options.trust;
 	int ret = nextDust();
 	m_options.trust = old_trust;
-	
+
 	return ret;
 }
 
@@ -1279,54 +1292,72 @@ int TamanoirImgProc::nextDust() {
 	}
 
 	m_lock = true;
-	
-	
+
+
 	int pitch = diffImage->widthStep;
 	int width = diffImage->width;
 	int height = diffImage->height;
-	
+
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
-	
+
 	if(g_debug_imgverbose)
-		fprintf(logfile, "TamanoirImgProc::%s:%d : searching seed from %d,%d ...\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : searching seed from %d,%d ...\n",
 						__func__, __LINE__, m_seed_y, m_seed_x);
-	
+
 	memset(&m_correct, 0, sizeof(t_correction));
-	
+
 	memset(&m_lastDustComp, 0, sizeof(CvConnectedComp));
-	
+
 	m_correct.copy_width = -1; // Clear stored correction
-	
-	
-	for(y = m_seed_y; y<height-1; y++) {
-		pos = y * pitch + m_seed_x;
-		for(x = m_seed_x; x<width-1; x++, pos++) {
-			if(!growImageBuffer[pos]) {
-				if(diffImageBuffer[pos] == DIFF_THRESHVAL ) {
-					// Grow region here if the region is big enough
-					if(//diffImageBuffer[pos+pitch] == DIFF_THRESHVAL
-							1 || m_options.hotPixels)
-					{
-						int return_now = findDust(x,y);
 
-						if(return_now > 0) {
-							m_lock = false;
+	do {
+		int ymax = tmmin(height-1, m_block_seed_y+m_block_seed_height);
+		int xmin = m_seed_x;
+		int xmax = tmmin(width-1, m_block_seed_x+m_block_seed_width);
+		for(y = m_seed_y; y<ymax; y++) {
+			pos = y * pitch + m_seed_x;
+			for(x = xmin; x<xmax; x++, pos++) {
+				if(!growImageBuffer[pos]) {
+					if(diffImageBuffer[pos] == DIFF_THRESHVAL ) {
+						// Grow region here if the region is big enough
+						if(//diffImageBuffer[pos+pitch] == DIFF_THRESHVAL
+								1 || m_options.hotPixels)
+						{
+							int return_now = findDust(x,y);
 
-							return return_now;
+							if(return_now > 0) {
+								m_lock = false;
+
+								return return_now;
+							}
 						}
+					} // else clear diffimage because this is not a dust
+					else {
+						//diffImageBuffer[pos] = 0;
 					}
-				} // else clear diffimage because this is not a dust
-				else {
-					//diffImageBuffer[pos] = 0;
 				}
 			}
+
+			xmin = 0;
 		}
-		
-		
+
+		// If we did not found a seed, in this block, change block :
+		// increase block x
+		m_block_seed_x += m_block_seed_width;
 		m_seed_x = 0;
-	}
-	
+		if(m_block_seed_x >= width) {
+			// block moved to far on right => rewind to left, and go down one block
+			m_block_seed_x = 0;
+			m_block_seed_y += m_block_seed_height;
+		}
+		/*
+		fprintf(stderr, "\t[imgproc]::%s:%d : nothing found => changed block : %d,%d + %dx%d\n",
+				__func__, __LINE__,
+				m_block_seed_x, m_block_seed_y, m_block_seed_width, m_block_seed_height);
+		*/
+	} while(m_block_seed_x<width && m_block_seed_y<height);
+
 	m_lock = false;
 	return 0;
 }
@@ -1350,7 +1381,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 	CvConnectedComp connect;
 	memset(&connect, 0, sizeof(CvConnectedComp));
-	
+
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
 
@@ -1375,10 +1406,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		int lw = growImage->width;
 		int lpitch = growImage->widthStep;
 		int lh = growImage->height;
-		
+
 		// search a dust for region growing in
 		int xleft = x - pcorrection->copy_width/2;
-		if(xleft<0) xleft = 0; 
+		if(xleft<0) xleft = 0;
 		else if(xleft >= lw) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
@@ -1389,26 +1420,26 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			return 0;
 		}
 		else if(xright >= lw) xright = lw-1;
-		
+
 		if(xright <= xleft) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
-		
+
 		int ytop  = y - pcorrection->copy_height/2;
-		if(ytop<0) ytop = 0; 
+		if(ytop<0) ytop = 0;
 		else if(ytop >= lh) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
-		
+
 		int ybottom = y + pcorrection->copy_height/2;
 		if(ybottom<0) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
 		else if(ybottom >= lh) ybottom = lh-1;
-		
+
 		if( diffImageBuffer[y * diffImage->widthStep + x] != DIFF_THRESHVAL) {
 			// No difference at this point
 			// return 0;
@@ -1428,14 +1459,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				}
 			}
 		}
-		
-		
+
+
 		// Clear gnown buffer to enable second region growing
 		for(int ly=ytop; ly<ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
 	}
-	
+
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : found seed at %d,%d "
 				"=> growImage[x,y]=%d / DIFF_THRESHVAL=%d\n",
@@ -1444,10 +1475,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				DIFF_THRESHVAL);
 	}
 
-	// Process a region growing 
-	tmGrowRegion( diffImageBuffer, growImageBuffer, 
-		diffImage->widthStep, diffImage->height, 
-		x, y, 
+	// Process a region growing
+	tmGrowRegion( diffImageBuffer, growImageBuffer,
+		diffImage->widthStep, diffImage->height,
+		x, y,
 		DIFF_THRESHVAL,
 		255,
 		&connect );
@@ -1458,7 +1489,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				(int)connect.rect.x, (int)connect.rect.y, (int)connect.rect.width, (int)connect.rect.height,
 				 (int)connect.area,
 				 m_dust_area_min, (int)connect.area, m_dust_area_max);
-		fprintf(logfile, "TamanoirImgProc::%s:%d : => %d,%d+%dx%d...\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : => %d,%d+%dx%d...\n",
 				__func__, __LINE__,
 				connect.rect.x,connect.rect.y,
 				connect.rect.width,
@@ -1478,30 +1509,30 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		int connect_area = (int)connect.area;
 		int connect_width = connect.rect.width;
 		int connect_height = connect.rect.height;
-		
-		
+
+
 		if(!force_search) {
 			// There a seed here !!!
 			m_seed_x = x+1;
 			m_seed_y = y;
-		
-			
-		
+
+
+
 			/** Update stats */
 			m_dust_stats.nb_grown++;
 			if(connect_area<STATS_MAX_SURF) {
 				m_dust_stats.grown_size[connect_area]++;
 			}
 		}
-		
-		
+
+
 		// Crop area geometry
 		int crop_width = cropImage->width;
 		int crop_height = cropImage->height;
-		
+
 		int crop_x = connect.rect.x + connect.rect.width/2 - crop_width/2;
 		int crop_y = connect.rect.y + connect.rect.height/2 - crop_height/2;
-		
+
 		// If forced, we keep the original cropping
 		if(force_search) {
 			crop_x = pcorrection->crop_x;
@@ -1513,23 +1544,23 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		}
 
 
-		if(crop_x < 0) 	
+		if(crop_x < 0)
 			crop_x = 0;
 		if(crop_x + crop_width >= originalImage->width)
 			crop_x = originalImage->width - crop_width-1;
-		
+
 		if(crop_y < 0) 		crop_y = 0;
 		if(crop_y + crop_height >= originalImage->height)
 			crop_y = originalImage->height - crop_height-1;
-		
-		
-		
+
+
+
 		// Real position of dust in cropped image
 		int crop_center_x = x - crop_x;
 		int crop_center_y = y - crop_y;
-		
+
 		if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
-			fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d => %d,%d in cropped image...\n", 
+			fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d => %d,%d in cropped image...\n",
 				__func__, __LINE__,
 				connect.rect.x,connect.rect.y,
 				connect.rect.width, connect.rect.height,
@@ -1568,12 +1599,12 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			// Use center x,y - width,height
 			connect_width = crop_connect.rect.width;
 			connect_height = crop_connect.rect.height;
-			
-			
-			
+
+
+
 			int connect_center_x = crop_connect.rect.x + connect_width/2;
 			int connect_center_y = crop_connect.rect.y + connect_height/2;
-			
+
 			// If the search if forced, limit search to input size
 			if(force_search) {
 				if( (x-crop_x) < connect_center_x-connect_width/2
@@ -1602,18 +1633,18 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 				}
 			}
-			
 
-			while(connect_width < 5 
+
+			while(connect_width < 5
 				&& (connect_center_x+connect_width)<crop_width-3) {
 				connect_width += 2;
 			}
-			while(connect_height < 5 
+			while(connect_height < 5
 				&& (connect_center_y+connect_height)<crop_height-3) {
 				connect_height += 2;
 			}
-			
-			
+
+
 			// Crop original image
 			if(origBlurredImage) { // If original is grainy it has been blurred
 				tmCropImage(origBlurredImage,
@@ -1633,9 +1664,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 			// Find best proposal in originalImage
 			int ret = tmSearchBestCorrelation(
-				correctColorImage, dilateImage, 
+				correctColorImage, dilateImage,
 				connect_center_x, connect_center_y,
-				connect_width, connect_height, 
+				connect_width, connect_height,
 				&copy_dest_x, &copy_dest_y,
 				&copy_src_x, &copy_src_y,
 				&copy_width, &copy_height,
@@ -1708,7 +1739,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				if(connect_area<STATS_MAX_SURF) {
 					m_dust_stats.grown_size_replaced[connect_area]++;
 				}
-				
+
 
 
 				// ====== THEN WE FOUND A REPLACEMENT ==============
@@ -1725,7 +1756,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				{
 //					pcorrection->dest_x = crop_x + copy_dest_x;
 //					pcorrection->dest_y = crop_y + copy_dest_y;
-					
+
 					pcorrection->copy_width = copy_width;
 					pcorrection->copy_height = copy_height;
 				} else {
@@ -1736,20 +1767,20 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					// Centered dest determined by correlation
 					int centered_dest_x = copy_dest_x;
 					int centered_dest_y = copy_dest_y;
-					
+
 					// We forced connect_width and connect_height
 					// => the copy_dest_x are top-left of a region of size copy_width x copy_height
 					// -> the center of dest must me moved by (connect_width - copy_width)/2
 					int offset_x = pcorrection->rel_dest_x - centered_dest_x;
 					int offset_y = pcorrection->rel_dest_y - centered_dest_y;
-					
+
 					copy_dest_x = pcorrection->rel_dest_x ;
 					copy_dest_y = pcorrection->rel_dest_y ;
-					
+
 					copy_src_x += offset_x;
 					copy_src_y += offset_y;
 				}
-				
+
 				// Relative storage
 				pcorrection->crop_x = crop_x;
 				pcorrection->crop_y = crop_y;
@@ -1757,10 +1788,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				pcorrection->rel_src_y = copy_src_y;
 				pcorrection->rel_dest_x = copy_dest_x;
 				pcorrection->rel_dest_y = copy_dest_y;
-				
+
 				pcorrection->rel_seed_x = crop_center_x;
 				pcorrection->rel_seed_y = crop_center_y;
-				
+
 				// Update dest
 //				pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
 //				pcorrection->src_y = pcorrection->crop_y + pcorrection->rel_src_y;
@@ -1772,7 +1803,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				pcorrection->area = (int)connect.area;
 				pcorrection->width_mm = INCH_IN_MM * connect.rect.width / m_options.dpi;
 				pcorrection->height_mm = INCH_IN_MM * connect.rect.height / m_options.dpi;
-				
+
 				pcorrection->bg_diff = (sum_dust - sum_neighbour);
 				pcorrection->proposal_diff = best_correl;
 
@@ -1846,7 +1877,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				   && !force_search  // only when we're not forcing to search a specific dust
 				   ) {
 					is_a_dust = neighbourhoodEmpty(pcorrection);
-					
+
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 - dilateImage = tmpCropImage-correctImage
@@ -1888,10 +1919,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 											);*/
 					//	crop_x + left, crop_y + top,
 					//	right - left, bottom - top);
-					
-					//fprintf(stderr, "[imgproc] %s:%d : fill_failure=%g\n", 
+
+					//fprintf(stderr, "[imgproc] %s:%d : fill_failure=%g\n",
 					//	__func__, __LINE__, fill_failure);
-					
+
 					// If we can trust the correction proposal, let's correct know !
 					if( (best_correl < TRUST_CORREL_MAX
 						&& pcorrection->area < TRUST_AREA_MAX
@@ -1922,15 +1953,15 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						return_now = 0;
 					}
 				}
-				
+
 
 				// If we must return from this function now, we store the dust in statistics array
 				if(return_now) {
-					
+
 					if(g_evaluate_mode) {
 						// Evaluate if dust is already known
 						bool known = testKnownDust(m_correct, originalImage->width, originalImage->height);
-						
+
 						fprintf(logfile, "\t[imgproc]::%s:%d : Evaluate : "
 								"dust at %d,%d+%dx%d "
 								"=> %d,%d in cropped image => known = %c...\n",
@@ -1940,14 +1971,14 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 								crop_center_x, crop_center_y,
 								(known ? 'T':'F')
 								);
-						
+
 						if(known) {
 							m_perf_stats.true_positive++;
 						} else {
 							m_perf_stats.false_positive++;
 						}
 					}
-					
+
 					//fprintf(stderr, "\t[imgproc] %s:%d : return 1\n", __func__, __LINE__);
 					MUTEX_UNLOCK(&mutex);
 					return 1;
@@ -1957,7 +1988,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// DEBUG FUNCTIONS
 				if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 					fprintf(logfile, "TamanoirImgProc::%s:%d : dust at %d,%d+%dx%d "
-						"=> %d,%d in cropped image => no replace candidate (best=%d)...\n", 
+						"=> %d,%d in cropped image => no replace candidate (best=%d)...\n",
 						__func__, __LINE__,
 						connect.rect.x,connect.rect.y,
 						connect.rect.width, connect.rect.height,
@@ -1965,26 +1996,26 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						);
 					if(g_debug_savetmp || g_debug_dust_seek)
 					{
-						tmSaveImage(TMP_DIRECTORY "failed-dilateImage" IMG_EXTENSION,  
+						tmSaveImage(TMP_DIRECTORY "failed-dilateImage" IMG_EXTENSION,
 								dilateImage);
 					}
 				}
-				
+
 				// Mark failure on displayImage
 				if(g_debug_imgoutput && displayImage) {
 					int disp_x = (crop_x + crop_connect.rect.x) * displayImage->width / grayImage->width;
 					int disp_y = (crop_y + crop_connect.rect.y) * displayImage->height / grayImage->height;
 					int disp_w = crop_connect.rect.width * displayImage->width / grayImage->width;
 					int disp_h = crop_connect.rect.height * displayImage->height / grayImage->height;
-					tmMarkFailureRegion(displayImage, 
+					tmMarkFailureRegion(displayImage,
 							disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
 					tmMarkFailureRegion(displayBlockImage,
 							disp_x, disp_y, disp_w, disp_h, COLORMARK_FAILED);
 				}
-				
+
 
 				if(g_debug_imgoutput) {
-					tmMarkFailureRegion(originalImage, 
+					tmMarkFailureRegion(originalImage,
 						crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
 						crop_connect.rect.width, crop_connect.rect.height, 120);
 					//tmMarkFailureRegion(diffImage,
@@ -1992,38 +2023,38 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 					//	crop_connect.rect.width, crop_connect.rect.height, 120);
 				}
 				// END OF DEBUG FUNCTIONS
-				
+
 			}
-			
+
 			// DEBUG FUNCTIONS
 			if(g_option_stopoguess || g_debug_correlation) {
 				// Diff image for display in GUI
-				tmCropImage(diffImage, 
-						cropImage, 
+				tmCropImage(diffImage,
+						cropImage,
 						crop_x, crop_y);
-				
-				tmCropImage(originalImage, cropColorImage, 
+
+				tmCropImage(originalImage, cropColorImage,
 						crop_x, crop_y);
 				MUTEX_UNLOCK(&mutex);
 				return 1;
 			}
 			// END OF DEBUG FUNCTIONS
-			
+
 			// For debug, save image in temporary directory
 			//tmSaveImage(TMP_DIRECTORY "diffImageGrown.pgm", growImage);
 		} else {
 			if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 				fprintf(logfile, "TamanoirImgProc::%s:%d : dust regrow=> %d,%d+%dx%d "
-					"=> %d,%d in cropped image => PROBLEM : NOT FOUND WITH SAME THRESHOLD...\n", 
+					"=> %d,%d in cropped image => PROBLEM : NOT FOUND WITH SAME THRESHOLD...\n",
 					__func__, __LINE__,
 					crop_connect.rect.x, crop_connect.rect.y,
 					crop_connect.rect.width, crop_connect.rect.height,
 					crop_center_x, crop_center_y
 					);
 			}
-			
+
 			if(g_debug_imgoutput) {
-				tmMarkFailureRegion(originalImage, 
+				tmMarkFailureRegion(originalImage,
 					crop_x + crop_connect.rect.x, crop_y + crop_connect.rect.y,
 					crop_connect.rect.width, crop_connect.rect.height, 32);
 			}
@@ -2641,19 +2672,42 @@ bool TamanoirImgProc::dilateDust(
 						min_dust, max_dust, sum_dust, nb_dust);
 			}
 
+
+			int diff_min = 255;
+			int diff_max = -255;
+			double diff_sum = 0.;
+			int diff_nb = 0;
+
 			for(r=neighbour_rmin;r<neighbour_rmax; r++) {
 				int crop_pos = r*tmpCropImage->widthStep + neighbour_cmin;
 				for(c=neighbour_cmin; c<neighbour_cmax;
 						c++,crop_pos++) {
 					int gray = (int)cropGrayBuffer[crop_pos];
+
+
 					if(dilateImageBuffer[crop_pos]) {
 						// Difference between image and median
 						histoDustDil[ gray ]++;
 					} else {
+
+						// outside the grown dust area
 						histoNeighbour[ gray ]++;
+
+						// outside the dust,
+						//if( grownImageBuffer[crop_pos] == 255 )
+						{
+							int diff = (int)roundf(sum_dust) - gray;
+							if(diff < diff_min) diff_min = diff;
+							if(diff > diff_max) diff_max = diff;
+
+							diff_sum += diff;
+							diff_nb++;
+						}
 					}
 				}
 			}
+			// diff_sum is the mean of difference between dust and it's neighbourhood
+			if(diff_nb) diff_sum /= (double)diff_nb;
 
 
 			int min_dustDil = 255;
@@ -2707,10 +2761,12 @@ bool TamanoirImgProc::dilateDust(
 
 	#endif
 				if(g_debug_dust_seek) {
-					fprintf(stderr, "\tDust(Dilated): min-max / mean = %d-%d / %g (nb=%d)\n",
+					fprintf(stderr, "\tDust(Dilated): min-max / mean = %d..%d / %g (nb=%d)\n",
 							min_dustDil, max_dustDil, sum_dustDil, nb_dustDil);
-					fprintf(stderr, "\tNeighbour: min-max / mean = %d-%d / %g / tolerance=%d\n",
+					fprintf(stderr, "\tNeighbour: min-max / mean = %d..%d / %g / tolerance=%d\n",
 							min_neighbour, max_neighbour, sum_neighbour, best_correl);
+					fprintf(stderr, "\tDiff/Neighbour: min/max / mean = %d..%d / %g\n",
+							diff_min, diff_max, diff_sum);
 					fprintf(stderr, "\tContrast = %g / %g = %g\n",
 							(sum_dust - sum_neighbour), (sum_neighbour + sum_dust), contrast);
 				}
@@ -2761,6 +2817,8 @@ bool TamanoirImgProc::dilateDust(
 	} else {
 		is_a_dust = false;
 	}
+
+
 	return is_a_dust;
 }
 
@@ -2779,7 +2837,7 @@ void TamanoirImgProc::cropViewImages() {
 
 void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(correction.copy_width <= 0) return;
-	
+
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : no originalImage processingSize %dx%d\n",
 				__func__, __LINE__, processingSize.width, processingSize.height);
@@ -2796,7 +2854,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 				__func__, __LINE__, processingSize.width, processingSize.height);
 		return;
 	}
-	
+
 	CvSize cropSize = processingSize;
 	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
 		cropSize = displayCropSize;
@@ -2811,8 +2869,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			displayCropSize = cropSize = cvSize( correction.crop_width, correction.crop_height );
 		}
 	}
-	
-	
+
+
 	// Allocate images
 	if(!disp_cropColorImage) {
 		disp_cropColorImage = tmCreateImage(cropSize, IPL_DEPTH_8U, originalImage->nChannels);
@@ -2827,7 +2885,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
 
-	
+
 	if(m_show_crop_debug) { // Grown region
 		if(disp_dilateImage) {
 			if(disp_dilateImage->width != cropSize.width
@@ -2843,7 +2901,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		if(!disp_dilateImage) {
 			disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_8U, 1);
 		} else {
-			memset( disp_dilateImage->imageData, 0, 
+			memset( disp_dilateImage->imageData, 0,
 					disp_dilateImage->widthStep * disp_dilateImage->height );
 		}
 
@@ -2890,21 +2948,21 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 
 			CvConnectedComp ext_connect;
 			tmGrowRegion(
-					(u8 *)disp_cropImage->imageData, 
-					(u8 *)disp_dilateImage->imageData, 
-					cropImage->widthStep, cropImage->height, 
-					correction.rel_seed_x, correction.rel_seed_y, 
+					(u8 *)disp_cropImage->imageData,
+					(u8 *)disp_dilateImage->imageData,
+					cropImage->widthStep, cropImage->height,
+					correction.rel_seed_x, correction.rel_seed_y,
 					DIFF_THRESHVAL,
 					255,
 					&ext_connect);
 		}
 	}
-	
+
 	// Bottom-right: Diff image for display in GUI
 	if(disp_cropImage) {
 
 		tmCropImage(diffImage,
-			disp_cropImage, 
+			disp_cropImage,
 			correction.crop_x, correction.crop_y);
 
 
@@ -2924,13 +2982,13 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 					cvScalarAll(254),
 					1);
 	}
-	
+
 	// Top-left on GUI : Original image for display in GUI
-	tmCropImage(originalImage, disp_cropColorImage, 
+	tmCropImage(originalImage, disp_cropColorImage,
 				correction.crop_x, correction.crop_y,
 				true // threshold for not having highlights
 				);
-	
+
 	// Bottom-Left
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
@@ -2943,14 +3001,14 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			if(buf[c]>251) buf[c]=251;
 	}
 
-	// Clone image region 
-	tmCloneRegion(disp_cropColorImage, 
+	// Clone image region
+	tmCloneRegion(disp_cropColorImage,
 		correction.rel_dest_x, correction.rel_dest_y, // dest
 		correction.rel_src_x, correction.rel_src_y, // src
 		correction.copy_width, correction.copy_height,
 		disp_correctColorImage
 		);
-	
+
 	tmMarkCloneRegion(disp_cropColorImage,
 		correction.rel_dest_x, correction.rel_dest_y, // dest
 		correction.rel_src_x, correction.rel_src_y, // src
@@ -2958,7 +3016,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		false // mark move dest
 		);
 
-	
+
 	// Main windows
 	if(displayBlockImage && displayImage) {
 		if(displayBlockImage->width == displayImage->width
@@ -2979,7 +3037,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		int disp_y = (correction.crop_y + correction.rel_dest_y) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
-		
+
 		tmMarkFailureRegion(displayBlockImage,
 					disp_x, disp_y, disp_w, disp_h, COLORMARK_CURRENT);
 
@@ -3002,7 +3060,7 @@ void TamanoirImgProc::setCopySrc(int rel_x, int rel_y) {
 void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_y) {
 	if(pcorrection->crop_x < 0) return;
 	if(!diffImage) return;
-	
+
 	bool resnap = false;
 	if(undoImage && cropImage) {
 		if(pcorrection->crop_x != undoImage_x
@@ -3048,12 +3106,12 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 /* Apply a former correction */
 int TamanoirImgProc::skipCorrection(t_correction correction) {
 	if(correction.copy_width <= 0) return 0;
-	
-	
+
+
 	// Update progress
 	int y = correction.crop_y + correction.rel_dest_y;
 	m_progress = (int)(100 * y / grayImage->height);
-	
+
 	memcpy(&m_last_correction, &correction, sizeof(t_correction));
 
 	// Mark skip action on displayImage
@@ -3062,10 +3120,10 @@ int TamanoirImgProc::skipCorrection(t_correction correction) {
 		int disp_y = (correction.crop_y + correction.rel_dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
-	
+
 		tmMarkFailureRegion(displayImage,
 			disp_x, disp_y, disp_w, disp_h, COLORMARK_REFUSED);
-	}	
+	}
 	return 0;
 }
 
@@ -3081,12 +3139,12 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 		// Update progress
 		int y = correction.crop_y + correction.rel_dest_y;
 		m_progress = (int)(100 * y / grayImage->height);
-		
+
 		memcpy(&m_last_correction, &correction, sizeof(t_correction));
 	}
-	
+
 	return applyCorrection(correction, force);
-}	
+}
 
 
 
@@ -3097,16 +3155,16 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 		return -1; // no available correction
 	if(correction.copy_width <= 0)
 		return -1; // no available correction
-	
+
 	/* Update stats */
 	m_dust_stats.nb_grown_validated++;
 	if(correction.area<STATS_MAX_SURF) {
 		m_dust_stats.grown_size_validated[correction.area]++;
 	}
-	
+
 	/* Update groundg truth */
 	if(g_dataset_mode) {
-		
+
 		if(g_dataset_f) {
 			fprintf(g_dataset_f, "Dust\t%d,%d+%dx%d"
 						"\t%d,%d"
@@ -3117,11 +3175,11 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 			fflush(g_dataset_f);
 		}
 	}
-	
-	
+
+
 	if(g_debug_imgverbose //|| force
 	   ) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n", 
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Apply clone on original image force=%s.\n",
 				__func__, __LINE__, force?"TRUE":"FALSE");
 
 		fprintf(logfile, "Dust\t%d,%d+%dx%d"
@@ -3131,8 +3189,8 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 				correction.crop_x+correction.rel_seed_x, correction.crop_y+correction.rel_seed_y,
 				(force?'T':'F') );
 	}
-	
-	
+
+
 	/** Update stats */
 	m_dust_stats.nb_grown_validated++;
 	if(correction.area<STATS_MAX_SURF) {
@@ -3145,13 +3203,13 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 	int correction_src_x = correction.crop_x + correction.rel_src_x;
 	int correction_src_y = correction.crop_y + correction.rel_src_y;
 
-	
+
 	// Apply clone on original image
-	tmCloneRegion(  originalImage, 
+	tmCloneRegion(  originalImage,
 					correction_dest_x, correction_dest_y,
 					correction_src_x, correction_src_y,
 					correction.copy_width, correction.copy_height);
-	
+
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
 	//if(!force)
@@ -3159,29 +3217,29 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 				   correction_dest_x, correction_dest_y,
 				   correction.copy_width, correction.copy_height,
 				   DIFF_NEUTRALIZE);
-	
-	
+
+
 	if( displayImage ) {
 		// Mark failure on displayImage
-                int disp_x = (correction_dest_x ) * displayImage->width / grayImage->width;
-                int disp_y = (correction_dest_y ) * displayImage->height / grayImage->height;
+				int disp_x = (correction_dest_x ) * displayImage->width / grayImage->width;
+				int disp_y = (correction_dest_y ) * displayImage->height / grayImage->height;
 		int disp_w = correction.copy_width * displayImage->width / grayImage->width;
 		int disp_h = correction.copy_height * displayImage->height / grayImage->height;
 		tmMarkFailureRegion(displayImage,
 				disp_x, disp_y, disp_w, disp_h, COLORMARK_CORRECTED);
 	}
-	
+
 	// And clear dust at destination position
 	// to make this area usable for future copy source
 	if(g_debug_imgoutput) {
 
-		tmMarkCloneRegion(originalImage, 
+		tmMarkCloneRegion(originalImage,
 					correction_dest_x, correction_dest_y,
 					correction_src_x, correction_src_y,
 					correction.copy_width, correction.copy_height);
 	}
-	
-	
+
+
 	memset(&correction, 0, sizeof(t_correction));
 	correction.copy_width = -1;
 	return 0;
@@ -3201,19 +3259,19 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 	if(f == NULL) {
 		f = logfile;
 	}
-	
+
 	if(dust_stats->nb_grown>0) {
 		dust_stats->ratio_replaced_grown = (float)dust_stats->nb_grown_replaced/dust_stats->nb_grown;
 		dust_stats->ratio_validated_grown = (float)dust_stats->nb_grown_validated/dust_stats->nb_grown;
 	}
-	
+
 	if(dust_stats->nb_grown_replaced>0) {
 		dust_stats->ratio_validated_replaced = (float)dust_stats->nb_grown_validated/dust_stats->nb_grown_replaced;
 	}
 /*	unsigned long grown_size[STATS_MAX_SURF];				*! grown size histogram */
 /*	unsigned long grown_size_replaced[STATS_MAX_SURF];		*! grown size histogram */
 /*	unsigned long grown_size_validated[STATS_MAX_SURF];		*! grown size histogram */
-	
+
 	if(f) {
 		int max_size = 0;
 		int max_size_replaced = 0;
@@ -3226,24 +3284,24 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 			if(dust_stats->grown_size_validated[size]>1)
 				max_size_validated = size;
 			if(dust_stats->grown_size[size]>0)
-				fprintf(f, "[%d] : %lu / %lu / %lu\n", size, 
-					dust_stats->grown_size[size], 
-					dust_stats->grown_size_replaced[size], 
+				fprintf(f, "[%d] : %lu / %lu / %lu\n", size,
+					dust_stats->grown_size[size],
+					dust_stats->grown_size_replaced[size],
 					dust_stats->grown_size_validated[size]);
 		}
-		
+
 		/* Statistics variables */
 		fprintf(f, "Statistics : \n");
 		fprintf(f, "\t nb_grown = %lu\n", dust_stats->nb_grown);
 		fprintf(f, "\t nb_grown_replaced = %lu\n", dust_stats->nb_grown_replaced);
 		fprintf(f, "\t nb_grown_validated = %lu\n", dust_stats->nb_grown_validated);
 		fprintf(f, "\n");
-	
+
 		fprintf(f, "\t ratio_replaced/grown = %g %%\n", 100.f*dust_stats->ratio_replaced_grown);
 		fprintf(f, "\t ratio_validated/grown = %g %%\n", 100.f*dust_stats->ratio_validated_grown);
 		fprintf(f, "\t ratio_validated/replaced = %g %%\n", 100.f*dust_stats->ratio_validated_replaced);
 		fprintf(f, "\n");
-		
+
 		fprintf(f, "Max sizes :\n");
 		fprintf(f, "\tMax size: %d\n", max_size);
 		fprintf(f, "\tMax size replaced: %d\n", max_size_replaced);
@@ -3256,30 +3314,30 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f) {
 /* Test if dust is already knwon */
 bool testKnownDust(t_correction correction, int img_w, int img_h) {
 	if(g_dataset_mode) { return false; }
-	
-	if(!known_dusts)  { // Read dataset file to fill known dusts tab 
-	
+
+	if(!known_dusts)  { // Read dataset file to fill known dusts tab
+
 		if(!g_dataset_f) { // Cannot read file
 			fprintf(stderr, "%s:%d : File unknown\n", __func__,__LINE__);
 			return false;
 		}
-		
+
 		// Allocate array
 		max_known_dusts = 2000;
 		known_dusts = new t_known_dust [ max_known_dusts ];
 		memset(known_dusts, 0, sizeof(t_known_dust) * max_known_dusts);
 		nb_known_dusts = 0;
-		
+
 		// Read file
-		
+
 		rewind(g_dataset_f);
-		
+
 		char line[512];
 		char * ret;
 		do {
 			// Parse file
 			ret = fgets(line, 511, g_dataset_f);
-			
+
 			if(ret) {
 				// Strip EOL
 				if(strlen(line)>0) {
@@ -3288,7 +3346,7 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 				if(strlen(line)>0) {
 					if(line[strlen(line)-1]=='\r') { line[strlen(line)-1]='\0'; }
 				}
-				
+
 				// Then process
 				if(strlen(line)>0) {
 					char * cmd = line;
@@ -3296,7 +3354,7 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 					if(next) {
 						*next = '\0';
 						next++;
-						
+
 						if(strcasestr(cmd, "Size")) { // Read image size
 							int l_w, l_h;char c;
 							int val = sscanf(next, "%d%c%d", &l_w, &c, &l_h);
@@ -3317,7 +3375,7 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 									l_dpi, next);
 							}
 						}
-						
+
 						if(strcasestr(cmd, "Dust")) { // Read dust
 							int l_x, l_y, l_w, l_h, l_seed_x, l_seed_y;
 							char c, flag[5]="";
@@ -3327,31 +3385,31 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 							if(val==11) {
 								fprintf(stderr, "[imgproc] %s:%d : read dust %d, %d + %d x %d seed=%d, %d flag=%s "
 									"in '%s'\n", __func__,__LINE__,
-									l_x, l_y, l_w, l_h, 
-									l_seed_x, l_seed_y, flag, 
+									l_x, l_y, l_w, l_h,
+									l_seed_x, l_seed_y, flag,
 									next);
 								t_known_dust * pdust = known_dusts + nb_known_dusts;
 								nb_known_dusts++;
 								if(flag[0]=='T') {
 									nb_known_dusts_forced++;
 								} else {
-									
+
 								}
 								if(orig_width > 0.) {
 									pdust->dest_x = (double)l_x/orig_width;
 									pdust->dest_y = (double)l_y/orig_height;
 									pdust->dest_width = (double)l_w/orig_width;
 									pdust->dest_height = (double)l_h/orig_height;
-									
+
 									pdust->seed_x = (double)l_seed_x/orig_width;
 									pdust->seed_y = (double)l_seed_y/orig_height;
-									
+
 								} else { // Use absolute values
 									pdust->dest_x = (double)l_x;
 									pdust->dest_y = (double)l_y;
 									pdust->dest_width = (double)l_w;
 									pdust->dest_height = (double)l_h;
-									
+
 									pdust->seed_x = (double)l_seed_x;
 									pdust->seed_y = (double)l_seed_y;
 								}
@@ -3360,21 +3418,21 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 					}
 				}
 			}
-			
+
 			// Test if there's enough place, if not enough, realloc array
 			if(nb_known_dusts >= max_known_dusts) {
 				int new_nb = max_known_dusts + 200;
 				t_known_dust * new_tab = new t_known_dust [ new_nb ];
 				memcpy(new_tab, known_dusts, sizeof(t_known_dust) * max_known_dusts);
-				
+
 				delete [] known_dusts;
 				known_dusts = new_tab;
 				max_known_dusts = new_nb;
 			}
 		} while(ret>0 && !feof(g_dataset_f));
 	}
-	
-	
+
+
 	// Then evaluate if dust is known
 	double dust_x = (double)(correction.crop_x + correction.rel_seed_x);
 	double dust_y = (double)(correction.crop_y + correction.rel_seed_y);
@@ -3382,21 +3440,21 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 		dust_x /= img_w;
 		dust_y /= img_h;
 	}
-	
+
 	// Test if dust is known
 	for(int i=0; i<nb_known_dusts; i++) {
 		t_known_dust * pdust = known_dusts + i;
 		if(fabs(dust_x - pdust->dest_x) < pdust->dest_width*0.5
 			&& fabs(dust_y - pdust->dest_y) < pdust->dest_height*0.5) {
-			
+
 			found_score++;
-			
+
 			float glob_score = (float)found_score / (float)nb_known_dusts;
 			fprintf(stderr, "%s:%d : score: %g %%\n", __func__, __LINE__, 100.f * glob_score);
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 

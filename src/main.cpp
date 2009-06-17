@@ -2,7 +2,7 @@
  *            main.cpp
  *
  *  Tue Oct 23 22:10:56 2007
- *  Copyright  2007  Christophe Seyve 
+ *  Copyright  2007  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
 /*
@@ -33,7 +33,7 @@
 #endif
 
 /*
-Linux : 
+Linux :
 /usr/bin/qmake-qt4 -unix -o Makefile Tamanoir.pro
 
 MacOS X :
@@ -56,6 +56,7 @@ extern u8 g_evaluate_mode;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_displaylabel;
 extern u8 g_debug_dust_seek;
+extern u8 g_debug_list; // debug dust list insert/remove
 
 void displayHelp() {
 	fprintf(stderr, "Usage : ./tamanoir [options]\n"
@@ -63,6 +64,9 @@ void displayHelp() {
 					"\t--output : insert marks on output image\n"
 					"\t--correlation : display correlation between the current dust and its neiboughood (lots of printf !)\n"
 					"\t--debug : all debug flags on\n"
+					"\t--list : debug dust list mangement\n"
+					"\t--dataset : create a .data file to store corrections\n"
+					"\t--eval : evaluate the accuracy of algorithms with an existing .data dataset file \n"
 					"\t--full : display at full screen (default)\n"
 					"\t--maximized : display without full screen and at maximal screen size (with window)\n"
 					"\t--minimized : display without full screen and at normal size (not maximized)\n"
@@ -78,40 +82,40 @@ TamanoirApp * tmApp = NULL;
 
 class MacApp : public QApplication {
 public:
-    MacApp(int & argc, char ** argv);
+	MacApp(int & argc, char ** argv);
 
 #ifdef Q_WS_MACX
  //    bool macEventFilter ( EventHandlerCallRef caller, EventRef event );
 private:
-    static pascal OSErr     handleOpenDocuments(
-               const AppleEvent* inEvent, AppleEvent*, long);
+	static pascal OSErr     handleOpenDocuments(
+			   const AppleEvent* inEvent, AppleEvent*, long);
 #endif
 };
 
 MacApp::MacApp(int & argc, char ** argv)
-        : QApplication( argc, argv)
+		: QApplication( argc, argv)
 {
 	m_argc = argc;
 	m_argv = new char * [m_argc + 10]; // Leave one more space for "Open with"
 	memset(m_argv, 0, sizeof(char *)*m_argc + 10);
 	if(m_argc == 0) {
 	}
-    else {
+	else {
 		// Copy strings
-        for(int c=0; c<m_argc; c++) {
-            m_argv[c] = NULL;
-            if(strlen(argv[c])>0) {
-                m_argv[c]= new char [strlen(argv[c])+1];
-                strcpy(m_argv[c], argv[c]);
-            }
-        }
-    }
-    if(!MacAPP_Log) MacAPP_Log = fopen("/tmp/MacAPP.log", "w");
+		for(int c=0; c<m_argc; c++) {
+			m_argv[c] = NULL;
+			if(strlen(argv[c])>0) {
+				m_argv[c]= new char [strlen(argv[c])+1];
+				strcpy(m_argv[c], argv[c]);
+			}
+		}
+	}
+	if(!MacAPP_Log) MacAPP_Log = fopen("/tmp/MacAPP.log", "w");
 
 #ifdef Q_WS_MACX
 	AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments,
-                             NewAEEventHandlerUPP(handleOpenDocuments),
-                             0, false);
+							 NewAEEventHandlerUPP(handleOpenDocuments),
+							 0, false);
 #endif
 }
 
@@ -173,16 +177,16 @@ OSErr MacApp::handleOpenDocuments(const AppleEvent* inEvent,
 	}
 	AEDisposeDesc(&documentList);
 
-    return 0;
+	return 0;
 }
 #endif
 /*
 
 bool MacApp::macEventFilter ( EventHandlerCallRef caller, EventRef event ) {
-    if(!MacAPP_log) MacAPP_log = fopen("/Users/tof/MacApp.log", "w");
+	if(!MacAPP_log) MacAPP_log = fopen("/Users/tof/MacApp.log", "w");
   //  if(MacAPP_log)
   //QString s_arg;  fprintf(MacAPP_log, "macEventFilter(caller=%d, event=%d) \n", (int)caller, (int)event);
-    return false;
+	return false;
 }*/
 
 int main(int argc, char *argv[])
@@ -191,7 +195,7 @@ int main(int argc, char *argv[])
 		int argcount = 1;
 		while(argcount<argc) {
 			fprintf(stderr, "%s:%d argv[%d] = '%s'\n", __func__, __LINE__, argcount, argv[argcount]);
-			
+
 			if(strstr(argv[argcount], "help"))	{
 				displayHelp();
 				return 0;
@@ -210,6 +214,8 @@ int main(int argc, char *argv[])
 			if(strstr(argv[argcount], "debug")) {
 				g_debug_imgverbose = 1;
 				g_debug_imgoutput = 1;
+				g_debug_list = 1;
+				g_debug_dust_seek = 1;
 			}
 			if(strstr(argv[argcount], "seek")
 				|| strstr(argv[argcount], "search")) {
@@ -223,33 +229,35 @@ int main(int argc, char *argv[])
 			if(strstr(argv[argcount], "dataset")) {
 				g_dataset_mode = 1;
 				g_evaluate_mode = 0;
-			} 
-			
+			}
 			if(strstr(argv[argcount], "eval")) {
 				g_evaluate_mode = 1;
-			
+
 				// Force turning of dataset creation mode
 				g_dataset_mode = 0;
+			}
+			if(strstr(argv[argcount], "list")) {
+				g_debug_list = 1;
 			}
 			if(strstr(argv[argcount], "display")) {
 				g_debug_displaylabel = 1;
 			}
-			
+
 			if(strstr(argv[argcount], "correl"))	{
 				g_debug_correlation = 1;
 			}
-			
+
 			argcount++;
 		}
 	}
 
-	
-	
+
+
 	MacApp a(argc, argv);
 	QTranslator tor( 0 );
 
-  	// set the location where your .qm files are in load() below as the last parameter instead of "."
-  	// for development, use "/" to use the english original as
+	// set the location where your .qm files are in load() below as the last parameter instead of "."
+	// for development, use "/" to use the english original as
 	// .qm files are stored in the base project directory.
 	QLocale localLang;
 
@@ -266,7 +274,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Translation file='%s'\n", translationFile.ascii());
 	tor.load( translationFile,
 				dir.absolutePath() );
-	
+
 	a.installTranslator( &tor );
 #ifdef Q_WS_MACX
 
@@ -290,6 +298,6 @@ int main(int argc, char *argv[])
 	tmApp = new TamanoirApp();
 	tmApp->setArgs(m_argc, m_argv);
 	tmApp->show();
-	
+
 	return a.exec();
 }
