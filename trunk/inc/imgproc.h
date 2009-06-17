@@ -1,8 +1,16 @@
-/***************************************************************************
+/** @file imgproc.h
+  @brief Image processing class for dust removing
+
+  This class contains the image processing functions for detecting dusts,
+	and proposing a correction with a clone operation
+
+	@author Christophe Seyve <cseyve@free.fr>
+
+ *************************************************************************
  *            imgproc.h
  *
  *  Tue Oct 23 21:26:10 2007
- *  Copyright  2007  Christophe Seyve 
+ *  Copyright  2007  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
 
@@ -21,7 +29,60 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
- 
+
+
+
+
+
+/** @mainpage
+
+  @section intro_sec Introduction
+
+  Tamanoir is an interactive dust removing tool. It's designed for the users of
+  flatbed scanners which do not provide an Optical ICE. Indeed most flatbed
+  scanners do not embed real optical dust detection with infra-red sensors (dust
+  are opaque in IR). So the detection is software, slow and often generates
+  weird artefacts.
+
+  @section spirit_sec Spirit of Tamanoir
+
+  Tamanoir's goal is to detect the dusts by image processing, then to propose a
+  correction to the user, who can validate or refuse the proposal. The correction
+  is made with a "clone" operation: the source if copied on the destination,
+  as we do when we correct dusts with image manipulation softwares (Gimp,
+  Photoshop...).
+
+  Thus the spirit is to correct the picture interactively, not to have a global
+  filter which will correct anything it *thinks* to be a dust without asking
+  permission.
+
+  @section usecase_sec Typical use case
+
+  The typical use of Tamanoir is to process in 2 passes :
+
+  1) use the semi-auto detection to detect dusts, let it propose a correction,
+	skip or apply with shortcuts. You can go fast with the skip key (right arrow),
+	and go back if you skipped unintentionaly a real dust.
+
+	When this pass is done, 80 to 90 % of the dusts are removed. The remaining
+	dusts are big fibers or small dusts in textured regions.
+
+  2) Do a manual pass to check and complete the correction. Use the "Home" key
+	to go to the top-left of image, correct with the Clone tool the picture block
+	then go to the next block with the page down.
+
+
+  @section otherlibs_sec External dependencies
+
+  Tamanoir uses :
+  - Qt4 for GUI for Linux/MacOSX/Windows
+  - OpenCV for image processing basic functions
+  - LibTIFF for 16bit importation (not supported in OpenCV)
+
+  @ref imgproc.h
+
+
+  */
 
 #ifndef IMGPROC_H
 
@@ -61,12 +122,12 @@ typedef struct _dust_stats_t {
 	unsigned long grown_size_replaced[STATS_MAX_SURF];		/*! grown size histogram */
 	unsigned long nb_grown_validated;	/*! grown regions which have been validated */
 	unsigned long grown_size_validated[STATS_MAX_SURF];		/*! grown size histogram */
-	
+
 	/* Statistics variables */
 	float ratio_replaced_grown;
 	float ratio_validated_grown;
 	float ratio_validated_replaced;
-	
+
 } dust_stats_t;
 
 
@@ -79,32 +140,32 @@ typedef struct t_correction_ {
 	int copy_width;
 	/// Height of copy
 	int copy_height;
-	
+
 	/// top-left of Crop image
 	int crop_x;
 	/// top-left of Crop image
 	int crop_y;
-	
+
 	/// relative origin of clone, x coordinate
 	int rel_src_x;
 	/// relative origin of clone, y coordinate
 	int rel_src_y;
-	
+
 	/// relative destination of clone, x coordinate
 	int rel_dest_x;
 	/// relative destination of clone, y coordinate
 	int rel_dest_y;
-	
+
 	/// relative seed of region growing, x coordinate
 	int rel_seed_x;
 	/// relative seed of region growing, y coordinate
 	int rel_seed_y;
-	
+
 	/// Crop size for display, width
 	int crop_width;
 	/// Crop size for display, height
 	int crop_height;
-	
+
 	// Dust size statistics
 	/// Area of dust in image (pixel^2)
 	int area;
@@ -115,7 +176,7 @@ typedef struct t_correction_ {
 	float width_mm;
 	/// physical/real height of dust in millimeters
 	float height_mm;
-	
+
 	/// Accuracy
 	float bg_diff;
 	float proposal_diff;
@@ -133,10 +194,10 @@ typedef struct _known_dust {
 	double dest_width;	/*! Dust size in relative coordinate [0..1[ */
 	double dest_height;	/*! Dust size in relative coordinate [0..1[ */
 
-	
+
 	double seed_x;	/*! Dust seed point in relative coordinate [0..1[ */
 	double seed_y;	/*! Dust seed point in relative coordinate [0..1[ */
-	
+
 } t_known_dust;
 
 
@@ -144,7 +205,7 @@ typedef struct _known_dust {
 typedef struct _perf_stats {
 	int true_positive;
 	int no_proposal;
-	
+
 	int false_positive;
 	int false_negative;
 } t_perf_stats;
@@ -154,7 +215,7 @@ typedef struct _perf_stats {
 void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 
 /** @brief Test if dust is already knwon */
-bool testKnownDust(t_correction, int img_w, int img_h); 
+bool testKnownDust(t_correction, int img_w, int img_h);
 
 
 /** @brief Tamanoir settings/options */
@@ -177,7 +238,7 @@ void fprintfOptions(FILE * f, tm_options * p_options);
 
 	This class is used to load image, detect dust then search for correction proposal
 
-	@author Christophe Seyve @mail cseyve@free.fr
+	@author Christophe Seyve <cseyve@free.fr>
 */
 class TamanoirImgProc {
 public:
@@ -198,13 +259,13 @@ public:
 
 	/** @brief Set film type \param type : 0 for undefined, 1 for negative, 2 for positive */
 	void setFilmType(int type);
-	
+
 	/** @brief Load input image file */
 	int loadFile(const char * filename);
-	
+
 	/** @brief Save corrected image file */
 	int saveFile(const char * filename);
-	
+
 	/** @brief Set if @see cropCorrectionImages must crop debug image too */
 	void showDebug(bool on) { m_show_crop_debug = on; };
 
@@ -214,7 +275,7 @@ public:
 	/** @brief Go to first dust
 		@return -1 if error, 0 if no more dust, and 1 if still */
 	int firstDust();
-	
+
 	/** @brief Go to next dust, @return -1 if error, 0 if no more dust, and 1 if still */
 	int nextDust();
 
@@ -223,13 +284,13 @@ public:
 	void setCopySrc(int x, int y);
 	/** @brief Change the origin of a former correction */
 	void setCopySrc(t_correction * pcorrection, int rel_x, int rel_y);
-	
+
 	/** @brief Apply proposed correction */
 	int applyCorrection();
-	
+
 	/** @brief Apply proposed correction  and specify if correction has been forced by user */
 	int forceCorrection(t_correction correction, bool force);
-	
+
 	/** @brief Apply a former correction and specify if correction has been forced by user */
 	int applyCorrection(t_correction correction, bool force = false);
 
@@ -239,19 +300,19 @@ public:
 
 	/** @brief Get progress in %age */
 	int getProgress();
-	
+
 	/** @brief Get performance statistics */
 	t_perf_stats getPerfs() { return m_perf_stats; };
-	
+
 	/** @brief original version of input image */
 	IplImage * getOriginal() { return originalImage; };
-	
+
 	/** @brief 8bit grayscale version of input image */
 	IplImage * getGrayscale() { return grayImage; };
-	
+
 	/** 8@brief bit grayscale version of input image scaled for display */
 	IplImage * getGrayscaleForDisplay() { return grayImage; };
-	
+
 	/** @brief Set available size for display : it will scale the 8bit grayscale version
 	 * of input image for this rectangle */
 	void setDisplaySize(int w, int h);
@@ -265,10 +326,10 @@ public:
 	IplImage * getCrop() { return disp_cropColorImage; };
 	IplImage * getDiffCrop() { return disp_cropImage; };
 	IplImage * getMask() { return disp_dilateImage; };
-	
+
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
-	
+
 	/** @brief set the scan resolution to use the statistics on dust sizes */
 	int processResolution(int dpi);
 	/** @brief Set analysis block size, for display which do not use vertical scanlines */
@@ -281,22 +342,23 @@ public:
 
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };
-	
+
 	/** @brief Crop images for detailled view arround a previous correction */
 	void cropCorrectionImages(t_correction correction);
-	
+	/** @brief get the cropped original image around the proposed correction */
 	void cropOriginalImage(t_correction correction);
+	/** @brief get the cropped corrected image around the proposed correction */
 	void cropCorrectImage(t_correction correction);
-	
+
 	/** @brief Find a dust from (x, y) seed
 		@return 1 if must return now
 	*/
 	int findDust(int x, int y, t_correction * pcorrection);
-	
+
 private:
 	/** @brief Initialize buffers */
 	void init();
-	
+
 	/** Lock flag for long tasks (such as load and save) */
 	bool m_lock;
 
@@ -315,27 +377,27 @@ private:
 
 	/** @brief Options : Film type, resolution, ... */
 	tm_options m_options;
-	
+
 	/** opened file name */
 	char m_filename[512];
-	
+
 	/** Dust statistics */
 	dust_stats_t m_dust_stats;
 
 	/** Last correct area size */
 	int m_correct_area;
-	
+
 	/** @brief Find an uniform place in image (x, y) to perform grain qualification
 		@return -1 if error, 0 if found
 	*/
 	int findUniform(float * p_mean, float  * p_diff_mean, float * p_variance);
-	
+
 	/** @brief Performance statistics */
 	t_perf_stats m_perf_stats;
-	
+
 	/** Perform image processing */
 	int processImage();
-	
+
 	/** @brief Progress value */
 	int m_progress;
 
@@ -361,20 +423,20 @@ private:
 
 	/// Original image, blurred for grain removal
 	IplImage * origBlurredImage;
-	
+
 	IplImage * grayImage;
 	IplImage * medianImage;
 	IplImage * diffImage;
 	IplImage * varianceImage;
 	IplImage * growImage;
-	
+
 	/// image buffer for display
 	IplImage * displayBlockImage;
 	/// image buffer for display (without the crop mark)
 	IplImage * displayImage;
 	CvSize displaySize;
-	
-	
+
+
 	/** Processed imge size */
 	CvSize processingSize;
 	IplImage * dilateImage;
@@ -385,19 +447,19 @@ private:
 
 	IplImage * cropColorImage;
 	IplImage * correctColorImage;
-	
+
 	// Same images for display
 	IplImage * disp_cropColorImage;
 	IplImage * disp_correctColorImage;
-	IplImage * disp_dilateImage; 
+	IplImage * disp_dilateImage;
 	IplImage * disp_cropImage;
 	bool m_show_crop_debug;
-	
+
 	/** @brief Find a dust from (x, y) seed
 		@return 1 if must return now
 	*/
 	int findDust(int x, int y);
-	
+
 	/** @brief Crop images to create cropped views for GUI */
 	void cropViewImages();
 	/** @brief Dilate Dust to have a better segmentation
@@ -473,12 +535,21 @@ private:
 	int m_seed_x;
 	/** @brief Last seed position (used for searching next) */
 	int m_seed_y;
-	
-	
-	
+
+	/** @brief Last seed position (used for searching next) */
+	int m_block_seed_x;
+	/** @brief Last seed position (used for searching next) */
+	int m_block_seed_y;
+	/** @brief Last seed position (used for searching next) */
+	int m_block_seed_width;
+	/** @brief Last seed position (used for searching next) */
+	int m_block_seed_height;
+
+
+
 	u8 m_threshold;
 	int m_smooth_size; // For smoothed processed images
-	
+
 	int m_dust_area_min;
 	int m_dust_area_max;
 
