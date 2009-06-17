@@ -21,7 +21,7 @@ INCLUDEPATH += . \
 OBJECTS_DIR = .obj-simple
 DEFINES += SIMPLE_VIEW \
     QT3_SUPPORT
-TRANSLATIONS = tamanoir_fr.ts
+TRANSLATIONS = tamanoir_French.ts
 
 # icon
 # reference : file:///usr/share/qt4/doc/html/appicon.html

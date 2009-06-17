@@ -274,16 +274,16 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					QString str;
 					str.sprintf("%d", l_options.dpi);
 					int ret = QMessageBox::warning(this,
-												   tr("Tamanoir"),
+												   tr("Tamanoir - Resolution warning"),
 												   tr("The resolution of ") + str
 												   + tr(" dpi, read in file, may be too low for the scanner resolution. "
 														"It may be the print resolution. \n"
 													  "Do you want to apply this resolution of ")
 												   + str + tr(" dpi ?"),
 												   QMessageBox::Apply,
-												   QMessageBox::Cancel);
+												   QMessageBox::Ignore);
 
-					if(ret == QMessageBox::Cancel) {
+					if(ret == QMessageBox::Ignore) {
 						l_options.dpi = 0;
 						fprintf(stderr, "TamanoirApp::%s:%d : FORCE FORMER RESOLUTION => "
 							"resolution=%d dpi => current=%d\n", __func__, __LINE__,
