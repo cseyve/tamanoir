@@ -2,7 +2,7 @@
  *  imgutils - Basic utilities / image processing for dust detection
  *
  *  Sun Oct 28 14:10:56 2007
- *  Copyright  2007  Christophe Seyve 
+ *  Copyright  2007  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
 
@@ -43,7 +43,7 @@
 #include <cv.hpp>
 #include <cvaux.h>
 
-#ifndef tmmin 
+#ifndef tmmin
 #define tmmin(a,b) ((a)<(b)?(a):(b))
 #endif
 #ifndef tmmax
@@ -136,10 +136,19 @@ IplImage * tmLoadImage(const char * filename, int * dpi = NULL);
 /** @brief Save an OpenCV IplImage as file */
 void tmSaveImage(const char * filename, IplImage * src);
 
-/** @brief Do a contrained region growing around a seed */ 
-void tmGrowRegion(unsigned char * growIn, unsigned char * growOut, 
-	int swidth, int sheight, 
-	int c, int r, 
+/** @brief Do a contrained region growing around a seed with thresholding */
+void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
+	int swidth, int sheight,
+	int c, int r,
+	unsigned char threshold,
+	unsigned char fillValue,
+	CvConnectedComp * areaOut);
+
+/** @brief Do a contrained region growing around a seed with similar value */
+void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
+	int swidth, int sheight,
+	int c, int r,
+	unsigned char seedValue,
 	unsigned char threshold,
 	unsigned char fillValue,
 	CvConnectedComp * areaOut);
@@ -230,8 +239,8 @@ float tmCorrelation(
 	@return 1 if found, 0 if no matching region found
 */
 int tmSearchBestCorrelation(
-	IplImage * origImage, IplImage * maskImage, 
-	int orig_x, int orig_y, 
+	IplImage * origImage, IplImage * maskImage,
+	int orig_x, int orig_y,
 	int orig_width, int orig_height,
 	// Outputs
 	int * copy_dest_x, int * copy_dest_y,
@@ -251,8 +260,8 @@ int tmSearchBestCorrelation(
 
 	@param[out] destImage destination image, if NULL, the destination is the same as origin
 */
-void tmCloneRegion(IplImage * origImage, 
-	int dest_x, int dest_y, 
+void tmCloneRegion(IplImage * origImage,
+	int dest_x, int dest_y,
 	int src_x, int src_y,
 	int copy_width, int copy_height,
 	IplImage * destImage = NULL);
@@ -284,14 +293,14 @@ void tmFillRegion(IplImage * origImage,
 	u8 fillValue);
 
 /** @brief Mark the copy action from a part of an image into itself ('clone tool') */
-void tmMarkCloneRegion(IplImage * origImage, 
-	int orig_x, int orig_y, 
+void tmMarkCloneRegion(IplImage * origImage,
+	int orig_x, int orig_y,
 	int copy_x, int copy_y,
 	int copy_width, int copy_height,
 	bool mark = false);
-	
+
 /** @brief Mark failure as a gray region */
-void tmMarkFailureRegion(IplImage * origImage, 
+void tmMarkFailureRegion(IplImage * origImage,
 	int x, int orig_y, int w, int h, unsigned char color = 127);
 
 /** @brief Allocate a morphology structural element */
@@ -307,7 +316,7 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 #define FILM_POSITIVE	2
 
 
-/** @brief Process difference between original image and blurred image, depending on film type 
+/** @brief Process difference between original image and blurred image, depending on film type
 	@param[in] l_FilmType film type (0=FILM_UNDEFINED, 1=FILM_NEGATIVE, 2=FILM_POSITIVE)
 	@param[in] original (input) image
 	@param[in] blurred image
