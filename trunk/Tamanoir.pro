@@ -211,7 +211,7 @@ STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
 BUILD_STATIC = $$(BUILD_STATIC)
 
 # contains(BUILD_STATIC, true)
-macx: { 
+macx: contains(BUILD_STATIC, true) { 
     message("Building static version of binary :")
     
     # Test for building releases
