@@ -1038,7 +1038,6 @@ int TamanoirImgProc::saveFile(const char * filename) {
 
 /* Tamanoir settings/options *
 typedef struct {
-	QString currentDir;
 	bool trust;		/ *! Trust mode activated * /
 	bool hotPixels;	/ *! Hot pixels detection activated * /
 	int filmType;	/ *! Film type * /
@@ -1049,13 +1048,13 @@ typedef struct {
 void fprintfOptions(FILE * f, tm_options * p_options) {
 	if(!f) return;
 
-	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
 	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
 	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
 	fprintf(f, "OnlyEmpty:%c\n", p_options->onlyEmpty ? 'T' : 'F');
 	fprintf(f, "FilmType:%d\n", p_options->filmType);
 	fprintf(f, "DPI:%d\n", p_options->dpi);
 	fprintf(f, "Sensitivity:%d\n", p_options->sensitivity);
+
 	fflush(f);
 }
 

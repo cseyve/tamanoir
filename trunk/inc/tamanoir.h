@@ -46,8 +46,21 @@
 #define PROTH_SEARCH	3
 #define PROTH_OPTIONS	4
 
-/** @brief Print options to a text file or std output/error */
-void fprintfOptions(FILE * f, tm_options * p_options);
+
+
+/** @brief Tamanoir image processing settings/options */
+typedef struct {
+	char currentDir[512];	/*! Working directory */
+	// optional display
+	bool show_auto;			/*! Show auto button */
+	bool show_hotpixels;	/*! Show hot pixels button */
+
+	// Display options
+	char stylesheet[512];	/*! Stylesheet */
+} tm_display_options;
+
+/** @brief Print display options to a text file or std output/error */
+void fprintfDisplayOptions(FILE * f, tm_display_options * p_options);
 
 
 /** @brief Tamanoir processing thread
@@ -111,6 +124,7 @@ private:
 	QMutex mutex;
 	QWaitCondition waitCond;
 
+	/** Application options */
 	tm_options m_options;
 
 	/** @brief image processing module */
@@ -137,8 +151,10 @@ public:
 	~TamanoirApp();
 
 	void setArgs(int argc, char **argv);
+	/** @brief Load image file */
 	int loadFile(QString s);
-
+	/** Save current options for next launch of Tamanoir */
+	void saveOptions();
 
 private:
 
@@ -155,16 +171,14 @@ protected:
 
 
 private:
-	/** Application options */
-	tm_options m_options;
+
 
 	QString optionsFile;
 
 	/** Load last saved options */
 	int loadOptions();
 
-	/** Save current options for next launch of Tamanoir */
-	void saveOptions();
+
 
 	/** Refresh the main display */
 	void refreshMainDisplay();
@@ -266,5 +280,15 @@ private:
 /** @brief Convert an OpenCV IplImage to a Qt QImage */
 QImage iplImageToQImage(IplImage * iplImage, bool false_colors = false, bool red_only = true);
 
+#ifdef TAMANOIRAPP_CPP
+TamanoirApp * tmApp = NULL;
+/** Global application options */
+tm_options g_options;
+tm_display_options g_display_options;
+#else
+extern TamanoirApp * tmApp;
+extern tm_options g_options;
+extern tm_display_options g_display_options;
+#endif
 
 #endif

@@ -77,7 +77,6 @@ int m_argc = 0;
 char ** m_argv = NULL;
 FILE * MacAPP_Log = NULL;
 
-TamanoirApp * tmApp = NULL;
 
 
 class MacApp : public QApplication {

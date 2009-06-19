@@ -24,7 +24,7 @@ QDialog {
 	alternate-background-color: red;
 }
 
-QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel {
+QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel,QMenuBar,QAction {
 	color: #E0E0E0;
 	border-color: red;
 	alternate-background-color: white;
