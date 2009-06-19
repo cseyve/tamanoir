@@ -1300,8 +1300,12 @@ void TamanoirApp::saveOptions() {
 		return;
 	}
 
+	// Save image processing options
 	fprintfOptions(foptions, &g_options);
+
+	// Save display/GUI options
 	fprintfDisplayOptions(foptions, &g_display_options);
+
 	fclose(foptions);
 }
 

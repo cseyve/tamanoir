@@ -23,14 +23,18 @@ QDialog {
 	color: black;
 	alternate-background-color: red;
 }
-
-QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel,QMenuBar,QAction {
+QMenu
+{
+	background-color: #292929;
+}
+QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel,QMenuBar,QMenu {
 	color: #E0E0E0;
 	border-color: red;
 	alternate-background-color: white;
 	selection-color: red;
 	selection-background-color: white;
 }
+
 /*
 QCheckBox::indicator::checked {
 	background-color: #20A020;
