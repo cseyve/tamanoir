@@ -20,6 +20,9 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+
+#define TAMANOIRAPP_CPP
+
 #include "tamanoir.h"
 
 #include <stdio.h>
@@ -69,11 +72,16 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	cropPixmapLabel_last_button = Qt::NoButton;
 	is_src_selected = true;
 
+	// Clear options
+	memset(&g_options, 0, sizeof(tm_options));
+	memset(&g_display_options, 0, sizeof(tm_display_options));
+
 	QString homeDirStr = QString("/home/");
 	if(getenv("HOME"))
 		homeDirStr = QString(getenv("HOME"));
-	memset(&m_options, 0, sizeof(tm_options));
-	strcpy(m_options.currentDir, homeDirStr.ascii());
+
+
+	strcpy(g_display_options.currentDir, homeDirStr.ascii());
 
 	ui.setupUi((QMainWindow *)this);
 
@@ -315,11 +323,11 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				tm_options l_options = m_pImgProc->getOptions();
 				fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
 						"resolution=%d dpi (current=%d)\n", __func__, __LINE__,
-						l_options.dpi, m_options.dpi);
+						l_options.dpi, g_options.dpi);
 
 				// lower than 300 dpi is the resolution of print, not of scan
 				if( l_options.dpi >0 && l_options.dpi<300
-					&& m_options.dpi != l_options.dpi) {
+					&& g_options.dpi != l_options.dpi) {
 					QString str;
 					str.sprintf("%d", l_options.dpi);
 					int ret = QMessageBox::warning(this,
@@ -336,10 +344,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						l_options.dpi = 0;
 						fprintf(stderr, "TamanoirApp::%s:%d : FORCE FORMER RESOLUTION => "
 							"resolution=%d dpi => current=%d\n", __func__, __LINE__,
-							l_options.dpi, m_options.dpi);
+							l_options.dpi, g_options.dpi);
 						// apply old resolution
 						m_curCommand = PROTH_OPTIONS;
-						m_pProcThread->setOptions(m_options);
+						m_pProcThread->setOptions(g_options);
 					}
 
 				}
@@ -347,12 +355,12 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 				if( l_options.dpi > 0
 					) {
-					m_options.dpi = l_options.dpi;
+					g_options.dpi = l_options.dpi;
 
 
 					// update resolution button
 					QString str;
-					str.sprintf("%d", m_options.dpi);
+					str.sprintf("%d", g_options.dpi);
 					int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 					if(ind >= 0) {
 						ui.dpiComboBox->setCurrentIndex(ind);
@@ -360,7 +368,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					else { // add an item
 						ui.dpiComboBox->insertItem(str + tr(" dpi"));
 						fprintf(stderr, "TamanoirApp::%s:%d : A a resolution: resolution=%d dpi\n", __func__, __LINE__,
-							m_options.dpi);
+							g_options.dpi);
 
 						ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 						if(ind >= 0) ui.dpiComboBox->setCurrentIndex(ind);
@@ -1033,7 +1041,7 @@ int TamanoirApp::loadFile(QString s) {
 
 	m_currentFile = s;
 
-	strcpy(m_options.currentDir, fi.absolutePath().ascii());
+	strcpy(g_display_options.currentDir, fi.absolutePath().ascii());
 	saveOptions();
 
 	// Clear known dusts list
@@ -1054,7 +1062,7 @@ int TamanoirApp::loadFile(QString s) {
 		m_pImgProc->setTrustCorrection(m_options.trust);
 		m_pImgProc->setResolution(m_options.dpi);
 		m_pImgProc->setFilmType(m_options.filmType);*/
-		m_pImgProc->setOptions(m_options);
+		m_pImgProc->setOptions(g_options);
 	}
 
 	if(!m_pProcThread) {
@@ -1095,7 +1103,7 @@ void TamanoirApp::on_loadButton_clicked()
 	if(!m_fileDialog) {
 		m_fileDialog = new QFileDialog(this,
 						tr("Tamanoir - Open a picture to be cleaned"),
-						m_options.currentDir,
+						g_display_options.currentDir,
 						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp"
 							"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP)"));
 		m_fileDialog->setFileMode(QFileDialog::ExistingFile);
@@ -1156,6 +1164,17 @@ void TamanoirApp::on_saveButton_clicked()
 	}
 }
 
+
+void fprintfDisplayOptions(FILE * f, tm_display_options * p_options) {
+	if(!f) return;
+
+	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
+	fprintf(f, "Stylesheet:%s\n", p_options->stylesheet);
+
+	fflush(f);
+}
+
+
 int TamanoirApp::loadOptions() {
 	//
 	char homedir[512] = ".";
@@ -1164,18 +1183,18 @@ int TamanoirApp::loadOptions() {
 	}
 	optionsFile = QString(homedir) + QString("/.tamanoirrc");
 
-	memset(&m_options, 0, sizeof(tm_options));
+	memset(&g_options, 0, sizeof(tm_options));
 
 
 	// Read
 	FILE * foptions = fopen(optionsFile.ascii(), "r");
 	if(!foptions) {
 		// Update options
-		m_options.filmType = ui.typeComboBox->currentIndex();
-		m_options.trust = ui.trustCheckBox->isChecked();
-		m_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
-		m_options.onlyEmpty = ui.emptyCheckBox->isChecked();
-		m_options.sensitivity = ui.sensitivityComboBox->currentIndex();
+		g_options.filmType = ui.typeComboBox->currentIndex();
+		g_options.trust = ui.trustCheckBox->isChecked();
+		g_options.hotPixels = ui.hotPixelsCheckBox->isChecked();
+		g_options.onlyEmpty = ui.emptyCheckBox->isChecked();
+		g_options.sensitivity = ui.sensitivityComboBox->currentIndex();
 
 		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
 
@@ -1201,25 +1220,29 @@ int TamanoirApp::loadOptions() {
 					char * cmd = line, *arg = separation+1;
 
 					if(strcasestr(cmd, "dir")) {
-						strcpy(m_options.currentDir, arg);
+						strcpy(g_display_options.currentDir, arg);
 					} else
 					if(strcasestr(cmd, "trust")) {
-						m_options.trust = (arg[0]=='T');
+						g_options.trust = (arg[0]=='T');
 					} else
 					if(strcasestr(cmd, "hot")) {
-						m_options.hotPixels = (arg[0]=='T');
+						g_options.hotPixels = (arg[0]=='T');
 					} else
 					if(strcasestr(cmd, "empty")) {
-						m_options.onlyEmpty = (arg[0]=='T');
+						g_options.onlyEmpty = (arg[0]=='T');
 					} else
 					if(strcasestr(cmd, "film")) {
-						m_options.filmType = atoi(arg);
+						g_options.filmType = atoi(arg);
 					} else
 					if(strcasestr(cmd, "dpi")) {
-						m_options.dpi = atoi(arg);
+						g_options.dpi = atoi(arg);
 					}
 					if(strcasestr(cmd, "sensitivity")) {
-						m_options.sensitivity = atoi(arg);
+						g_options.sensitivity = atoi(arg);
+					}
+
+					if(strcasestr(cmd, "stylesheet")) {
+						strcpy(g_display_options.stylesheet, arg);
 					}
 				}
 			}
@@ -1230,39 +1253,55 @@ int TamanoirApp::loadOptions() {
 	}
 
 	fclose(foptions);
+
 	fprintf(stderr, "TamanoirApp::%s:%d: read options : \n", __func__, __LINE__);
-	fprintfOptions(stderr, &m_options);
+	fprintfOptions(stderr, &g_options);
+	fprintfDisplayOptions(stderr, &g_display_options);
+
+
 
 	// Update GUI with those options
-	ui.typeComboBox->setCurrentIndex( m_options.filmType );
-	ui.trustCheckBox->setChecked( m_options.trust );
-	ui.hotPixelsCheckBox->setChecked( m_options.hotPixels );
-	ui.emptyCheckBox->setChecked( m_options.onlyEmpty );
+	ui.typeComboBox->setCurrentIndex( g_options.filmType );
+	ui.trustCheckBox->setChecked( g_options.trust );
+	ui.hotPixelsCheckBox->setChecked( g_options.hotPixels );
+	ui.emptyCheckBox->setChecked( g_options.onlyEmpty );
 	QString str;
-	str.sprintf("%d", m_options.dpi);
+	str.sprintf("%d", g_options.dpi);
 	int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 	if(ind >= 0)
 		ui.dpiComboBox->setCurrentIndex(ind);
 	else { // add an item
 		ui.dpiComboBox->insertItem(str + tr(" dpi"));
 		fprintf(stderr, "TamanoirApp::%s:%d : Add a resolution: resolution=%d dpi\n", __func__, __LINE__,
-				m_options.dpi);
+				g_options.dpi);
 
 		ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 		if(ind >= 0) ui.dpiComboBox->setCurrentIndex(ind);
 	}
-	ui.sensitivityComboBox->setCurrentIndex(m_options.sensitivity);
+	ui.sensitivityComboBox->setCurrentIndex(g_options.sensitivity);
 
 	return 1;
 }
 
 void TamanoirApp::saveOptions() {
+	// Reload Stylesheet
+	QString filename(g_display_options.stylesheet);
+	QFile file(filename);
+	fprintf(stderr, "TamanoirApp::%s:%d => file='%s' !!\n", __func__, __LINE__,
+			filename.ascii());
+
+	file.open(QFile::ReadOnly);
+	QString styleSheet = QLatin1String(file.readAll());
+
+	setStyleSheet(styleSheet);
+
 	FILE * foptions = fopen(optionsFile.ascii(), "w");
 	if(!foptions) {
 		return;
 	}
 
-	fprintfOptions(foptions, &m_options);
+	fprintfOptions(foptions, &g_options);
+	fprintfDisplayOptions(foptions, &g_display_options);
 	fclose(foptions);
 }
 
@@ -1513,15 +1552,15 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	statusBar()->showMessage( tr("Changed film type: please wait...") );
 	statusBar()->update();
 
-	if(m_options.filmType != i) {
+	if(g_options.filmType != i) {
 		skipped_list.clear();
 		memset(&current_dust, 0, sizeof(t_correction));
 	}
 
-	m_options.filmType = i;
+	g_options.filmType = i;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else {
 		m_curCommand = PROTH_NOTHING;
@@ -1536,15 +1575,15 @@ void TamanoirApp::on_sensitivityComboBox_currentIndexChanged(int i) {
 	statusBar()->showMessage( tr("Changed sensitivity: please wait...") );
 	statusBar()->update();
 
-	if(m_options.sensitivity != i) {
+	if(g_options.sensitivity != i) {
 		skipped_list.clear();
 		memset(&current_dust, 0, sizeof(t_correction));
 	}
 
-	m_options.sensitivity = i;
+	g_options.sensitivity = i;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else {
 		m_curCommand = PROTH_NOTHING;
@@ -1561,12 +1600,12 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 
 	int dpi = 2400;
 	if(sscanf(str.ascii(), "%d", &dpi) != 1)
-		m_options.dpi = 2400;
+		g_options.dpi = 2400;
 	else
-		m_options.dpi = dpi;
+		g_options.dpi = dpi;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else m_curCommand = PROTH_NOTHING;
 
@@ -1577,10 +1616,10 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 	statusBar()->showMessage(tr("Changed to 'trust' mode : " + (on?tr("ON"):tr("OFF"))));
 
-	m_options.trust = on;
+	g_options.trust = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else m_curCommand = PROTH_NOTHING;
 
@@ -1591,10 +1630,10 @@ void TamanoirApp::on_emptyCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed empty area filter: please wait...") );
 	statusBar()->update();
 
-	m_options.onlyEmpty = on;
+	g_options.onlyEmpty = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else m_curCommand = PROTH_NOTHING;
 
@@ -1605,10 +1644,10 @@ void TamanoirApp::on_emptyCheckBox_toggled(bool on) {
 void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 	statusBar()->showMessage( tr("Changed hot pixels filter: please wait...") );
 	statusBar()->update();
-	m_options.hotPixels = on;
+	g_options.hotPixels = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(m_options);
+		m_curCommand = m_pProcThread->setOptions(g_options);
 		refreshTimer.start(250);
 	} else m_curCommand = PROTH_NOTHING;
 
@@ -2589,3 +2628,12 @@ void TamanoirThread::run() {
 
 	m_running = false;
 }
+
+
+
+
+
+
+
+
+

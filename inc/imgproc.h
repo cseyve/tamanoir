@@ -218,20 +218,18 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 bool testKnownDust(t_correction, int img_w, int img_h);
 
 
-/** @brief Tamanoir settings/options */
+/** @brief Tamanoir image processing settings/options */
 typedef struct {
-	char currentDir[512];
-	bool trust;			/*! Trust mode activated */
-	bool hotPixels;		/*! Hot pixels detection activated */
-	bool onlyEmpty;		/*! Return for dusts only in empty regions */
-	int filmType;		/*! Film type */
-	int dpi;			/*! Scan resolution in dot per inch */
-	int sensitivity;	/*! Sensitivity (0 means highly sensitive to small dust, bigger needs bigger dusts) */
-	bool mode_auto;		/*! Automatic mode : not saved in preferences */
+	bool trust;				/*! Trust mode activated */
+	bool hotPixels;			/*! Hot pixels detection activated */
+	bool onlyEmpty;			/*! Return for dusts only in empty regions */
+	int filmType;			/*! Film type */
+	int dpi;				/*! Scan resolution in dot per inch */
+	int sensitivity;		/*! Sensitivity (0 means highly sensitive to small dust, bigger needs bigger dusts) */
+	bool mode_auto;			/*! Automatic mode : not saved in preferences */
 } tm_options;
 
-
-/** @brief Print Tamanoir options on file ou stdout/err */
+/** @brief Print processing options to a text file or std output/error */
 void fprintfOptions(FILE * f, tm_options * p_options);
 
 /** @brief main image processing class

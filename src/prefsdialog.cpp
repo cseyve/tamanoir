@@ -21,32 +21,20 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#include <QFile>
 
 #include "prefsdialog.h"
 #include "tamanoir.h"
-
-extern TamanoirApp * tmApp;
 
 PrefsDialog::PrefsDialog(QWidget * parent)
 		: QDialog(parent)
 {
 	setupUi(this);
-
 }
 
 void PrefsDialog::on_styleComboBox_activated(const QString & str) {
 	QString filename=":/qss/tamanoir-" + str + ".qss";
-	QFile file(filename);
-	fprintf(stderr, "PrefsDialog::%s:%d str='%s' => file='%s' !!\n", __func__, __LINE__,
-			str.ascii(), filename.ascii());
 
-	file.open(QFile::ReadOnly);
+	strcpy(g_display_options.stylesheet, filename.ascii());
 
-//	setStyle(styleSheet);
-	QString styleSheet = QLatin1String(file.readAll());
-
-	//ui.styleTextEdit->setPlainText(styleSheet);
-	//qApp->
-	tmApp->setStyleSheet(styleSheet);
+	tmApp->saveOptions();
 }
