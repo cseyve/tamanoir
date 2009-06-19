@@ -2,15 +2,19 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
-mac::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
-linux-g++::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
+mac::DEFINES += VERSION_YY="`date +%Y`" \
+    VERSION_MM="`date +%m`" \
+    VERSION_DD="`date +%d | sed 's/0//'`"
+linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
+    VERSION_MM="`date +%m`" \
+    VERSION_DD="`date +%d | sed 's/0//'`"
 
 # Use lowercase name for Linux
 linux-g++::TARGET = tamanoir
+
 # and an uppercase first letter for Mac & Windows
 mac::TARGET = Tamanoir
 win32::TARGET = Tamanoir
-
 DEPENDPATH += . \
     inc \
     src \
@@ -36,16 +40,19 @@ QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 HEADERS = inc/imgproc.h \
     inc/imgutils.h \
     inc/tamanoir.h \
-    inc/qimagedisplay.h
-FORMS = ui/tamanoir_simple.ui
+    inc/qimagedisplay.h \
+    inc/prefsdialog.h
+FORMS = ui/tamanoir_simple.ui \
+    ui/prefsdialog.ui
 SOURCES = src/imgproc.cpp \
     src/imgutils.cpp \
     src/main.cpp \
     src/tamanoir.cpp \
-    src/qimagedisplay.cpp
-
+    src/qimagedisplay.cpp \
+    src/prefsdialog.cpp
 linux-g++:TMAKE_CXXFLAGS += -Wall \
-    -g -O2 \
+    -g \
+    -O2 \
     -fexceptions \
     -Wimplicit \
     -Wreturn-type \
@@ -197,13 +204,14 @@ STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
     $$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
     $$OPENCV_STATIC_LIBDIR/libtiff.a \
     $$OPENCV_STATIC_LIBDIR/lib_highgui.a
-#$$OPENCV_STATIC_LIBDIR/libjpeg.a 
+
+# $$OPENCV_STATIC_LIBDIR/libjpeg.a
 # Build static if linked statically with a patched version of OpenCV for 16bit TIFF pictures
 # ./configure --with-ffmpeg=no --with-tiff=yes --with-v4l=no --with-v4l2=no --with-gtk=no
 BUILD_STATIC = $$(BUILD_STATIC)
-#contains(BUILD_STATIC, true)
 
-macx: {
+# contains(BUILD_STATIC, true)
+macx: { 
     message("Building static version of binary :")
     
     # Test for building releases
@@ -236,8 +244,8 @@ CONFIG += qt \
     debug \
     release \
     build_all
-
-macx:CONFIG += x86 ppc
+macx:CONFIG += x86 \
+    ppc
 
 # # INSTALLATION
 # target.path = /usr/local/tamanoir
@@ -254,4 +262,3 @@ message( "FINAL CONFIGURATION ==================================================
 message( "")
 message( "")
 RESOURCES += tamanoir.qrc
-

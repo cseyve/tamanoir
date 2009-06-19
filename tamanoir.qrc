@@ -2,5 +2,7 @@
     <qresource prefix="/" >
         <file>icon/tamanoir32.png</file>
         <file>icon/tamanoir_splash.png</file>
+        <file>icon/tamanoir_about.png</file>
+        <file>qss/tamanoir-Gray.qss</file>
     </qresource>
 </RCC>

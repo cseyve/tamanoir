@@ -1856,6 +1856,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	*/
 				}
 
+
 				// Then check that correction is better than original
 				// e.g. that there's less difference after correction
 				// between the corrected image and the median/blurred image
@@ -2448,7 +2449,7 @@ bool TamanoirImgProc::srcDifferentFromDest(t_correction * pcorrection)
 
 		return false;
 	}
-return true;
+	return true;
 }
 
 

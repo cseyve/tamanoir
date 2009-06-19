@@ -2,7 +2,7 @@
  *            tamanoir.h
  *
  *  Wed Jun 11 08:47:41 2008
- *  Copyright  2007  Christophe Seyve 
+ *  Copyright  2007  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
 
@@ -21,7 +21,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
- 
+
 #ifndef TAMANOIR_H
 #define TAMANOIR_H
 
@@ -30,7 +30,7 @@
 
 #ifdef SIMPLE_VIEW
 #include "ui_tamanoir_simple.h"
-#else 
+#else
 #include "ui_tamanoir.h"
 #endif
 
@@ -46,11 +46,11 @@
 #define PROTH_SEARCH	3
 #define PROTH_OPTIONS	4
 
-
+/** @brief Print options to a text file or std output/error */
 void fprintfOptions(FILE * f, tm_options * p_options);
 
 
-/** @brief Tamanoir processing thread 
+/** @brief Tamanoir processing thread
 */
 class TamanoirThread : public QThread
 {
@@ -68,62 +68,62 @@ public:
 
 	/** Stop processing thread */
 	void stop() { m_run = false; };
-	
+
 	/** @brief Returns processing state, PROTH_NOTHING if done */
 	int getCommand();
-	
+
 	/** @brief Returns processing progress value (0 to 100), 100 if done */
 	int getProgress();
-	
+
 	/** @brief Search for next dust */
 	int firstDust();
-	
+
 	/** @brief Search for next dust */
 	int nextDust();
-	
+
 	/** @brief Get last detected dust correction */
 	t_correction getCorrection();
-	
+
 	/** @brief Insert a dust correction as first dust (the following to be read)
-	
+
 	Insert a correction as first item of dust_list, to save the dust cancelled
 	when we click on "previous" button
 	*/
 	void insertCorrection(t_correction);
-	
-	/** @brief set auto mode flag */ 
+
+	/** @brief set auto mode flag */
 	void setModeAuto(bool on);
 
 	/** @brief get auto mode flag */
 	bool getModeAuto() { return m_options.mode_auto ; };
 
 private:
-	
+
 	/** @brief Current running command */
 	int current_command;
 	/** @brief Next running command */
 	int req_command;
-	
+
 	QString m_filename;
 
-	bool m_run;	
-	bool m_running;	
+	bool m_run;
+	bool m_running;
 	QMutex mutex;
 	QWaitCondition waitCond;
-	
+
 	tm_options m_options;
-	
+
 	/** @brief image processing module */
 	TamanoirImgProc * m_pImgProc;
-	
+
 	/** List of proposed corrections */
 	QList<t_correction> dust_list;
-	
+
 	bool no_more_dusts;
 };
 
 
-/** @brief Tamanoir main application / user interface 
+/** @brief Tamanoir main application / user interface
 
 */
 class TamanoirApp : public QMainWindow
@@ -135,20 +135,20 @@ public:
 	TamanoirApp(QWidget *l_parent = NULL);
 	/** destructor */
 	~TamanoirApp();
-	
+
 	void setArgs(int argc, char **argv);
 	int loadFile(QString s);
-	
-	
+
+
 private:
-	
+
 	Ui::Tamanoir ui;
-	
+
 	QFileDialog * m_fileDialog;
 
 	/** @brief Delete allocated structures */
 	void purge();
-	
+
 protected:
 	//virtual void showEvent( QShowEvent * );
 	virtual void resizeEvent ( QResizeEvent * );
@@ -159,16 +159,16 @@ private:
 	tm_options m_options;
 
 	QString optionsFile;
-	
+
 	/** Load last saved options */
-	int loadOptions();	
-	
+	int loadOptions();
+
 	/** Save current options for next launch of Tamanoir */
 	void saveOptions();
 
 	/** Refresh the main display */
 	void refreshMainDisplay();
-	
+
 	/** Update all displays */
 	void updateDisplay();
 	/** Update global view */
@@ -180,22 +180,28 @@ private:
 	QTimer refreshTimer;
 	int m_curCommand;
 	t_correction current_dust;
-	
+
 	/** Dust src/dest deplacement tool button state */
 	bool is_src_selected;
 	Qt::MouseButton cropPixmapLabel_last_button;
-	
+
 	CvSize originalMainPixmapLabelSize;
 
 	bool m_overCorrected;
 signals:
-	
+
 private slots:
-	//void slotOpenFile();	
+	//void slotOpenFile();
 	void on_loadButton_clicked();
-	void on_saveButton_clicked();	
-	
+	void on_saveButton_clicked();
+
 	void on_aboutButton_clicked();
+
+	void on_actionAbout_activated();
+	void on_actionShortcuts_activated();
+	void on_actionPreferences_activated();
+
+
 	void on_autoButton_clicked();
 	void on_skipButton_clicked();
 	void on_prevButton_clicked();
@@ -239,8 +245,8 @@ private slots:
 private:
 	/** @brief lock tools while doing big tasks : loading/saving/settings */
 	void lockTools(bool lock);
-	
-	
+
+
 	TamanoirImgProc * m_pImgProc;
 	TamanoirThread * m_pProcThread;
 	QList<t_correction> skipped_list;

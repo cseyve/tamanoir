@@ -32,6 +32,10 @@
 #include <QFileInfo>
 #include <QSplashScreen>
 
+// Preferences UI
+#include "prefsdialog.h"
+
+
 /* File for logging messages */
 extern FILE * logfile;
 
@@ -43,7 +47,11 @@ extern u8 g_evaluate_mode;
 
 extern QString g_application_path;
 u8 g_debug_TmThread = 0;
+#ifdef SIMPLE_VIEW
 u8 g_debug_displaylabel = 0;
+#else
+u8 g_debug_displaylabel = 1;
+#endif
 
 /// Debug management of skipped/known dusts
 u8 g_debug_list = 0;
@@ -119,22 +127,29 @@ void TamanoirApp::purge() {
 	}
 }
 
+void TamanoirApp::on_actionAbout_activated() {
+	on_aboutButton_clicked();
+}
+
 QSplashScreen * g_splash = NULL;
-void TamanoirApp::on_aboutButton_clicked() {
+
+void TamanoirApp::on_actionShortcuts_activated() {
 	QDir dir(g_application_path);
 	QPixmap pix(":/icon/tamanoir_splash.png");
-	if(!g_splash) {
+	if(g_splash) {
+		g_splash->setPixmap(pix);
+	}
+	else {
 		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
 	}
+
 	QString verstr, cmd = QString("Ctrl+");
 	QString item = QString("<li>"), itend = QString("</li>\n");
 	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
-						  + verstr.sprintf("svn%04d%02d%02d",VERSION_YY, VERSION_MM, VERSION_DD)
+						  + verstr.sprintf("svn%04d%02d%02d", VERSION_YY, VERSION_MM, VERSION_DD)
 
-						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
-						  + tr("Developer: ") + QString("C. Seyve - ")
-						  + tr("Artist: ") + QString("M. Lecarme<br><br>")
-						  + tr("Shortcuts :<br><li>\n")
+						  + QString("<br>Website & Wiki: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
+						  + tr("Shortcuts :<br><ul>\n")
 							+ item + cmd + tr("O: Open a picture file") + itend
 							+ item + cmd + tr("S: Save corrected image") + itend
 							+ item + cmd + tr("H: Display version information") + itend
@@ -147,7 +162,41 @@ void TamanoirApp::on_aboutButton_clicked() {
 //							+ item + cmd + tr("") + itend
 //							+ item + tr("") + itend
 //							+ item + cmd + tr("") + itend
-						+ QString("</li>\n")
+						+ QString("</ul>\n")
+							);
+	repaint();// to force display of splash
+
+	g_splash->show();
+	g_splash->raise(); // for full screen mode
+	g_splash->update();
+}
+
+void TamanoirApp::on_actionPreferences_activated() {
+	PrefsDialog *widget = new PrefsDialog;
+
+	widget->show();
+}
+
+
+void TamanoirApp::on_aboutButton_clicked() {
+	QDir dir(g_application_path);
+	QPixmap pix(":/icon/tamanoir_about.png");
+	if(g_splash) {
+		g_splash->setPixmap(pix);
+	}
+	else {
+		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
+	}
+
+
+	QString verstr, cmd = QString("Ctrl+");
+	QString item = QString("<li>"), itend = QString("</li>\n");
+	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
+						  + verstr.sprintf("svn%04d%02d%02d", VERSION_YY, VERSION_MM, VERSION_DD)
+
+						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
+						  + tr("Developer: ") + QString("C. Seyve - ")
+						  + tr("Artist: ") + QString("M. Lecarme<br><br>")
 							);
 	repaint();// to force display of splash
 

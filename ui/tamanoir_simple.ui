@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>805</width>
-    <height>628</height>
+    <height>629</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -131,19 +131,6 @@
               </size>
              </property>
             </spacer>
-           </item>
-           <item>
-            <widget class="QPushButton" name="aboutButton">
-             <property name="toolTip">
-              <string>About: Tamanoir version and link to online help</string>
-             </property>
-             <property name="text">
-              <string>About</string>
-             </property>
-             <property name="shortcut">
-              <string>Ctrl+H</string>
-             </property>
-            </widget>
            </item>
           </layout>
          </item>
@@ -654,7 +641,7 @@
            <x>0</x>
            <y>0</y>
            <width>548</width>
-           <height>32</height>
+           <height>33</height>
           </rect>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -847,9 +834,47 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>805</width>
+     <height>29</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionPreferences"/>
+    <addaction name="separator"/>
+    <addaction name="actionAbout"/>
+    <addaction name="actionShortcuts"/>
+   </widget>
+   <addaction name="menuOptions"/>
+  </widget>
   <action name="Left">
    <property name="text">
     <string>Left</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+   <property name="toolTip">
+    <string>Display version information about Tamanoir</string>
+   </property>
+  </action>
+  <action name="actionShortcuts">
+   <property name="text">
+    <string>Shortcuts</string>
    </property>
   </action>
  </widget>
