@@ -1063,7 +1063,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	bool rewind_to_start = false;
 	bool rewind_to_previous = false;
 
-	fprintf(stderr, "TamanoirImgProc::%s:%d : current options : ", __func__, __LINE__);
+	fprintf(stderr, "TamanoirImgProc::%s:%d : %p : current options : ", __func__, __LINE__, this);
 	fprintfOptions(stderr, &m_options);
 	fprintf(stderr, "TamanoirImgProc::%s:%d : new options : ", __func__, __LINE__);
 	fprintfOptions(stderr, &opt);
@@ -1130,7 +1130,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	if(rewind_to_start && originalImage) {
 		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to START "
 				"corrected dust : %d,%d\n",
-				__func__, __LINE__, m_seed_x, m_seed_y);
+				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
 		preProcessImage();
 		firstDust();
 	}
@@ -1146,7 +1146,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to LAST "
 				"corrected dust : %d,%d block=%d,%d\n",
 				__func__, __LINE__, m_seed_x, m_seed_y,
-				m_block_seed_x, m_block_seed_y);
+				m_block_seed_x, m_block_seed_y);fflush(stderr);
 		if(growImage) {
 			cvZero(growImage);
 		}
@@ -1163,7 +1163,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 			m_seed_x = m_seed_y = 0;
 			fprintf(stderr, "[TamanoiImgProc]::%s:%d : MODE AUTO => rewind to START "
 				" : %d,%d\n",
-				__func__, __LINE__, m_seed_x, m_seed_y);
+				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
 			if(growImage) {
 				cvZero(growImage);
 			}
@@ -1188,7 +1188,7 @@ int TamanoirImgProc::processResolution(int dpi) {
 	}
 	// Then re-process file
 	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n",
-		__func__, __LINE__, dpi);
+		__func__, __LINE__, dpi);fflush(logfile);
 
 	if(originalImage) {
 		// No need to pre-process again the image

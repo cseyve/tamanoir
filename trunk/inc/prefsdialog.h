@@ -36,7 +36,7 @@ public:
 
 private slots:
 	void on_styleComboBox_activated(const QString & str);
-
+	void on_showAutoCheckBox_toggled(bool on);
 };
 
 

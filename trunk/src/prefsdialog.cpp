@@ -29,12 +29,26 @@ PrefsDialog::PrefsDialog(QWidget * parent)
 		: QDialog(parent)
 {
 	setupUi(this);
+
+	// Display current options
+	QString str(g_display_options.stylesheet);
+	int ind = ui.styleComboBox->findText(str, Qt::MatchContains);
+	if(ind >= 0) ui.styleComboBox->setCurrentIndex(ind);
+
+	showAutoCheckBox->setChecked(g_display_options.show_auto);
 }
 
 void PrefsDialog::on_styleComboBox_activated(const QString & str) {
-	QString filename=":/qss/tamanoir-" + str + ".qss";
 
-	strcpy(g_display_options.stylesheet, filename.ascii());
+	strcpy(g_display_options.stylesheet, str.ascii());
 
 	tmApp->saveOptions();
 }
+
+void PrefsDialog::on_showAutoCheckBox_toggled(bool on)
+{
+	fprintf(stderr, "PrefsDialog::%s:%d : on=%d\n", __func__, __LINE__, on?'T':'F');
+	g_display_options.show_auto = (on ? 1 : 0);
+	tmApp->saveOptions();
+}
+

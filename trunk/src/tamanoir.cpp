@@ -1285,15 +1285,21 @@ int TamanoirApp::loadOptions() {
 
 void TamanoirApp::saveOptions() {
 	// Reload Stylesheet
-	QString filename(g_display_options.stylesheet);
+	QString str(g_display_options.stylesheet);
+	QString filename=":/qss/tamanoir-" + str + ".qss";
+
 	QFile file(filename);
 	fprintf(stderr, "TamanoirApp::%s:%d => file='%s' !!\n", __func__, __LINE__,
 			filename.ascii());
-
 	file.open(QFile::ReadOnly);
 	QString styleSheet = QLatin1String(file.readAll());
-
 	setStyleSheet(styleSheet);
+
+	// show/hide buttons
+	if(g_display_options.show_auto)
+		ui.autoButton->show();
+	else
+		ui.autoButton->hide();
 
 	FILE * foptions = fopen(optionsFile.ascii(), "w");
 	if(!foptions) {
