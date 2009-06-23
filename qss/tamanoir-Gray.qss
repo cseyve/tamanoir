@@ -1,10 +1,10 @@
 <!--
-* {
-	color: black;
-}
+/* * {
+	color: #E0E0E0;
+}*/
 
 TamanoirApp {
-	background-color: #292929;
+	background-color: #404040; /*#292929;*/
 }
 
 QPushButton,QComboBox
@@ -12,27 +12,33 @@ QPushButton,QComboBox
 	background-color: qlineargradient(spread:pad,
 		x1:0, y1:0, x2:0, y2:1,
 		stop:0.45 #5c5c5c,
-		stop:0.55 #454545);
+		stop:0.55 #424242);
 }
-
-QComboBox{
+/*
+QComboBox {
 	selection-background-color: #505050;
-}
+	background-color: #505050;
+	border-color: red;
+	alternate-background-color: blue;
+	selection-color: green;
+}*/
 
 QDialog {
 	color: black;
-	alternate-background-color: red;
 }
+
 QMenu
 {
 	background-color: #292929;
 }
-QPushButton,QCheckBox,QComboBox,QStatusBar::title,QLabel,QMenuBar,QMenu {
+/*
+QPushButton,
+*/
+QCheckBox,QStatusBar::title,QLabel,QMenuBar,QMenu {
 	color: #E0E0E0;
-	border-color: red;
-	alternate-background-color: white;
-	selection-color: red;
-	selection-background-color: white;
+	alternate-background-color: #505050;
+	selection-color: white;
+	selection-background-color: #707070;
 }
 
 /*
@@ -54,6 +60,8 @@ QStatusBar {
 
 QGroupBox {
 	color: #E0E0E0;
+	border-color: #E0E0E0;
+	border-top-color: #0000E0;
 	background-color: #353535;
 }
 
