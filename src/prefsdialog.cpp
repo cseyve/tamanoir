@@ -32,8 +32,8 @@ PrefsDialog::PrefsDialog(QWidget * parent)
 
 	// Display current options
 	QString str(g_display_options.stylesheet);
-	int ind = ui.styleComboBox->findText(str, Qt::MatchContains);
-	if(ind >= 0) ui.styleComboBox->setCurrentIndex(ind);
+	int ind = styleComboBox->findText(str, Qt::MatchContains);
+	if(ind >= 0) styleComboBox->setCurrentIndex(ind);
 
 	showAutoCheckBox->setChecked(g_display_options.show_auto);
 }
