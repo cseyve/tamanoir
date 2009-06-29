@@ -14,7 +14,7 @@ MOC_DIR = .mpc-debug
 
 DEFINES += QT3_SUPPORT
 
-TRANSLATIONS = tamanoir_fr.ts
+TRANSLATIONS = tamanoir_French.ts
 
 #icon
 mac::ICON = icon/Tamanoir.icns
