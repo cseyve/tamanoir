@@ -1143,14 +1143,17 @@ void TamanoirApp::on_saveButton_clicked()
 
 		lockTools(true);
 
-		// Save a copy
-		QDir dir( fi.dirPath(TRUE) );
-		dir.rename(m_currentFile, copystr);
-		msg+= tr(" + backup as ") + copystr;
+		// Save a copy if it's not done yet
+		QFileInfo ficopy(copystr);
+
+		if(!ficopy.exists()) {
+			QDir dir( fi.dirPath(TRUE) );
+			dir.rename(m_currentFile, copystr);
+			msg+= tr(" + backup as ") + copystr;
+		}
 
 		// Save image
 		m_curCommand = m_pProcThread->saveFile( m_currentFile );
-
 
 		statusBar()->showMessage( msg );
 
@@ -1811,7 +1814,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 			{
 				u32 * buffer4 = (u32 *)qImage.bits() + r*qImage.width();
 				u8 * bufferY = (u8 *)(iplImage->imageData + r*iplImage->widthStep);
-				for(int c=0; c<iplImage->width; c++) {
+				for(int c=0; c<orig_width; c++) {
 					buffer4[c] = grayToBGR32palette[ (int)bufferY[c] ];
 				}
 			}
@@ -1826,7 +1829,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 			for(int r=0; r<iplImage->height; r++)
 			{
 				short * buffershort = (short *)(iplImage->imageData + r*iplImage->widthStep);
-				for(int c=0; c<iplImage->width; c++)
+				for(int c=0; c<orig_width; c++)
 					if(buffershort[c]>valmax)
 						valmax = buffershort[c];
 			}
@@ -1895,7 +1898,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 			for(int r=0; r<iplImage->height; r++)
 			{
 				unsigned short * buffershort = (unsigned short *)(iplImage->imageData + r*iplImage->widthStep);
-				for(int c=0; c<iplImage->width; c++)
+				for(int c=0; c<orig_width; c++)
 					if(buffershort[c]>valmax)
 						valmax = buffershort[c];
 			}
@@ -1992,6 +1995,8 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 			qImage.setColor(c, qRgb(c,c,c));
 		}
 	}
+
+
 	return qImage;
 }
 
@@ -2009,6 +2014,7 @@ void TamanoirApp::refreshMainDisplay() {
 	// image proc will only store this size at first call
 	m_pImgProc->setDisplaySize(scaled_width, scaled_height);
 }
+
 void TamanoirApp::updateDisplay() {
 	if(m_pImgProc) {
 		updateMainDisplay();

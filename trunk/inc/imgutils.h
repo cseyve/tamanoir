@@ -113,11 +113,14 @@ int tmByteDepth(IplImage * iplImage);
 
 /** @brief Create an IplImage width OpenCV's cvCreateImage and clear buffer */
 IplImage * tmCreateImage(CvSize size, int depth, int channels);
+
 /** @brief Release an image and clear pointer */
 void tmReleaseImage(IplImage ** img);
 
+/** @brief Create/allocate a copy of an IplImage  */
+IplImage * tmClone(IplImage * img_src);
 
-/** @brief Copy an IplIMage into another */
+/** @brief Copy an IplImage into another */
 void tmCopyImage(IplImage * img_src, IplImage * img_dest);
 
 

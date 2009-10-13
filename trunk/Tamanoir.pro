@@ -3,14 +3,15 @@
 # #####################################################################
 TEMPLATE = app
 mac::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m`" \
-	VERSION_DD="`date +%d | sed 's/0//'`"
+	VERSION_MM="`date +%m | sed 's/0//'`" \
+    	VERSION_DD="`date +%d | sed 's/0//'`"
 linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m`" \
-	VERSION_DD="`date +%d | sed 's/0//'`"
+	VERSION_MM="`date +%m | sed 's/0//'`" \
+    	VERSION_DD="`date +%d | sed 's/0//'`"
 win32::DEFINES += VERSION_YY="2009" \
-	VERSION_MM="06" \
-	VERSION_DD="25"
+	VERSION_MM="10" \
+	VERSION_DD="13"
+
 # Use lowercase name for Linux
 TARGET = tamanoir
 
@@ -216,13 +217,12 @@ STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
 BUILD_STATIC = $$(BUILD_STATIC)
 
 # contains(BUILD_STATIC, true)
-macx:contains(BUILD_STATIC, true) {
-	message("Building static version of binary :")
-	CONFIG += x86 \
-		ppc
-
-	# Test for building releases
-	LIBS += $$STATIC_LIBS
+macx:contains(BUILD_STATIC, true) { 
+    message("Building static version of binary :")
+	CONFIG += x86 ppc
+    
+    # Test for building releases
+    LIBS += $$STATIC_LIBS
 }
 else {
 	message("Building dynamic libraries version of binary :")
@@ -248,7 +248,7 @@ win32:TARGET = $$join(TARGET,,d)
 # }
 
 CONFIG += qt \
-	warn_on release
+	warn_on
 
 #linux-g++::CONFIG += debug_and_release
 
