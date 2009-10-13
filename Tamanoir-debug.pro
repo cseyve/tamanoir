@@ -25,15 +25,19 @@ QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 HEADERS = inc/imgproc.h \
 		inc/imgutils.h \
 		inc/tamanoir.h \
-		inc/qimagedisplay.h
+		inc/qimagedisplay.h \
+		inc/prefsdialog.h
 
-FORMS = ui/tamanoir.ui
+FORMS = ui/tamanoir.ui \
+	ui/prefsdialog.ui
+
 
 SOURCES = src/imgproc.cpp \
 		src/imgutils.cpp \
 		src/main.cpp \
 		src/tamanoir.cpp \
-		src/qimagedisplay.cpp
+		src/qimagedisplay.cpp \
+		src/prefsdialog.cpp
 
 linux-g++:TMAKE_CXXFLAGS += -Wall -O2 -g \
 	-fexceptions -Wimplicit -Wreturn-type \

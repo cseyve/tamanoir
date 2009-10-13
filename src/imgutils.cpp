@@ -591,6 +591,17 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 	}
 }
 
+IplImage * tmClone(IplImage * img_src) {
+	if(!img_src) return NULL;
+
+	IplImage * img_dest = tmCreateImage(
+			cvSize(img_src->width, img_src->height),
+			img_src->depth,
+			img_src->nChannels);
+	tmCopyImage(img_src, img_dest);
+	return img_dest;
+}
+
 /*
  * Copy an image in another
  */
@@ -1769,10 +1780,12 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 			int row2 = row + swidth;
 
 			while(x>=xi-1) {
-				while( (growOut[x+row2]>0 || abs((int)growIn[x+row2]-seedValue)>threshold)
+				while( (growOut[x+row2]>0
+							|| abs((int)growIn[x+row2]-seedValue)>threshold)
 						&& (x>=xi-1)) {	// 8-connexity
 						x--;
 				}
+
 				if( (x>=xi-1) && growOut[x+row2]==0 && abs((int)growIn[x+row2]-seedValue)<=threshold) {
 					if(pile_sp < spmax-1)
 					{
@@ -1781,8 +1794,11 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 						pile_y[pile_sp] = y+1;
 					}
 				}
-				while( growOut[x+row2]==0 && abs((int)growIn[x+row2]-seedValue) < threshold && (x>=xi-1))
-				{// 8-con
+
+				while( growOut[x+row2]==0
+					   && abs((int)growIn[x+row2]-seedValue) <= threshold
+					   && (x>=xi-1))
+				{	// 8-con
 					x--;
 				}
 			}
@@ -1798,7 +1814,8 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 			int row3 = row - swidth;
 
 			while(x>=xi-1) { // 8-con
-				while( (growOut[x+row3]>0 || abs((int)growIn[x+row3]-seedValue)>threshold)
+				while( (growOut[x+row3]>0
+							|| abs((int)growIn[x+row3]-seedValue)>threshold)
 						&& (x>=xi-1)) { x--;
 				}
 				if( (x>=xi-1) && growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)) {
@@ -1810,7 +1827,7 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 					}
 				}
 
-				while( growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<threshold)
+				while( growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)
 						&& (x>=xi-1) ) { // 8-con
 					x--;
 				}

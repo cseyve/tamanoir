@@ -4,5 +4,6 @@
         <file>icon/tamanoir_splash.png</file>
         <file>icon/tamanoir_about.png</file>
         <file>qss/tamanoir-Gray.qss</file>
+        <file>icon/tamanoir.ico</file>
     </qresource>
 </RCC>
