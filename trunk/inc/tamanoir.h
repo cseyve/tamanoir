@@ -223,6 +223,8 @@ private slots:
 	void on_correctButton_clicked();
 
 	void on_linearButton_toggled(bool state);
+	void on_searchCloneSrcCheckBox_toggled(bool state);
+	void on_dustInfoButton_toggled(bool state);
 
 	// Global image navigation button
 	void on_topLeftButton_clicked();
@@ -266,6 +268,8 @@ private:
 	QList<t_correction> skipped_list;
 	bool force_mode;
 	bool m_draw_on;
+	bool m_searchCloneSrc;
+
 	bool m_resize_rect;
 	QSize m_main_display_rect;
 	QString m_currentFile;

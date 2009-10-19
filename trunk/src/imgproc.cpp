@@ -1367,7 +1367,6 @@ int TamanoirImgProc::findDust(int x, int y) {
 	return findDust(x,y, &m_correct);
 }
 
-
 int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	if(!growImage) return -1; // Loading is not finished
 
@@ -1377,6 +1376,10 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	}
 
 	MUTEX_LOCK(&mutex);
+
+	memset(&m_dust_detection_props, 0, sizeof(t_dust_detection_props));
+	m_dust_detection_props.seed_x = x;
+	m_dust_detection_props.seed_y = y;
 
 	CvConnectedComp connect;
 	memset(&connect, 0, sizeof(CvConnectedComp));
@@ -1401,6 +1404,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 
 	bool force_search = (pcorrection != &m_correct); // force search
+	m_dust_detection_props.force_search = force_search;
+
 	if(force_search) {
 		int lw = growImage->width;
 		int lpitch = growImage->widthStep;
@@ -1482,6 +1487,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		255,
 		&connect );
 
+	m_dust_detection_props.connect_area = connect.area;
+
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : seed at %d,%d => area=%d,%d+%dx%d surf=%d  min=%d <? %d <? max=%d...\n",
 				__func__, __LINE__, x, y,
@@ -1502,6 +1509,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 	   || force_search
 	   );
 
+	m_dust_detection_props.big_enough = is_a_dust;
 
 	// Crop image and search for a dust on cropped images
 	if( is_a_dust )
@@ -1577,6 +1585,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 								is_a_dust, force_search,
 								dilateImage, &best_correl,
 								&sum_dust, &sum_neighbour);
+
+		m_dust_detection_props.dilateDust = is_a_dust;
+
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
 	- correctImage = grown(cropImage/diffImage)
@@ -1670,6 +1681,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				&copy_width, &copy_height,
 				&best_correl);
 
+			m_dust_detection_props.searchBestCorrelation = ret;
+
 			// Debug
 			if(g_debug_imgverbose > 1
 #ifndef SIMPLE_VIEWER
@@ -1687,6 +1700,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 						&maxdiff,
 						&nbdiff
 						);
+				m_dust_detection_props.correl_dust_src = l_dist;
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
 	- correctImage = grown(cropImage/diffImage)
@@ -1728,6 +1742,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 
 			// we found a dust and good replacement ===================================
+			// but let's check some other things
 			if(ret>0) {
 				u8 return_now = 1;
 				m_lastDustComp = connect;
@@ -1824,7 +1839,8 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// are in the same extended grown region,
 				// (tree branch, building edge...)
 		// FIXME : improve this connection search
-				is_a_dust = srcNotConnectedToDest(pcorrection);
+		m_dust_detection_props.src_connected_to_dest = is_a_dust = srcNotConnectedToDest(pcorrection);
+
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 - dilateImage = dilate(correctImage)
@@ -1835,16 +1851,19 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 				// Dust must be visible faced to other different regions
 				//		count pixels over this level
+				u8 diffref = (u8)fabsf(sum_dust - sum_neighbour);
+				bool diff_from_neighbour = differentFromNeighbourHood(pcorrection, diffref);
+				m_dust_detection_props.diff_from_neighbour = diff_from_neighbour;
 				if(is_a_dust) {
-					u8 diffref = (u8)fabsf(sum_dust - sum_neighbour);
-					is_a_dust = differentFromNeighbourHood(pcorrection, diffref);
+					is_a_dust = diff_from_neighbour;
 				}
 
 
 				// Dust and correction must be different (for avoiding periodical patterns)
 				if(is_a_dust) {
 		// FIXME : to be improved for windows edges, building windows...
-					is_a_dust = srcDifferentFromDest(pcorrection);
+					m_dust_detection_props.diff_from_dest = is_a_dust = srcDifferentFromDest(pcorrection);
+
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
 	- dilateImage = 0
@@ -1858,9 +1877,18 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				// Then check that correction is better than original
 				// e.g. that there's less difference after correction
 				// between the corrected image and the median/blurred image
+				bool is_correctedBetterThanOriginal = is_a_dust;
+
+				if(is_a_dust || force_search) {
+					m_dust_detection_props.correctedBetterThanOriginal =
+					is_correctedBetterThanOriginal =
+							correctedBetterThanOriginal(pcorrection);
+				}
+
+
 				if(is_a_dust)
 				{
-					is_a_dust = correctedBetterThanOriginal(pcorrection);
+					is_a_dust = is_correctedBetterThanOriginal;
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 
@@ -1877,6 +1905,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				   && m_options.onlyEmpty
 				   && !force_search  // only when we're not forcing to search a specific dust
 				   ) {
+					m_dust_detection_props.neighbourhoodEmpty = 
 					is_a_dust = neighbourhoodEmpty(pcorrection);
 
 /* CROPPED IMAGES :
@@ -2532,7 +2561,6 @@ bool TamanoirImgProc::dilateDust(
 
 
 
-
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : "
 				"=> grown dust at %d,%d+%dx%d surf=%d.\n"
@@ -2546,6 +2574,8 @@ bool TamanoirImgProc::dilateDust(
 			(int)flood_connect.area
 			);
 	}
+
+	m_dust_detection_props.flood_area = flood_connect.area;
 
 	if( (crop_connect.area >= m_dust_area_min &&
 	   crop_connect.area < m_dust_area_max)
@@ -2577,6 +2607,8 @@ bool TamanoirImgProc::dilateDust(
 					);
 		}
 
+
+		m_dust_detection_props.is_fiber = is_a_fiber;
 
 		// Check if copy is not along a contour
 		//int dx = abs(copy_src_x - copy_dest_x);
@@ -2820,6 +2852,13 @@ bool TamanoirImgProc::dilateDust(
 				}
 			}
 
+
+			m_dust_detection_props.mean_neighbour = sum_neighbour;
+			m_dust_detection_props.mean_dust = sum_dust;
+			m_dust_detection_props.contrast = contrast;
+
+			m_dust_detection_props.visible_enough = 1;
+
 			// test if colour is different enough
 			if(!force_search) {
 				switch(m_options.filmType) {
@@ -2829,6 +2868,7 @@ bool TamanoirImgProc::dilateDust(
 					   || fabsf(contrast)<0.02f) { //m_threshold
 						// no difference visible => not a dust
 						is_a_dust = false;
+						m_dust_detection_props.visible_enough = 0;
 					}
 					break;
 				case FILM_POSITIVE:
@@ -2836,6 +2876,7 @@ bool TamanoirImgProc::dilateDust(
 						|| contrast>-0.02f) { //m_threshold
 						// not darker than neighbourhood  => not a dust
 						is_a_dust = false;
+						m_dust_detection_props.visible_enough = 0;
 					}
 					break;
 				case FILM_NEGATIVE:
@@ -2843,6 +2884,7 @@ bool TamanoirImgProc::dilateDust(
 						|| contrast < 0.02f) { //m_threshold
 						// not lighter than neighbourhood  => not a dust
 						is_a_dust = false;
+						m_dust_detection_props.visible_enough = 0;
 					}
 					break;
 				}

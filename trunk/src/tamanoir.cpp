@@ -71,6 +71,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	force_mode = false;
 	cropPixmapLabel_last_button = Qt::NoButton;
 	is_src_selected = true;
+	m_searchCloneSrc = true; // search for clone src candidate
 
 	// Clear options
 	memset(&g_options, 0, sizeof(tm_options));
@@ -84,6 +85,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	strcpy(g_display_options.currentDir, homeDirStr.ascii());
 
 	ui.setupUi((QMainWindow *)this);
+	ui.infoFrame->hide();
 
 	m_overCorrected = false;
 
@@ -588,6 +590,19 @@ void TamanoirApp::on_undoButton_clicked() {
 		updateDisplay();
 	}
 }
+void TamanoirApp::on_dustInfoButton_toggled(bool state) {
+	if(state)
+		ui.infoFrame->show();
+	else
+		ui.infoFrame->hide();
+	fprintf(stderr, "TamanoirApp::%s:%d : show info = %s\n",
+			__func__, __LINE__, state?"TRUE":"FALSE");
+}
+void TamanoirApp::on_searchCloneSrcCheckBox_toggled(bool state) {
+	m_searchCloneSrc = state;
+	fprintf(stderr, "TamanoirApp::%s:%d : m_searchCloneSrc = %s\n",
+			__func__, __LINE__, m_searchCloneSrc?"TRUE":"FALSE");
+}
 
 void TamanoirApp::on_linearButton_toggled(bool state) {
 	if(m_draw_on != state) {
@@ -834,26 +849,93 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				current_dust.rel_seed_y = e->pos().y();
 
 				// Compute correction
-				t_correction search_correct = current_dust;
-				u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
 				//g_debug_imgverbose = 255;
 				//g_debug_correlation = 255;
-				int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x,
-										current_dust.crop_y+current_dust.rel_seed_y,
-										&search_correct);
-				g_debug_imgverbose = old_debug;
-				g_debug_correlation = old_correlation;
+				if(m_searchCloneSrc) {
+					t_correction search_correct = current_dust;
+					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
+					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x,
+											current_dust.crop_y+current_dust.rel_seed_y,
+											&search_correct);
+					g_debug_imgverbose = old_debug;
+					g_debug_correlation = old_correlation;
 
-				if(ret > 0) {
-					/*
-					fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
-							current_dust.crop_x+current_dust.rel_seed_x ,
-							current_dust.crop_y+current_dust.rel_seed_y ,
-							ret);
-							*/
-					current_dust = search_correct;
+					if(!ui.infoFrame->isHidden()) {
+						//
+						t_dust_detection_props props =
+								m_pImgProc->getDustProps();
+						/*
+u8 big_enough;					*! Size if big enough to be a dust (dpeend on dpi) *
 
-					//m_pImgProc->applyCorrection(search_correct, true);
+float flood_area;				*! Area of region growing on gray level *
+u8 is_fiber;					*! Fiber (surf of rect >> surf of diff region growing *
+float mean_neighbour;			*! Mean value of neighbouring *
+float mean_dust;				*! Mean value of dust *
+float contrast;					*! Contrast between neighbouring and dust *
+u8 visible_enough;				*! Different enough from neighbour *
+u8 dilateDust ;					*! => Still a dust after function dilateDust() *
+
+int searchBestCorrelation;		*! Result of search best correlation *
+
+float correl_dust_src;			*! Correlation between dust (seed growing) and source proposal *
+u8 src_connected_to_dest;		*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); *
+
+u8 diff_from_neighbour;			*! return of @see differentFromNeighbourHood(pcorrection, diffref); *
+u8 diff_from_dest;				*! return of @see srcDifferentFromDest(pcorrection); *
+u8 correctedBetterThanOriginal; *! return of @see correctedBetterThanOriginal(pcorrection); *
+u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
+} t_dust_detection_props;
+
+						  */
+						char proptxt[1024];
+						sprintf(proptxt, "%d,%d "
+								"%s %s flood=%g %s "
+									"\n"
+								"D=%g N=%g C=%g\n=>vis=%c "
+								"dilateDust=%c "
+									"\n"
+								"bestCor=%d "
+									"\n"
+								"D/src=%g conn=%c"
+									"\n"
+								"diff/N=%c "
+								"diff/dest=%c "
+								"better/orig=%c Nempt=%c"
+													  ,
+								props.seed_x, props.seed_y,
+								props.force_search ? "force":"",
+								props.big_enough? "big":"",
+								props.flood_area,
+								props.is_fiber ? "fiber":"",
+								props.mean_dust, props.mean_neighbour,
+									props.contrast, props.visible_enough ? 'T':'F',
+								props.dilateDust ? 'T':'F',
+								props.searchBestCorrelation,
+								props.correl_dust_src,
+
+								props.src_connected_to_dest ? 'T':'F',
+								props.diff_from_neighbour? 'T':'F',
+								props.diff_from_dest? 'T':'F',
+								props.correctedBetterThanOriginal? 'T':'F',
+								props.neighbourhoodEmpty? 'T':'F'
+								);
+
+						ui.dustInfoLabel->setText(proptxt);
+					}
+
+					if(ret > 0) {
+						/*
+						fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
+								current_dust.crop_x+current_dust.rel_seed_x ,
+								current_dust.crop_y+current_dust.rel_seed_y ,
+								ret);
+								*/
+						current_dust = search_correct;
+
+						//m_pImgProc->applyCorrection(search_correct, true);
+
+
+					}
 				}
 			}
 			int center_x = current_dust.rel_src_x;

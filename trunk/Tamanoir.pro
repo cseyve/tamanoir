@@ -2,6 +2,7 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
+
 mac::DEFINES += VERSION_YY="`date +%Y`" \
 	VERSION_MM="`date +%m | sed 's/0//'`" \
     	VERSION_DD="`date +%d | sed 's/0//'`"
