@@ -187,6 +187,37 @@ typedef struct t_correction_ {
 } t_correction;
 
 
+/** @brief Properties of dust extracted by image processing
+
+  Aimed for debug / optimization of criterions
+  */
+typedef struct {
+	int seed_x, seed_y;		/*! Original seed */
+
+	u8 force_search;				/*! Forced search flag */
+
+	u8 big_enough;					/*! Size if big enough to be a dust (dpeend on dpi) */
+
+	float connect_area;				/*! Area of region growing on diff level */
+	float flood_area;				/*! Area of region growing on gray level */
+	u8 is_fiber;					/*! Fiber (surf of rect >> surf of diff region growing */
+	float mean_neighbour;			/*! Mean value of neighbouring */
+	float mean_dust;				/*! Mean value of dust */
+	float contrast;					/*! Contrast between neighbouring and dust */
+	u8 visible_enough;				/*! Different enough from neighbour */
+	u8 dilateDust ;					/*! => Still a dust after function dilateDust() */
+	
+	int searchBestCorrelation;		/*! Result of search best correlation */
+
+	float correl_dust_src;			/*! Correlation between dust (seed growing) and source proposal */
+	u8 src_connected_to_dest;		/*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); */
+
+	u8 diff_from_neighbour;			/*! return of @see differentFromNeighbourHood(pcorrection, diffref); */
+	u8 diff_from_dest;				/*! return of @see srcDifferentFromDest(pcorrection); */
+	u8 correctedBetterThanOriginal; /*! return of @see correctedBetterThanOriginal(pcorrection); */
+	u8 neighbourhoodEmpty;			/*! return of @see neighbourhoodEmpty(pcorrection); */
+} t_dust_detection_props;
+
 /** @brief Already known dust for evaluation mode */
 typedef struct _known_dust {
 	double dest_x;		/*! Dust position in relative coordinate [0..1[ */
@@ -277,6 +308,8 @@ public:
 	/** @brief Go to next dust, @return -1 if error, 0 if no more dust, and 1 if still */
 	int nextDust();
 
+	/** @brief Get dust detection properties */
+	t_dust_detection_props getDustProps() { return m_dust_detection_props; };
 
 	/** @brief Change the origin of current correction */
 	void setCopySrc(int x, int y);
@@ -363,6 +396,8 @@ private:
 	/** Mutex to prevent clone search to perturbate normal background search */
 	Mutex_t mutex;
 
+	/** @brief Dust detection properties */
+	t_dust_detection_props m_dust_detection_props;
 
 	/** @brief Purge allocated buffers */
 	void purge();
