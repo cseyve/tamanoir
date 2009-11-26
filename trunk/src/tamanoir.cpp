@@ -629,20 +629,29 @@ void TamanoirApp::on_linearButton_toggled(bool state) {
 int distToEllipse(t_correction current_dust, int mouse_x, int mouse_y) {
 	//
 	float dx = (float)(mouse_x - current_dust.rel_src_x);
-	float dy = (float)(mouse_y - current_dust.rel_src_y);
-	float radius_x = current_dust.copy_width*0.5f; if(radius_x < 1) return 100;
-	float radius_y = current_dust.copy_height*0.5f; if(radius_y < 1) return 100;
-	double theta = atan2(-dy/radius_y, dx/radius_x); // angle center->mouse
+	float dy = (float)(current_dust.rel_src_y - mouse_y);
+	float radius_x = current_dust.copy_width*0.5f;
+	if(radius_x < 1) return 100;
+	float radius_y = current_dust.copy_height*0.5f;
+	if(radius_y < 1) return 100;
+
+	double theta = atan2(dy/radius_y, dx/radius_x); // angle center->mouse
+
 	float xborder = cos(theta)*radius_x; // position of ellipse in this direction
-	float yborder = -sin(theta)*radius_y;
+	float yborder = sin(theta)*radius_y;
 
 	float bx = dx-xborder;
 	float by = dy-yborder;
 
 	float dist = sqrtf(bx*bx+by*by);
-/*fprintf(stderr, "distToEllipse dx,y=%g,%g => th=%g => d=%g,%g  dist %g\n",
-		dx, dy, theta,
-		bx, by, dist);*/
+/*
+	fprintf(stderr, "%s:%d: dx,y=%g,%g th=%g=%g deg / A=%g, B=%g border=%g,%g => d=%g,%g  dist %g\n",
+			__func__, __LINE__,
+		dx, dy, theta, theta*180.f/CV_PI,
+		radius_x, radius_y,
+		xborder, yborder,
+		bx, by, dist);
+*/
 	return (int)dist;
 }
 
@@ -752,14 +761,41 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 					cropPixmapLabel_last_button = Qt::RightButton; // e->button();
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 
+
+					float ell_x = e->pos().x() - current_dust.rel_src_x;
+					float ell_y = current_dust.rel_src_y - e->pos().y(); // in trigo reference
+
+
+					float ell_A = (float)current_dust.copy_width/2.f;
+					float ell_B = (float)current_dust.copy_height/2.f;
+
+					/*
+					  ell_x = A cos (th)
+					  ell_y = B sin (th)
+					  => since we known ell_x, ell_y, theta
+						A = ell_x / cos (th)
+						B = ell_y / sin (th)
+					  */
+					float ell_dist = sqrtf( ell_x*ell_x + ell_y*ell_y );
+					float cos_th = ell_x / ell_dist;
+					float sin_th = ell_y / ell_dist;
+					float theta = atan2(ell_y/ell_B, ell_x/ell_A);
+/*
+					fprintf(stderr, "%s:%d : in ellipse : x,y=%g,%g th=%g A,B=%g,%g\n",
+							__func__, __LINE__,
+							ell_x,ell_y, theta,
+							ell_A, ell_B);
+*/
 					// get coef
 					if(current_dust.copy_width > 0)
-						m_resize_rect_xscale = 2.f*(float)current_dust.copy_width/(float)fabsf(mouse_x - current_dust.rel_src_x);
+						m_resize_rect_xscale = 2.f*(float)ell_A/(float)fabsf(ell_x);
 					if(current_dust.copy_height > 0)
-						m_resize_rect_yscale = 2.f*(float)current_dust.copy_height/(float)fabsf(mouse_y - current_dust.rel_src_y);
+						m_resize_rect_yscale = 2.f*(float)ell_B/(float)fabsf(ell_y);
 					m_resize_rect = true;
-fprintf(stderr, "%s:%d : FIXME : bad formula : resize ellipse => scale %g,%g\n",
-		__func__ , __LINE__,m_resize_rect_xscale, m_resize_rect_yscale );
+
+//					fprintf(stderr, "%s:%d : FIXME : bad formula : resize ellipse => scale %g,%g\n",
+//							__func__ , __LINE__,m_resize_rect_xscale, m_resize_rect_yscale );
+
 					return;
 				} else {
 					m_resize_rect = false;
@@ -1082,13 +1118,15 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 
 			int dest_x = current_dust.rel_dest_x;
 			int dest_y = current_dust.rel_dest_y;
-//FIXME : with ellipse, that's not the right computation mode
-			current_dust.copy_width = tmmax(1, m_resize_rect_xscale*abs(center_x - e->pos().x()));
-			current_dust.copy_height = tmmax(2, m_resize_rect_yscale*abs(center_y - e->pos().y()));
+
+			float ell_x = e->pos().x() - center_x;
+			float ell_y = center_y - e->pos().y(); // in trigo reference
 
 			current_dust.rel_dest_x = dest_x;
 			current_dust.rel_dest_y = dest_y;
 
+			current_dust.copy_width = tmmax(1, (int)roundf(m_resize_rect_xscale*fabs(center_x - e->pos().x())));
+			current_dust.copy_height = tmmax(2, (int)roundf(m_resize_rect_yscale*fabs(center_y - e->pos().y())));
 
 			m_pImgProc->setCopySrc(&current_dust,
 				center_x, center_y);
@@ -1271,7 +1309,7 @@ void TamanoirApp::on_loadButton_clicked()
 		m_fileDialog = new QFileDialog(this,
 						tr("Tamanoir - Open a picture to be cleaned"),
 						g_display_options.currentDir,
-						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp *.CR2"
+						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp *.cr2"
 							"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP *.CR2)"));
 		m_fileDialog->setFileMode(QFileDialog::ExistingFile);
 	}
@@ -2619,7 +2657,7 @@ t_correction TamanoirThread::getCorrection() {
 		current_dust = dust_list.takeFirst();
 
 	if(g_debug_TmThread || g_debug_list) {
-		fprintf(stderr, "TMThread::%s:%d : takeFirest => dust=%d,%d +%dx%d\n",
+		fprintf(stderr, "TMThread::%s:%d : takeFirst => dust=%d,%d +%dx%d\n",
 				__func__, __LINE__,
 				current_dust.crop_x + current_dust.rel_dest_x,
 				current_dust.crop_y + current_dust.rel_dest_y,

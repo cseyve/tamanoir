@@ -969,7 +969,7 @@ void tmMarkCloneRegion(IplImage * origImage,
 
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
-
+/*
 	// Clip copy
 	if( orig_y > copy_y) {
 		if(orig_y + copy_height > orig_height)
@@ -988,7 +988,7 @@ void tmMarkCloneRegion(IplImage * origImage,
 	}
 	if(copy_width < 0)
 		return;
-
+*/
 	// Debug : original (=bad) as red, copy source (=good) in green
 	if(mark) {
 		CvScalar color =(origImage->nChannels > 1 ? CV_RGB(255,0,0) :
@@ -1011,7 +1011,7 @@ void tmMarkCloneRegion(IplImage * origImage,
 		*/
 		cvEllipse(origImage,
 					cvPoint( orig_x, orig_y),
-					cvSize((copy_width+1)/2, (copy_height+1)/2),
+					cvSize( (copy_width+1)/2, (copy_height+1)/2),
 					0, 0, 360,
 					color,
 					1);
@@ -2089,7 +2089,7 @@ IplImage * tmLoadImage(const char *filename, int * dpi) {
 			return originalImage;
 		}
 	}
-
+	// load with OpenCV
 	originalImage = cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
 					);
