@@ -210,6 +210,9 @@ int main(int argc, char *argv[])
 			if(strstr(argv[argcount], "full"))	{
 				full = true;
 			}
+			if(strstr(argv[argcount], "import"))	{
+				g_debug_importexport = 1;
+			}
 			if(strstr(argv[argcount], "debug")) {
 				g_debug_imgverbose = 1;
 				g_debug_imgoutput = 1;

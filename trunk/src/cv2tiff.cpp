@@ -67,6 +67,9 @@ extern "C" {
 #include "imgutils.h"
 
 
+u8 g_debug_cv2tiff = TMLOG_DEBUG;
+
+
 #ifndef HAVE_GETOPT
 extern int getopt(int, char**, char*);
 #endif
@@ -225,9 +228,9 @@ int saveIplImageAsTIFF(IplImage* img, const char * outfilename, char * compressi
 		dtype, hdr_size, nbands, swab, &width, &length) < 0) {
 		return 1;
 	}
-fprintf(stderr, "[%s] %s:%d :dtype=%d, hdr_size=%d, nbands=%d, swab=%d, width=%d, length=%d\n",
-	__FILE__, __func__, __LINE__, 
-	dtype, (int)hdr_size, nbands, swab, width, length);
+	fprintf(stderr, "[%s] %s:%d :dtype=%d, hdr_size=%d, nbands=%d, swab=%d, width=%d, length=%d\n",
+		__FILE__, __func__, __LINE__,
+		dtype, (int)hdr_size, nbands, swab, width, length);
 	
 	out = TIFFOpen(outfilename, "w");
 	if (out == NULL) {
@@ -481,79 +484,79 @@ correlation(void *buf1, void *buf2, uint32 n_elem, TIFFDataType dtype)
 	uint32	i;
 
 	switch (dtype) {
-		case TIFF_BYTE:
-		default:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((unsigned char *)buf1)[i];
-				Y = ((unsigned char *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_SBYTE:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((signed char *)buf1)[i];
-				Y = ((signed char *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_SHORT:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((uint16 *)buf1)[i];
-				Y = ((uint16 *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_SSHORT:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((int16 *)buf1)[i];
-				Y = ((int16 *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_LONG:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((uint32 *)buf1)[i];
-				Y = ((uint32 *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_SLONG:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((int32 *)buf1)[i];
-				Y = ((int32 *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_FLOAT:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((float *)buf1)[i];
-				Y = ((float *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
-		case TIFF_DOUBLE:
-                        for (i = 0; i < n_elem; i++) {
-				X = ((double *)buf1)[i];
-				Y = ((double *)buf2)[i];
-				M1 += X, M2 += Y;
-				D1 += X * X, D2 += Y * Y;
-				K += X * Y;
-                        }
-			break;
+	case TIFF_BYTE:
+	default:
+		for (i = 0; i < n_elem; i++) {
+			X = ((unsigned char *)buf1)[i];
+			Y = ((unsigned char *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_SBYTE:
+		for (i = 0; i < n_elem; i++) {
+			X = ((signed char *)buf1)[i];
+			Y = ((signed char *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_SHORT:
+		for (i = 0; i < n_elem; i++) {
+			X = ((uint16 *)buf1)[i];
+			Y = ((uint16 *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_SSHORT:
+		for (i = 0; i < n_elem; i++) {
+			X = ((int16 *)buf1)[i];
+			Y = ((int16 *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_LONG:
+		for (i = 0; i < n_elem; i++) {
+			X = ((uint32 *)buf1)[i];
+			Y = ((uint32 *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_SLONG:
+		for (i = 0; i < n_elem; i++) {
+			X = ((int32 *)buf1)[i];
+			Y = ((int32 *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_FLOAT:
+		for (i = 0; i < n_elem; i++) {
+			X = ((float *)buf1)[i];
+			Y = ((float *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
+	case TIFF_DOUBLE:
+		for (i = 0; i < n_elem; i++) {
+			X = ((double *)buf1)[i];
+			Y = ((double *)buf2)[i];
+			M1 += X, M2 += Y;
+			D1 += X * X, D2 += Y * Y;
+			K += X * Y;
+		}
+		break;
 	}
 
 	M1 /= n_elem;
@@ -577,18 +580,18 @@ processCompressOptions(char* opt)
 	else if (strncmp(opt, "jpeg", 4) == 0) {
 		char* cp = strchr(opt, ':');
 
-                compression = COMPRESSION_JPEG;
-                while( cp )
-                {
-                    if (isdigit((int)cp[1]))
-			quality = atoi(cp+1);
-                    else if (cp[1] == 'r' )
-			jpegcolormode = JPEGCOLORMODE_RAW;
-					//else
-					//    usage();
+		compression = COMPRESSION_JPEG;
+		while( cp )
+		{
+			if (isdigit((int)cp[1]))
+				quality = atoi(cp+1);
+			else if (cp[1] == 'r' )
+				jpegcolormode = JPEGCOLORMODE_RAW;
+			//else
+			//    usage();
 
-                    cp = strchr(cp+1,':');
-                }
+			cp = strchr(cp+1,':');
+		}
 	} else if (strncmp(opt, "lzw", 3) == 0) {
 		char* cp = strchr(opt, ':');
 		if (cp)
@@ -633,9 +636,11 @@ IplImage * tmOpenTiffImage(const char * filename, int * dpi)
 			if(dpi) {
 				*dpi = (int)tmmax(resolution_x, resolution_y);
 			}
+
 			if(!tiffcvt(in, &out)
 			//CSE || !TIFFWriteDirectory(out)
 				) {
+				fprintf(stderr, "%s:%d : cannot use tiffcvt => use cvOpenImage...", __func__, __LINE__);
 				//(void) TIFFClose(out);
 				return cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
@@ -871,17 +876,21 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 
 //	rowsperstrip = TIFFDefaultStripSize(out, rowsperstrip);
 //	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip);
-	fprintf(stderr, "cv2tiff %s:%d : TIFF Info : width=%d height=%d\n",
+	fprintf(stderr, "cv2tiff %s:%d : TIFF Info : "
+			"width=%d height=%d\n",
 			__func__, __LINE__,
 			(int)width, (int)height);
 
-	fprintf(stderr, "cv2tiff %s:%d : TIFF Info : "
+	fprintf(stderr, "cv2tiff %s:%d : TIFF Info TILE: "
 			"tile_width=%d tile_height=%d tile_rowperstrip=%d\n",
 			__func__, __LINE__,
 			(int)tile_width, (int)tile_height,
 			(int)tile_rowperstrip );
-	if( tile_width <= 0 )
+	if( tile_width <= 0 ) {
+		fprintf(stderr, "cv2tiff %s:%d : force tile_width=width=%d",
+				__func__, __LINE__, width);
 		tile_width = width;
+	}
 
 	// allocate
 	int32 bitpersample = 0;
@@ -894,18 +903,20 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 	int bufsize = tile_height * tile_width * channels * bitpersample / 8;
 	uchar * buffer = new uchar[bufsize];
 	tdata_t buf = (tdata_t)0;
-	int step = out->widthStep;
 	int byte_depth = bitpersample/8;
 
 
 	uchar * data = (uchar *)(out->imageData);
+	int pitch = out->widthStep;
+
+
 	/* Read the image in one chunk into an RGBA array *
 	fprintf(stderr, "cv2tiff %s:%d : => step: step=%d * tile_height=%d\n",
 			__func__, __LINE__, step, tile_height);
 	*/
 	uint32 y,x;
 	for( y = 0; y < height; y += tile_height,
-		 data += step*tile_height )
+		 data += pitch*tile_height )
 	{
 		if( y + tile_height > height )
 			tile_height = height - y;
@@ -926,6 +937,7 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 							(int)TIFFScanlineSize(in)
 							);fflush(stderr);
 				}
+
 				if (config == PLANARCONFIG_CONTIG) {
 					//for (row = 0; row < imagelength; row++)
 					//fprintf(stderr, "\r%s:%d : line %d : TIFFReadScanline(row=%d)...",
@@ -962,13 +974,22 @@ fprintf(stderr, "\r%s:%d : line y=%d x=%d : copy buf=%p into "
 		}
 	}
 
-
 	if(buf) {
 		_TIFFfree(buf);
 	}
 
 	delete [] buffer;
 
+	if(g_debug_importexport) {
+		// DEBUG
+		fprintf(stderr, "%s %s:%d : saving for debug : "
+				"%s/cvt_whole_image.ppm",
+				__FILE__, __func__, __LINE__, g_tmp_directory);
+		char debug_file[512];
+		sprintf(debug_file, "%s/cvt_whole_image.ppm",
+				g_tmp_directory);
+		tmSaveImage(debug_file, out);
+	}
 	return 1;
 }
 
@@ -1012,6 +1033,7 @@ static int
 	if(ipl_depth == IPL_DEPTH_8U) {
 //		return -1; // no need for 16bit
 	}
+
 	fprintf(stderr, "cv2tiff %s:%d : create IplImage ((%d,%d), %d, %d)\n",
 			__func__, __LINE__,
 			(int)width, (int)height,
@@ -1086,35 +1108,35 @@ static int
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_TOPLEFT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         1       /* row 0 top, col 0 lhs */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=TOPLEFT= 1 /* row 0 top, col 0 lhs */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_TOPRIGHT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        2       /* row 0 top, col 0 rhs */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=TOPRIGHT= 2 /* row 0 top, col 0 rhs */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_BOTRIGHT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        3       /* row 0 bottom, col 0 rhs */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=BOTRIGHT= 3 /* row 0 bottom, col 0 rhs */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_BOTLEFT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         4       /* row 0 bottom, col 0 lhs */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=BOTLEFT= 4 /* row 0 bottom, col 0 lhs */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_LEFTTOP:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         5       /* row 0 lhs, col 0 top */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=LEFTTOP= 5 /* row 0 lhs, col 0 top */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_RIGHTTOP:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        6       /* row 0 rhs, col 0 top */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=RIGHTTOP= 6 /* row 0 rhs, col 0 top */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_RIGHTBOT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=        7       /* row 0 rhs, col 0 bottom */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=RIGHTBOT= 7 /* row 0 rhs, col 0 bottom */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	case ORIENTATION_LEFTBOT:
-		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=         8       /* row 0 lhs, col 0 bottom */\n",
+		fprintf(stderr, "cv2tiff %s:%d : fillorder=%u=LEFTBOT = 8 /* row 0 lhs, col 0 bottom */\n",
 				__func__, __LINE__, fillorder);
 		break;
 	}
@@ -1131,6 +1153,11 @@ static int
 //	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 //	TIFFSetField(out, TIFFTAG_SOFTWARE, TIFFGetVersion());
 	CopyField(TIFFTAG_DOCUMENTNAME, stringv);
+
+	fprintf(stderr, "cv2tiff %s:%d : process_by_block=%c TIFFisTiled=%c\n",
+			__func__, __LINE__,
+			process_by_block ? 'T':'F',
+			TIFFIsTiled( in ) ? 'T':'F');
 
 	if( process_by_block && TIFFIsTiled( in ) )
 		return( cvt_by_tile( in, *out ) );

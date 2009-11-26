@@ -26,6 +26,16 @@
 #ifndef IMGUTILS_H
 #define IMGUTILS_H
 
+#ifdef IMGUTILS_CPP
+#define IMGUTILS_EXTERN
+#define IMGUTILS_EMPTY	=""
+#define IMGUTILS_ZERO	=0
+#else
+#define IMGUTILS_EXTERN	extern
+#define IMGUTILS_EMPTY
+#define IMGUTILS_ZERO
+#endif
+
 
 #ifdef WIN32
 #define tmsleep(s)	Sleep((s)*1000)
@@ -50,14 +60,22 @@
 #define tmmax(a,b) ((a)>(b)?(a):(b))
 #endif
 
+
+
 // DEBUG IMAGES DIRECTORY AND EXTENSION
 #ifdef LINUX //not __X11_DARWIN__
 #define TMP_DIRECTORY	"/dev/shm/"
 #define IMG_EXTENSION	".pgm"
 #else
+#ifdef WIN32
+#define TMP_DIRECTORY	"c:/temp/"
+#define IMG_EXTENSION	".jpg"
+#else // MacOS X
 #define TMP_DIRECTORY	"/Users/tof/tmp/"
 #define IMG_EXTENSION	".jpg"
 #endif
+#endif
+
 
 // TYPEDEFS FOR MULTIPLE ARCHITECTURE TYPES (32bit, 64bit...)
 #ifndef u8
@@ -68,13 +86,30 @@ typedef uint32_t u32;
 typedef int32_t i32;
 #endif
 
+
+
+/** @brief Temporary directory for saving debug images
+  @see TMP_DIRECTORY
+  /dev/shm under Linux
+  $HOME/tmp under MacOSX
+  C:/temp/ under Windows
+  */
+IMGUTILS_EXTERN char g_tmp_directory[512]
 #ifdef IMGUTILS_CPP
-#define IMGUTILS_EXTERN
-#define IMGUTILS_NULL	=0
-#else
-#define IMGUTILS_EXTERN	extern
-#define IMGUTILS_NULL
+		= TMP_DIRECTORY
 #endif
+		;
+IMGUTILS_EXTERN u8 g_debug_importexport IMGUTILS_ZERO;
+
+
+// Debug/message levels
+#define TMLOG_TRACE		2
+#define TMLOG_DEBUG		1
+#define TMLOG_INFO		0
+#define TMLOG_WARNING	-1
+#define TMLOG_ERROR		-2
+
+
 
 #define COLORMARK_THRESHOLD	251
 
@@ -99,11 +134,15 @@ typedef int32_t i32;
 #define DIFF_THRESHVAL  250
 
 /// Flag to save debug images in @see TMP_DIRECTORY (activated with argument '-save')
-IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_NULL;
+IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_ZERO;
 
 // Gray level difference for _very_ visually different pixels
 #define VISIBLE_DIFF	40
 
+
+
+/** @brief Init global variables and settings */
+void tmInitGlobals();
 
 /** @brief Print image properties */
 void tmPrintProperties(IplImage * img);

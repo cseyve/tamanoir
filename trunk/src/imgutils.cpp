@@ -24,6 +24,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
 
 
 #define IMGUTILS_CPP
@@ -36,6 +42,38 @@
 FILE * logfile = stderr;
 
 extern u8 g_debug_imgverbose;
+
+static u8 tmInitGlobals_init = 0;
+void tmInitGlobals() {
+	if(tmInitGlobals_init) return;
+
+	tmInitGlobals_init = 1;
+#ifndef __LINUX__
+	if(getenv( "HOME")) {
+		strcpy(g_tmp_directory, getenv( "HOME"));
+		strcat(g_tmp_directory, "/tmp/");
+
+		umask(0000);
+		int errorCode = mkdir(g_tmp_directory, 0777);
+		if(errorCode != 0) {
+			errorCode = errno;
+
+		}
+
+		if(errorCode == 0 || errorCode == EEXIST) {
+			chmod(g_tmp_directory, 0777);
+		} else {
+			fprintf(stderr, "[imgutils] %s:%d : cannot create directory '%s'"
+					" because of error=%d='%s'\n",
+					__func__, __LINE__, g_tmp_directory,
+					errorCode, strerror(errorCode));
+			// So use the default directory
+			strcpy(g_tmp_directory, TMP_DIRECTORY);
+		}
+	}
+#endif
+
+}
 
 int tmByteDepth(IplImage * iplImage) {
 	int byte_depth = iplImage->nChannels;
@@ -532,13 +570,28 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 			if(dy > copy_height_2-height_margin)
 				coef_y = 1.f -(float)(dy-(copy_height_2-height_margin))/(float)(height_margin);
 
+			float dy2 = dy*dy;
+			float dynorm = (float)-dy/copy_height_2;
 			for(x = 0; x<copy_width; x++) {
 				int dx = abs(x - copy_width_2);
 				float coef_x = 1.f;
 				if(dx > copy_width_2-width_margin)
 					coef_x = 1.f -(float)(dx-(copy_width_2-width_margin))/(float)(width_margin);
 
+				double theta = atan2(dynorm, (float)dx/copy_width_2);
+				float radius = sqrt(dx*dx+dy*dy);
+				float maxdx = cos(theta)*(float)copy_width_2;
+				float maxdy = sin(theta)*(float)copy_height_2;
+				float maxrad = sqrt(maxdx*maxdx+maxdy*maxdy);
 				float coef_copy = coef_x * coef_y;
+
+				float nominal = 0.6f * maxrad;
+				if(radius<nominal) {
+					coef_copy = 1.f;
+				} else {
+					coef_copy = 1.f - (radius-nominal) / (maxrad-nominal);
+				}
+
 
 				if(coef_copy < 0.)
 					coef_copy = 0.;
@@ -546,7 +599,6 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 					coef_copy = 1.;
 
 				float coef_orig = 1.f - coef_copy;
-
 
 				for(int d = 0; d<channels; d++) {
 					float val_orig=0, val_copy=0;
@@ -939,6 +991,11 @@ void tmMarkCloneRegion(IplImage * origImage,
 
 	// Debug : original (=bad) as red, copy source (=good) in green
 	if(mark) {
+		CvScalar color =(origImage->nChannels > 1 ? CV_RGB(255,0,0) :
+					   cvScalarAll(COLORMARK_FAILED) );
+
+
+				/*
 		if(origImage->nChannels > 1)
 			cvRectangle(origImage,
 					cvPoint(orig_x-copy_width/2, orig_y-copy_height/2),
@@ -951,9 +1008,16 @@ void tmMarkCloneRegion(IplImage * origImage,
 					cvPoint(orig_x+copy_width/2, orig_y+copy_height/2),
 					cvScalarAll(COLORMARK_FAILED), // red in 8bit image
 					1);
+		*/
+		cvEllipse(origImage,
+					cvPoint( orig_x, orig_y),
+					cvSize((copy_width+1)/2, (copy_height+1)/2),
+					0, 0, 360,
+					color,
+					1);
 	}
 
-
+/*
 	cvRectangle(origImage,
 				cvPoint(copy_x-copy_width/2, copy_y-copy_height/2),
 				cvPoint(copy_x+copy_width/2, copy_y+copy_height/2),
@@ -961,7 +1025,15 @@ void tmMarkCloneRegion(IplImage * origImage,
 					CV_RGB(0,255,0) :
 					cvScalarAll(COLORMARK_CORRECTED)),
 				1);
-
+*/
+	cvEllipse(origImage,
+					cvPoint( copy_x, copy_y),
+					cvSize(copy_width/2+1, copy_height/2+1),
+					0, 0, 360,
+					(origImage->nChannels>1?
+						CV_RGB(0,255,0) :
+						cvScalarAll(COLORMARK_CORRECTED)),
+					1);
 	// Copy vector
 	int copy_center_x = copy_x;
 	int copy_center_y = copy_y;
@@ -2001,6 +2073,18 @@ IplImage * tmLoadImage(const char *filename, int * dpi) {
 		originalImage  =
 			tmOpenTiffImage(filename, dpi);
 		if(originalImage) {
+
+			if(g_debug_importexport) {
+				// DEBUG
+				fprintf(stderr, "%s %s:%d : saving for debug : "
+						"%s/tmOpenTiffImage.ppm",
+						__FILE__, __func__, __LINE__, g_tmp_directory);
+				char debug_file[512];
+				sprintf(debug_file, "%s/tmOpenTiffImage.ppm",
+						g_tmp_directory);
+				tmSaveImage(debug_file, originalImage);
+			}
+
 			// Ok, loading is done
 			return originalImage;
 		}
@@ -2009,6 +2093,16 @@ IplImage * tmLoadImage(const char *filename, int * dpi) {
 	originalImage = cvLoadImage(filename,
 					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
 					);
+	if(g_debug_importexport) {
+		// DEBUG
+		fprintf(stderr, "%s %s:%d : saving for debug : "
+				"%s/cvLoadImage.ppm",
+				__FILE__, __func__, __LINE__, g_tmp_directory);
+		char debug_file[512];
+		sprintf(debug_file, "%s/cvLoadImage.ppm",
+				g_tmp_directory);
+		tmSaveImage(debug_file, originalImage);
+	}
 	return originalImage;
 }
 
