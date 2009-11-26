@@ -1487,6 +1487,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 		255,
 		&connect );
 
+	m_dust_detection_props.abs_grown_conn = connect;
 	m_dust_detection_props.connect_area = connect.area;
 
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
@@ -1586,6 +1587,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 								dilateImage, &best_correl,
 								&sum_dust, &sum_neighbour);
 
+		m_dust_detection_props.rel_grown_conn = crop_connect;
 		m_dust_detection_props.dilateDust = is_a_dust;
 
 /* CROPPED IMAGES :
@@ -1905,8 +1907,9 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				   && m_options.onlyEmpty
 				   && !force_search  // only when we're not forcing to search a specific dust
 				   ) {
+
 					m_dust_detection_props.neighbourhoodEmpty = 
-					is_a_dust = neighbourhoodEmpty(pcorrection);
+						is_a_dust = neighbourhoodEmpty( pcorrection );
 
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
@@ -2239,6 +2242,7 @@ bool TamanoirImgProc::correctedBetterThanOriginal(t_correction * pcorrection) {
 	//	clone image region
 	tmCropImage(grayImage, tmpCropImage,
 			pcorrection->crop_x, pcorrection->crop_y);
+
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 - dilateImage = 0
@@ -2246,13 +2250,14 @@ bool TamanoirImgProc::correctedBetterThanOriginal(t_correction * pcorrection) {
 - tmpCropImage = crop(grayImage)
 - correctImage = smooth(tmpCropImage)
 */
-
+	// Apply found correction in cropped image
 	tmCloneRegion(tmpCropImage,
 		pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
 		pcorrection->rel_src_x, pcorrection->rel_src_y, // src
 		pcorrection->copy_width, pcorrection->copy_height,
 		tmpCropImage
 		);
+
 	// Then blur and process diff
 	cvSmooth(tmpCropImage, correctImage,
 		CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
@@ -2289,6 +2294,7 @@ bool TamanoirImgProc::correctedBetterThanOriginal(t_correction * pcorrection) {
 		DIFF_CONTOUR,
 		242,
 		&after_connect);
+
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 
@@ -2298,12 +2304,20 @@ bool TamanoirImgProc::correctedBetterThanOriginal(t_correction * pcorrection) {
 */
 	if(after_connect.area > m_dust_area_min) {
 		fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
-			"\t STILL A DUST => grown:%d,%d+%dx%d \n",
+				"%d,%d+%dx%d=>%d,%d "
+			"area=%d => AFTER= STILL A DUST => grown:%d,%d+%dx%d area=%d > area_min=%d\n",
 			__func__, __LINE__,
+			pcorrection->rel_src_x, pcorrection->rel_src_y, // src
+			pcorrection->copy_width, pcorrection->copy_height,
+				pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
+
+			pcorrection->area,
 			(int)after_connect.rect.x, (int)after_connect.rect.y,
-			(int)after_connect.rect.width, (int)after_connect.rect.height);
-		//
-		return false;
+			(int)after_connect.rect.width, (int)after_connect.rect.height,
+			(int)after_connect.area, m_dust_area_min
+			);
+
+		//FIXME : bad region growing return false;
 	}
 
 	return true;
@@ -3060,7 +3074,6 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 
 
 
-
 		// Display rect on diffimage to present the
 		cvRectangle(disp_cropImage,
 					cvPoint( tmmin(correction.rel_src_x - correction.copy_width,
@@ -3100,6 +3113,8 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		correction.copy_width, correction.copy_height,
 		disp_correctColorImage
 		);
+
+
 
 	tmMarkCloneRegion(disp_cropColorImage,
 		correction.rel_dest_x, correction.rel_dest_y, // dest

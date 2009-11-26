@@ -193,7 +193,8 @@ typedef struct t_correction_ {
   */
 typedef struct {
 	int seed_x, seed_y;		/*! Original seed */
-
+	CvConnectedComp abs_grown_conn;	/*! Absolute grown region */
+	CvConnectedComp rel_grown_conn;	/*! Relative grown region */
 	u8 force_search;				/*! Forced search flag */
 
 	u8 big_enough;					/*! Size if big enough to be a dust (dpeend on dpi) */
@@ -357,6 +358,7 @@ public:
 	IplImage * getCrop() { return disp_cropColorImage; };
 	IplImage * getDiffCrop() { return disp_cropImage; };
 	IplImage * getMask() { return disp_dilateImage; };
+	IplImage * getCorrectImage() { return correctImage; };
 
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };

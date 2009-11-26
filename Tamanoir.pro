@@ -5,10 +5,11 @@ TEMPLATE = app
 
 mac::DEFINES += VERSION_YY="`date +%Y`" \
 	VERSION_MM="`date +%m | sed 's/0//'`" \
-    	VERSION_DD="`date +%d | sed 's/0//'`"
+	VERSION_DD="`date +%d | sed 's/0//'`"
 linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
 	VERSION_MM="`date +%m | sed 's/0//'`" \
-    	VERSION_DD="`date +%d | sed 's/0//'`"
+	VERSION_DD="`date +%d | sed 's/0//'`" \
+	__LINUX__
 win32::DEFINES += VERSION_YY="2009" \
 	VERSION_MM="10" \
 	VERSION_DD="13"

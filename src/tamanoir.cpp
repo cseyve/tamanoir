@@ -87,6 +87,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.setupUi((QMainWindow *)this);
 	ui.infoFrame->hide();
 
+	m_resize_rect_xscale = m_resize_rect_yscale = 2;
+	m_resize_rect = false;
 	m_overCorrected = false;
 
 	// Load last options
@@ -617,6 +619,87 @@ void TamanoirApp::on_linearButton_toggled(bool state) {
 }
 
 
+
+
+
+
+
+
+// return distance to a corrected dust
+int distToEllipse(t_correction current_dust, int mouse_x, int mouse_y) {
+	//
+	float dx = (float)(mouse_x - current_dust.rel_src_x);
+	float dy = (float)(mouse_y - current_dust.rel_src_y);
+	float radius_x = current_dust.copy_width*0.5f; if(radius_x < 1) return 100;
+	float radius_y = current_dust.copy_height*0.5f; if(radius_y < 1) return 100;
+	double theta = atan2(-dy/radius_y, dx/radius_x); // angle center->mouse
+	float xborder = cos(theta)*radius_x; // position of ellipse in this direction
+	float yborder = -sin(theta)*radius_y;
+
+	float bx = dx-xborder;
+	float by = dy-yborder;
+
+	float dist = sqrtf(bx*bx+by*by);
+/*fprintf(stderr, "distToEllipse dx,y=%g,%g => th=%g => d=%g,%g  dist %g\n",
+		dx, dy, theta,
+		bx, by, dist);*/
+	return (int)dist;
+}
+
+
+// return distance to a corrected dust
+int radiusOfEllipse(t_correction current_dust, int mouse_x, int mouse_y) {
+	//
+	float dx = (float)(mouse_x - current_dust.rel_src_x);
+	float dy = (float)(mouse_y - current_dust.rel_src_y);
+	float radius_x = current_dust.copy_width*0.5f; if(radius_x < 1) return 100;
+	float radius_y = current_dust.copy_height*0.5f; if(radius_y < 1) return 100;
+	double theta = atan2(-dy/radius_y, dx/radius_x);
+	float xborder = cos(theta)*radius_x;
+	float yborder = -sin(theta)*radius_y;
+
+	float dist = sqrtf(xborder*xborder+yborder*yborder);
+	return (int)dist;
+}
+// return distance to a corrected dust
+int distToEllipseCenter(t_correction current_dust, int mouse_x, int mouse_y) {
+	//
+	float dx = (float)(mouse_x - current_dust.rel_src_x);
+	float dy = (float)(mouse_y - current_dust.rel_src_y);
+
+	float dist = sqrtf(dx*dx+dy*dy);
+	return (int)dist;
+}
+
+int distantToRect(t_correction current_dust, int mouse_x, int mouse_y) {
+	int dist_to_border = 100;
+		int border_tolerance = 5;
+
+	// Distance to border of source rectangle
+	if(		mouse_x >= current_dust.rel_src_x-current_dust.copy_width/2 -border_tolerance
+		&& mouse_x <= current_dust.rel_src_x+current_dust.copy_width/2 +border_tolerance
+		&& mouse_y >= current_dust.rel_src_y-current_dust.copy_height/2-border_tolerance
+		&& mouse_y <= current_dust.rel_src_y+current_dust.copy_height/2+border_tolerance ) {
+
+		int dx = tmmin( abs(current_dust.rel_src_x+current_dust.copy_width/2 - mouse_x),
+					abs(current_dust.rel_src_x-current_dust.copy_width/2 - mouse_x) );
+
+		int dy = tmmin( abs(current_dust.rel_src_y+current_dust.copy_height/2 - mouse_y),
+					abs(current_dust.rel_src_y-current_dust.copy_height/2 - mouse_y) );
+
+		dist_to_border = tmmin(	dx, dy );
+	}
+
+	return dist_to_border;
+}
+
+
+
+
+
+
+
+
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 	m_overCorrected = false;
 
@@ -636,32 +719,20 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		int mouse_y = e->pos().y();
 		int border_tolerance = 5;
 
-		// Distance to border of source rectangle
-		if(		mouse_x >= current_dust.rel_src_x-current_dust.copy_width/2 -border_tolerance
-			&& mouse_x <= current_dust.rel_src_x+current_dust.copy_width/2 +border_tolerance
-			&& mouse_y >= current_dust.rel_src_y-current_dust.copy_height/2 -border_tolerance
-			&& mouse_y <= current_dust.rel_src_y+current_dust.copy_height/2 +border_tolerance ) {
+		dist_to_border = distToEllipse(current_dust, mouse_x, mouse_y);
 
-			int dx = tmmin( abs(current_dust.rel_src_x+current_dust.copy_width/2 - mouse_x),
-					abs(current_dust.rel_src_x-current_dust.copy_width/2  - mouse_x) );
-
-			int dy = tmmin( abs(current_dust.rel_src_y+current_dust.copy_height/2 - mouse_y),
-					abs(current_dust.rel_src_y-current_dust.copy_height/2 - mouse_y) );
-
-			dist_to_border = tmmin(	dx, dy );
-		}
 
 		// Dist to destination
 		int dx_dest = abs(e->pos().x() - (current_dust.rel_dest_x ));
 		int dy_dest = abs(e->pos().y() - (current_dust.rel_dest_y ));
 		float dist_dest = sqrt((float)(dx_dest*dx_dest + dy_dest*dy_dest ));
-		int dist_to_dest = tmmax( dx_dest, dy_dest );
+		int dist_to_dest = (int)dist_dest;
 
 		// Dist to source
 		int dx_src = abs(e->pos().x() - (current_dust.rel_src_x ));
 		int dy_src = abs(e->pos().y() - (current_dust.rel_src_y ));
 		float dist_src = sqrt((float)(dx_src*dx_src + dy_src*dy_src ));
-		int dist_to_src = tmmax( dx_src, dy_src );
+		int dist_to_src = (int)dist_src;
 
 		//fprintf(stderr, "TamanoirApp::%s:%d : dist to border=%d / src=%d / dest=%d\n",
 		//		__func__, __LINE__, dist_to_border, dist_to_src, dist_to_src );
@@ -676,13 +747,19 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		case Qt::LeftButton: {
 			if(!m_draw_on) {
 				// Check if the click is near the border of the rectangle
-				if( dist_to_border <= 5 && dist_to_border<=dist_to_src) {
+				if( dist_to_border <= 5 && dist_to_border <= dist_to_src) {
 
 					cropPixmapLabel_last_button = Qt::RightButton; // e->button();
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 
+					// get coef
+					if(current_dust.copy_width > 0)
+						m_resize_rect_xscale = 2.f*(float)current_dust.copy_width/(float)fabsf(mouse_x - current_dust.rel_src_x);
+					if(current_dust.copy_height > 0)
+						m_resize_rect_yscale = 2.f*(float)current_dust.copy_height/(float)fabsf(mouse_y - current_dust.rel_src_y);
 					m_resize_rect = true;
-
+fprintf(stderr, "%s:%d : FIXME : bad formula : resize ellipse => scale %g,%g\n",
+		__func__ , __LINE__,m_resize_rect_xscale, m_resize_rect_yscale );
 					return;
 				} else {
 					m_resize_rect = false;
@@ -690,7 +767,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			}
 
 
-			if(tmmin(dist_to_src, dist_to_dest) < 50) {
+			if(tmmin(dist_to_src, dist_to_dest) < tmmin(dist_to_border, 50)) {
 				if(dist_src < dist_dest) {
 					// Move src
 					is_src_selected = true;
@@ -700,7 +777,11 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				}
 
 				if(!m_draw_on) {
-					ui.cropPixmapLabel->setCursor( Qt::ClosedHandCursor );
+					if(is_src_selected)// use hand for source
+						ui.cropPixmapLabel->setCursor( Qt::ClosedHandCursor );
+					else // and cross for dest
+						ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
+
 				}
 			}
 
@@ -748,11 +829,9 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				current_dust.rel_src_y = e->pos().y();
 			} else {
 				// Check if the click is near the rectangle
-				int dx = tmmin(abs(current_dust.rel_src_x+current_dust.copy_width/2 - e->pos().x()),
-					   abs(current_dust.rel_src_x-current_dust.copy_width/2 - e->pos().x()));
-				int dy = tmmin(abs(current_dust.rel_src_y+current_dust.copy_height/2 - e->pos().y()),
-					   abs(current_dust.rel_src_y-current_dust.copy_height/2 - e->pos().y()));
-				if(dx<= 5 && dy <= 5) {
+				int dist_to_border = distToEllipse(current_dust, e->pos().x(), e->pos().y());
+
+				if(dist_to_border <= 5) {
 					cropPixmapLabel_last_button = e->button();
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 				}
@@ -768,22 +847,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 }
 
 
-void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
-	if(e && m_pProcThread && m_pImgProc) {
-		m_pImgProc->showDebug(true);
-		m_overCorrected = false;
-		int mouse_x = e->pos().x();
-		int mouse_y = e->pos().y();
-
-		if( abs(mouse_x - ui.correctPixmapLabel->width() /2)< (ui.correctPixmapLabel->width() /2)-20
-			&& abs(mouse_y - ui.correctPixmapLabel->height() /2)< (ui.correctPixmapLabel->height() /2) -20) {
-			m_overCorrected = true;
-		}
-
-		updateDisplay();
-	}
-}
-
 void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 	m_overCorrected = false;
 
@@ -795,30 +858,19 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		int mouse_y = e->pos().y();
 		int border_tolerance = 5;
 
-		// Distance to border of source rectangle
-		if(		mouse_x >= current_dust.rel_src_x-current_dust.copy_width/2 -border_tolerance
-			&& mouse_x <= current_dust.rel_src_x+current_dust.copy_width/2 +border_tolerance
-			&& mouse_y >= current_dust.rel_src_y-current_dust.copy_height/2-border_tolerance
-			&& mouse_y <= current_dust.rel_src_y+current_dust.copy_height/2+border_tolerance ) {
+		dist_to_border = distToEllipse(current_dust, mouse_x, mouse_y);
 
-			int dx = tmmin( abs(current_dust.rel_src_x+current_dust.copy_width/2 - mouse_x),
-						abs(current_dust.rel_src_x-current_dust.copy_width/2 - mouse_x) );
-
-			int dy = tmmin( abs(current_dust.rel_src_y+current_dust.copy_height/2 - mouse_y),
-						abs(current_dust.rel_src_y-current_dust.copy_height/2 - mouse_y) );
-
-			dist_to_border = tmmin(	dx, dy );
-		}
+		int dist_to_center = radiusOfEllipse(current_dust, mouse_x, mouse_y);
 
 		// Dist to destination
 		int dx_dest = abs(e->pos().x() - current_dust.rel_dest_x );
 		int dy_dest = abs(e->pos().y() - current_dust.rel_dest_y );
-		int dist_to_dest = tmmax(	dx_dest, dy_dest );
+		int dist_to_dest = sqrtf(dx_dest*dx_dest +  dy_dest *dy_dest );
 
 		// Dist to source
 		int dx_src = abs(e->pos().x() - current_dust.rel_src_x );
 		int dy_src = abs(e->pos().y() - current_dust.rel_src_y );
-		int dist_to_src = tmmax( dx_src, dy_src );
+		int dist_to_src = sqrtf( dx_src*dx_src+ dy_src *dy_src);
 
 
 
@@ -826,15 +878,20 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		default:
 		case Qt::NoButton: {
 			if(!m_draw_on) {
-				if( dist_to_border <= border_tolerance && dist_to_border<=dist_to_src) {
+				if( dist_to_border <= border_tolerance
+					&& dist_to_border <= dist_to_src) {
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 					return;
 				}
 
 				// First check if click is closer to src or dest
-				if(tmmin(dist_to_src, dist_to_dest) < tmmin(current_dust.copy_width, current_dust.copy_height)/2) {
-
-					ui.cropPixmapLabel->setCursor( Qt::OpenHandCursor);
+				if(tmmin(dist_to_src, dist_to_dest)
+					< dist_to_center/2
+							) {
+					if(dist_to_src<dist_to_dest)
+						ui.cropPixmapLabel->setCursor( Qt::OpenHandCursor);
+					else
+						ui.cropPixmapLabel->setCursor( Qt::CrossCursor);
 				}
 				else {
 					ui.cropPixmapLabel->setCursor( Qt::ArrowCursor);
@@ -867,6 +924,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 						/*
 u8 big_enough;					*! Size if big enough to be a dust (dpeend on dpi) *
 
+float connect_area
 float flood_area;				*! Area of region growing on gray level *
 u8 is_fiber;					*! Fiber (surf of rect >> surf of diff region growing *
 float mean_neighbour;			*! Mean value of neighbouring *
@@ -888,8 +946,12 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 
 						  */
 						char proptxt[1024];
-						sprintf(proptxt, "%d,%d "
-								"%s %s flood=%g %s "
+						sprintf(proptxt, "seed:%d,%d "
+								"grown:%d,%d+%dx%d"
+									"\n"
+								"rel:%d,%d+%dx%d"
+									"\n"
+								"%s %s flood=%g con=%g %s "
 									"\n"
 								"D=%g N=%g C=%g\n=>vis=%c "
 								"dilateDust=%c "
@@ -900,12 +962,17 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 									"\n"
 								"diff/N=%c "
 								"diff/dest=%c "
+									"\n"
 								"better/orig=%c Nempt=%c"
 													  ,
 								props.seed_x, props.seed_y,
+								props.abs_grown_conn.rect.x, props.abs_grown_conn.rect.y,
+									props.abs_grown_conn.rect.width, props.abs_grown_conn.rect.height,
+								props.rel_grown_conn.rect.x, props.rel_grown_conn.rect.y,
+									props.rel_grown_conn.rect.width, props.rel_grown_conn.rect.height,
 								props.force_search ? "force":"",
 								props.big_enough? "big":"",
-								props.flood_area,
+								props.flood_area, props.connect_area,
 								props.is_fiber ? "fiber":"",
 								props.mean_dust, props.mean_neighbour,
 									props.contrast, props.visible_enough ? 'T':'F',
@@ -1015,9 +1082,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 
 			int dest_x = current_dust.rel_dest_x;
 			int dest_y = current_dust.rel_dest_y;
-
-			current_dust.copy_width = 2*abs(center_x - e->pos().x());
-			current_dust.copy_height = 2*abs(center_y - e->pos().y());
+//FIXME : with ellipse, that's not the right computation mode
+			current_dust.copy_width = tmmax(1, m_resize_rect_xscale*abs(center_x - e->pos().x()));
+			current_dust.copy_height = tmmax(2, m_resize_rect_yscale*abs(center_y - e->pos().y()));
 
 			current_dust.rel_dest_x = dest_x;
 			current_dust.rel_dest_y = dest_y;
@@ -1028,6 +1095,24 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 			updateDisplay();
 			}break;
 		}
+	}
+}
+
+
+
+void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+	if(e && m_pProcThread && m_pImgProc) {
+		m_pImgProc->showDebug(true);
+		m_overCorrected = false;
+		int mouse_x = e->pos().x();
+		int mouse_y = e->pos().y();
+
+		if( abs(mouse_x - ui.correctPixmapLabel->width() /2)< (ui.correctPixmapLabel->width() /2)-20
+			&& abs(mouse_y - ui.correctPixmapLabel->height() /2)< (ui.correctPixmapLabel->height() /2) -20) {
+			m_overCorrected = true;
+		}
+
+		updateDisplay();
 	}
 }
 
@@ -1974,6 +2059,9 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 		}break;
 	case IPL_DEPTH_16U: {
 		if(!rgb24_to_bgr32) {
+			if(g_debug_importexport) {
+				fprintf(stderr, "%s:%d : input = 16U & !rgb24_to_bgr32\n", __func__, __LINE__);
+			}
 
 			unsigned short valmax = 0;
 
@@ -1987,6 +2075,9 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 
 			if(valmax>0) {
 				if(!gray_to_bgr32) {
+					if(g_debug_importexport) {
+						fprintf(stderr, "%s:%d : input = 16U && !rgb24_to_bgr32 && !gray_to_bgr32\n", __func__, __LINE__);
+					}
 					u8 * buffer4 = (u8 *)qImage.bits();
 					for(int r=0; r<iplImage->height; r++)
 					{
@@ -2002,6 +2093,9 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 						}
 					}
 				} else {
+					if(g_debug_importexport) {
+						fprintf(stderr, "%s:%d : input = 16U && !rgb24_to_bgr32 && gray_to_bgr32\n", __func__, __LINE__);
+					}
 					u32 * buffer4 = (u32 *)qImage.bits();
 					for(int r=0; r<iplImage->height; r++)
 					{
@@ -2020,7 +2114,8 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 			}
 		}
 		else {
-			fprintf(stderr, "[TamanoirApp]::%s:%d : U16  depth = %d -> BGR32\n", __func__, __LINE__, iplImage->depth);
+			fprintf(stderr, "[TamanoirApp]::%s:%d : U16  depth = %d -> BGR32\n",
+					__func__, __LINE__, iplImage->depth);
 			u8 * buffer4 = (u8 *)qImage.bits();
 			if(depth == 3) {
 
@@ -2205,6 +2300,8 @@ void TamanoirApp::updateCroppedDisplay()
 			// If wa are over the correction pixmap, let's display debug information
 			if(m_overCorrected) {
 				IplImage * growImage = m_pImgProc->getMask();//getDiffCrop();
+				//IplImage * growImage = m_pImgProc->getDiffCrop();
+
 				// Mix images
 				//float coef = 0.5f;
 				//float coef_1 = 1.f - coef;

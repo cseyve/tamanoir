@@ -146,7 +146,7 @@
             <item>
              <widget class="QLabel" name="dustInfoLabel">
               <property name="text">
-               <string>info</string>
+               <string>img proc info</string>
               </property>
              </widget>
             </item>
@@ -906,7 +906,7 @@
      <x>0</x>
      <y>0</y>
      <width>805</width>
-     <height>26</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">

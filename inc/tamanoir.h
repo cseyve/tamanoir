@@ -271,6 +271,8 @@ private:
 	bool m_searchCloneSrc;
 
 	bool m_resize_rect;
+	float m_resize_rect_xscale;
+	float m_resize_rect_yscale;
 	QSize m_main_display_rect;
 	QString m_currentFile;
 
