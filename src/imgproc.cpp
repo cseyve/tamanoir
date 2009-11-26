@@ -1908,7 +1908,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				   && !force_search  // only when we're not forcing to search a specific dust
 				   ) {
 
-					m_dust_detection_props.neighbourhoodEmpty = 
+					m_dust_detection_props.neighbourhoodEmpty =
 						is_a_dust = neighbourhoodEmpty( pcorrection );
 
 /* CROPPED IMAGES :
@@ -3074,7 +3074,7 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 
 
 
-		// Display rect on diffimage to present the
+		// Display rect on diffimage to present the source and destination
 		cvRectangle(disp_cropImage,
 					cvPoint( tmmin(correction.rel_src_x - correction.copy_width,
 								   correction.rel_dest_x - correction.copy_width),
@@ -3113,7 +3113,6 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 		correction.copy_width, correction.copy_height,
 		disp_correctColorImage
 		);
-
 
 
 	tmMarkCloneRegion(disp_cropColorImage,
@@ -3182,11 +3181,13 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 			fprintf(stderr, "[imgproc]::%s:%d : release undoImage\n", __func__, __LINE__);
 		}
 	}
+
 	if(!undoImage && cropImage) {
 		undoImage = tmCreateImage(cvSize(cropImage->width, cropImage->height),
 								  originalImage->depth, originalImage->nChannels);
 		resnap = true;
 	}
+
 	if(resnap) {
 		undoImage_x = pcorrection->crop_x;
 		undoImage_y = pcorrection->crop_y;
