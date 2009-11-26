@@ -6,7 +6,7 @@ echo
 echo "BUILDING Tamanoir for MacOS X : please build first with QtCreator....................."
 echo
 #rm -fr Tamanoir.app
-#BUILD_STATIC=true /Developer/Tools/Qt/qmake -macx Tamanoir.pro || exit 0
+#BUILD_STATIC=true /Developer/Tools/Qt/qmake Tamanoir.pro || exit 0
 #make clean && make || exit 0
 
 cp tamanoir_fr.qm Tamanoir.app/Contents/MacOS/tamanoir_French.qm
