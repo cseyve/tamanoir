@@ -222,7 +222,8 @@ private slots:
 	void on_rewindButton_clicked();
 	void on_correctButton_clicked();
 
-	void on_linearButton_toggled(bool state);
+	void on_cloneButton_toggled(bool state);
+	void on_inpaintButton_toggled(bool state);
 	void on_searchCloneSrcCheckBox_toggled(bool state);
 	void on_dustInfoButton_toggled(bool state);
 
@@ -267,7 +268,13 @@ private:
 	TamanoirThread * m_pProcThread;
 	QList<t_correction> skipped_list;
 	bool force_mode;
-	bool m_draw_on;
+
+
+
+	/** @brief Correction mode
+	  0: no forced correction, 1: clone, 2: inpaint
+	  */
+	int m_draw_on;
 	bool m_searchCloneSrc;
 
 	bool m_resize_rect;

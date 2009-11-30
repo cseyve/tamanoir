@@ -138,8 +138,8 @@ void TamanoirImgProc::init() {
 	// Display images
 	displayImage = displayBlockImage = NULL;
 	originalSmallImage = NULL;
-
-	disp_cropColorImage =
+	disp_cropOrigImage =
+		disp_cropColorImage =
 		disp_correctColorImage =
 		disp_dilateImage =
 		disp_cropImage = NULL;
@@ -230,6 +230,7 @@ void TamanoirImgProc::purgeDisplay() {
 	// Display images
 	tmReleaseImage(&disp_cropImage);
 	tmReleaseImage(&disp_cropColorImage);
+	tmReleaseImage(&disp_cropOrigImage);
 	tmReleaseImage(&disp_correctColorImage);
 	tmReleaseImage(&disp_dilateImage);
 	displayCropSize = cvSize(0,0);
@@ -1047,7 +1048,7 @@ typedef struct {
 */
 void fprintfOptions(FILE * f, tm_options * p_options) {
 	if(!f) return;
-
+	fprintf(f, "# Options : \n");
 	fprintf(f, "Trust:%c\n", p_options->trust ? 'T' : 'F');
 	fprintf(f, "HotPixels:%c\n", p_options->hotPixels ? 'T' : 'F');
 	fprintf(f, "OnlyEmpty:%c\n", p_options->onlyEmpty ? 'T' : 'F');
@@ -1135,6 +1136,8 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		firstDust();
 	}
 	else if(rewind_to_previous) {
+		if(m_block_seed_width<=0) m_block_seed_width = 1;
+		if(m_block_seed_height<=0) m_block_seed_height = 1;
 		// use previous values
 		m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
 		m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
@@ -1367,7 +1370,9 @@ int TamanoirImgProc::findDust(int x, int y) {
 	return findDust(x,y, &m_correct);
 }
 
-int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
+int TamanoirImgProc::findDust(int x, int y,
+							  t_correction * pcorrection,
+							  int force_mode) {
 	if(!growImage) return -1; // Loading is not finished
 
 	if(x<0 || x>=diffImage->width
@@ -1671,17 +1676,29 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 			int copy_dest_x=0, copy_dest_y=0,
 				copy_src_x=0, copy_src_y=0,
 				copy_width=0, copy_height=0;
+			int ret = 0;
 
-
-			// Find best proposal in originalImage
-			int ret = tmSearchBestCorrelation(
-				correctColorImage, dilateImage,
-				connect_center_x, connect_center_y,
-				connect_width, connect_height,
-				&copy_dest_x, &copy_dest_y,
-				&copy_src_x, &copy_src_y,
-				&copy_width, &copy_height,
-				&best_correl);
+			// If we try only to use inpainting, we don't need to find a replacement
+			if(force_search &&
+					force_mode == TMMODE_INPAINT) {
+				// no need for replacement
+				ret = 0;
+				copy_width = connect_width;
+				copy_height = connect_height;
+				copy_dest_x = copy_src_x = connect_center_x;
+				copy_dest_y = copy_src_y = connect_center_y;
+			}
+			else {
+				// Find best proposal in originalImage
+				ret = tmSearchBestCorrelation(
+						correctColorImage, dilateImage,
+						connect_center_x, connect_center_y,
+						connect_width, connect_height,
+						&copy_dest_x, &copy_dest_y,
+						&copy_src_x, &copy_src_y,
+						&copy_width, &copy_height,
+						&best_correl);
+			}
 
 			m_dust_detection_props.searchBestCorrelation = ret;
 
@@ -1763,11 +1780,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				copy_height = copy_height * 3/2;
 
 				// Store correction in full image buffer
-#ifdef SIMPLE_VIEWER
 				if(!force_search)
-#else
-				if(!force_search)
-#endif
 				{
 //					pcorrection->dest_x = crop_x + copy_dest_x;
 //					pcorrection->dest_y = crop_y + copy_dest_y;
@@ -1822,6 +1835,13 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 				pcorrection->bg_diff = (sum_dust - sum_neighbour);
 				pcorrection->proposal_diff = best_correl;
 
+				// If we search for inpainting, the grown region is enough
+				if(force_search
+				   && force_mode == TMMODE_INPAINT) {
+					// stop processing now
+					MUTEX_UNLOCK(&mutex);
+					return 1;
+				}
 
 // ====================================================================================
 // NOW WE CHECK IF THIS REGION IS LIKELY TO BE A REAL DUST
@@ -1936,6 +1956,7 @@ int TamanoirImgProc::findDust(int x, int y, t_correction * pcorrection) {
 
 				// Trust mode : check if neighbour is empty enough to correct by default
 				if( (m_options.trust //|| m_options.mode_auto
+					 && !force_search
 					 )// || m_options.onlyEmpty)
 				   && return_now) {
 					// Check if correction area is in diff image
@@ -2939,7 +2960,9 @@ void TamanoirImgProc::cropViewImages() {
 }
 
 
-void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
+void TamanoirImgProc::cropCorrectionImages(t_correction correction,
+										   int correct_mode
+										   ) {
 	if(correction.copy_width <= 0) return;
 
 	if(!originalImage) {
@@ -2976,6 +2999,9 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 
 
 	// Allocate images
+	if(!disp_cropOrigImage) {
+		disp_cropOrigImage = tmCreateImage(cropSize, IPL_DEPTH_8U, originalImage->nChannels);
+	}
 	if(!disp_cropColorImage) {
 		disp_cropColorImage = tmCreateImage(cropSize, IPL_DEPTH_8U, originalImage->nChannels);
 	}
@@ -2990,9 +3016,10 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	if(!disp_cropImage && m_show_crop_debug) {
 		disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
+	CvConnectedComp ext_connect;
 
-
-	if(m_show_crop_debug) { // Grown region
+	if(m_show_crop_debug || correct_mode == TMMODE_INPAINT)
+	{ // Grown region
 		if(disp_dilateImage) {
 			if(disp_dilateImage->width != cropSize.width
 				|| disp_dilateImage->height != cropSize.height) {
@@ -3035,9 +3062,12 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 #else
 			{
 #endif
+				if(!disp_cropImage) {
+					disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
+				}
 				tmCropImage(diffImage, disp_cropImage,
 					correction.crop_x, correction.crop_y);
-				CvConnectedComp ext_connect;
+
 				// Do our own region growing
 				tmGrowRegion(
 						(u8 *)disp_cropImage->imageData,
@@ -3049,10 +3079,12 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 						&ext_connect);
 			}
 		} else { // Do our own region growing
+			if(!disp_cropImage) {
+				disp_cropImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
+			}
 			tmCropImage(diffImage, disp_cropImage,
 					correction.crop_x, correction.crop_y);
 
-			CvConnectedComp ext_connect;
 			tmGrowRegion(
 					(u8 *)disp_cropImage->imageData,
 					(u8 *)disp_dilateImage->imageData,
@@ -3071,9 +3103,6 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 			disp_cropImage,
 			correction.crop_x, correction.crop_y);
 
-
-
-
 		// Display rect on diffimage to present the source and destination
 		cvRectangle(disp_cropImage,
 					cvPoint( tmmin(correction.rel_src_x - correction.copy_width,
@@ -3089,39 +3118,99 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction) {
 	}
 
 	// Top-left on GUI : Original image for display in GUI
-	tmCropImage(originalImage, disp_cropColorImage,
+	tmCropImage(originalImage, disp_cropOrigImage,
 				correction.crop_x, correction.crop_y,
 				true // threshold for not having highlights
 				);
+	cvCopy(disp_cropOrigImage, disp_cropColorImage);
 
 	// Bottom-Left
 	// If we use a blurred version for searching,
 	//	update cropped color with original this time
-	cvCopy(disp_cropColorImage, disp_correctColorImage);
+	cvCopy(disp_cropOrigImage, disp_correctColorImage);
 
 	// For grayscaled images, limit color to 251
-	for(int r=0; r<disp_cropColorImage->height; r++) {
-		u8 * buf = (u8 *)(disp_cropColorImage->imageData + disp_cropColorImage->widthStep * r);
-		for(int c=0; c<disp_cropColorImage->width; c++)
-			if(buf[c]>251) buf[c]=251;
+	if(disp_cropColorImage->nChannels == 1) {
+		for(int r=0; r<disp_cropColorImage->height; r++) {
+			u8 * buf = (u8 *)(disp_cropColorImage->imageData + disp_cropColorImage->widthStep * r);
+			for(int c=0; c<disp_cropColorImage->width; c++)
+				if(buf[c]>251) buf[c]=251;
+		}
 	}
 
-	// Clone image region
-	tmCloneRegion(disp_cropColorImage,
-		correction.rel_dest_x, correction.rel_dest_y, // dest
-		correction.rel_src_x, correction.rel_src_y, // src
-		correction.copy_width, correction.copy_height,
-		disp_correctColorImage
-		);
+	// Cloning : copy src->dest with an elliptic pattern
+	if(correct_mode != TMMODE_INPAINT) {
+
+		// Clone image region
+		tmCloneRegion(disp_cropColorImage,
+			correction.rel_dest_x, correction.rel_dest_y, // dest
+			correction.rel_src_x, correction.rel_src_y, // src
+			correction.copy_width, correction.copy_height,
+			disp_correctColorImage
+			);
+
+		tmMarkCloneRegion(disp_cropColorImage,
+			correction.rel_dest_x, correction.rel_dest_y, // dest
+			correction.rel_src_x, correction.rel_src_y, // src
+			correction.copy_width, correction.copy_height,
+			false // mark move dest
+			);
+	} // else, we are in inpaint mode, we mark the grown region in image
+	else {
 
 
-	tmMarkCloneRegion(disp_cropColorImage,
-		correction.rel_dest_x, correction.rel_dest_y, // dest
-		correction.rel_src_x, correction.rel_src_y, // src
-		correction.copy_width, correction.copy_height,
-		false // mark move dest
-		);
+	//
+	/*
+	  Inpaint
+Inpaints the selected region in the image
 
+void cvInpaint( const CvArr* src, const CvArr* mask, CvArr* dst,
+			int flags, double inpaintRadius );
+
+src
+The input 8-bit 1-channel or 3-channel image.
+mask
+The inpainting mask, 8-bit 1-channel image. Non-zero pixels indicate the area that needs to be inpainted.
+dst
+The output image of the same format and the same size as input.
+flags
+The inpainting method, one of the following:
+CV_INPAINT_NS - Navier-Stokes based method.
+CV_INPAINT_TELEA - The method by Alexandru Telea [Telea04]
+inpaintRadius
+The radius of circlular neighborhood of each point inpainted that is considered by the algorithm.
+
+The function cvInpaint reconstructs the selected image area from the pixel near the area boundary. The function may be used to remove dust and scratches from a scanned photo, or to remove undesirable objects from still images or video.
+	  */
+		if(//IPLPIX_8U(grownImage, current_dust.rel_seed_x, current_dust.rel_seed_y)
+			1 //m_draw_on==TMMODE_INPAINT
+			) {
+
+			fprintf(stderr, "[TamanoirImgProc]::%s:%d : try with inpainting\n", __func__, __LINE__);
+			IplImage * dilatedGrownImage = cvCreateImage(
+					cvSize(disp_dilateImage->width, disp_dilateImage->height),
+					IPL_DEPTH_8U, 1);
+			cvCopy(disp_dilateImage, dilatedGrownImage);
+			tmDilateImage(dilatedGrownImage, disp_dilateImage, 5, 1);
+			// inpaint into correction
+			cvInpaint(disp_cropColorImage, disp_dilateImage,
+					  disp_correctColorImage,
+					  11,
+					 // CV_INPAINT_TELEA
+					  CV_INPAINT_NS
+					  );
+
+			tmReleaseImage(&dilatedGrownImage);
+		}
+
+		CvScalar color =(disp_cropOrigImage->nChannels > 1 ? CV_RGB(255,0,0) :
+					   cvScalarAll(255) );
+		cvRectangle(disp_cropColorImage,
+					cvPoint((int)ext_connect.rect.x, (int)ext_connect.rect.y),
+					cvPoint((int)(ext_connect.rect.x+ext_connect.rect.width),
+							(int)(ext_connect.rect.y+ext_connect.rect.height)),
+					color, 1);
+	}
 
 	// Main windows
 	if(displayBlockImage && displayImage) {
@@ -3254,7 +3343,11 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 	return applyCorrection(correction, force);
 }
 
-
+int TamanoirImgProc::applyInpainting(t_correction correction, bool force)
+{
+	fprintf(stderr, "TamanoirImgProc::%s:%d : NOT IMPLEMENTED !!\n", __func__, __LINE__);
+	return 0;
+}
 
 /* Apply a former correction */
 int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
@@ -3350,6 +3443,7 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 
 	memset(&correction, 0, sizeof(t_correction));
 	correction.copy_width = -1;
+
 	return 0;
 }
 

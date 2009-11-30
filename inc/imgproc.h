@@ -326,6 +326,9 @@ public:
 	/** @brief Apply a former correction and specify if correction has been forced by user */
 	int applyCorrection(t_correction correction, bool force = false);
 
+	/** @brief Apply a former correction by inpainting and specify if correction has been forced by user */
+	int applyInpainting(t_correction correction, bool force = false);
+
 	/** @brief Mark a former correction proposal as refused by user*/
 	int skipCorrection(t_correction correction);
 
@@ -355,9 +358,14 @@ public:
 
 	// Cropped images
 	IplImage * getCorrectedCrop() { return disp_correctColorImage; };
-	IplImage * getCrop() { return disp_cropColorImage; };
+	/** @brief Get cropped original image */
+	IplImage * getCropOrig() { return disp_cropOrigImage; };
+	/** @brief Get cropped original image with correction display */
+	IplImage * getCropArrow() { return disp_cropColorImage; };
 	IplImage * getDiffCrop() { return disp_cropImage; };
+	/** @brief Get cropped mask of dust grown area */
 	IplImage * getMask() { return disp_dilateImage; };
+	/** @brief Get cropped corrected image */
 	IplImage * getCorrectImage() { return correctImage; };
 
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
@@ -375,18 +383,25 @@ public:
 
 	/** @brief return correction proposal */
 	t_correction getCorrection() { return m_correct; };
-
+#define TMMODE_NOFORCE	0
+#define TMMODE_CLONE	1
+#define TMMODE_INPAINT	2
 	/** @brief Crop images for detailled view arround a previous correction */
-	void cropCorrectionImages(t_correction correction);
+	void cropCorrectionImages(t_correction correction, int correct_mode = TMMODE_CLONE);
+
 	/** @brief get the cropped original image around the proposed correction */
 	void cropOriginalImage(t_correction correction);
 	/** @brief get the cropped corrected image around the proposed correction */
 	void cropCorrectImage(t_correction correction);
 
 	/** @brief Find a dust from (x, y) seed
+		  @param force search is forced by user, and its mode :
+			TMMODE_NOFORCE : no force,
+			TMMOD_CLONE : cloning, so do not apply the trust mode !
+			TMMOD_INPAINT : use inpainting, so just search for dilated area
 		@return 1 if must return now
 	*/
-	int findDust(int x, int y, t_correction * pcorrection);
+	int findDust(int x, int y, t_correction * pcorrection, int force = 0);
 
 private:
 	/** @brief Initialize buffers */
@@ -484,9 +499,10 @@ private:
 	IplImage * correctColorImage;
 
 	// Same images for display
-	IplImage * disp_cropColorImage;
-	IplImage * disp_correctColorImage;
-	IplImage * disp_dilateImage;
+	IplImage * disp_cropOrigImage; /*! Original image cropped for display */
+	IplImage * disp_cropColorImage;	/*! Overlay of original with src->dest clone arrow */
+	IplImage * disp_correctColorImage; /*! Cropped image after correction */
+	IplImage * disp_dilateImage;	/*! Dilated image with dust as grown region */
 	IplImage * disp_cropImage;
 	bool m_show_crop_debug;
 
