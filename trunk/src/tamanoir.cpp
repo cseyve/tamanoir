@@ -72,6 +72,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	cropPixmapLabel_last_button = Qt::NoButton;
 	is_src_selected = true;
 	m_searchCloneSrc = true; // search for clone src candidate
+	m_draw_on = TMMODE_NOFORCE;
 
 	// Clear options
 	memset(&g_options, 0, sizeof(tm_options));
@@ -98,9 +99,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
-	ui.linearButton->setToggleButton(true);
+	ui.cloneButton->setToggleButton(true);
 
-	m_draw_on = m_resize_rect = false;
+	m_resize_rect = false;
 
 	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
 	m_nav_x_block = m_nav_y_block = 0;
@@ -219,8 +220,11 @@ void TamanoirApp::on_aboutButton_clicked() {
 
 void TamanoirApp::on_fullScreenButton_clicked() {
 	if(	!isFullScreen()) {
+		// hide menu bar to gain some space
+		menuBar()->hide();
 		showFullScreen();
 	} else {
+		menuBar()->show();
 		showNormal();
 	}
 }
@@ -605,16 +609,49 @@ void TamanoirApp::on_searchCloneSrcCheckBox_toggled(bool state) {
 	fprintf(stderr, "TamanoirApp::%s:%d : m_searchCloneSrc = %s\n",
 			__func__, __LINE__, m_searchCloneSrc?"TRUE":"FALSE");
 }
+void TamanoirApp::on_inpaintButton_toggled(bool state) {
+	m_draw_on = (state ? TMMODE_INPAINT: TMMODE_NOFORCE);
 
-void TamanoirApp::on_linearButton_toggled(bool state) {
-	if(m_draw_on != state) {
-		m_draw_on = state;
+	if(state) {
+		ui.cloneButton->blockSignals(true);
+		ui.cloneButton->setOn(false);
+		ui.cloneButton->blockSignals(false);
+	}
 
-		if(m_draw_on) {
-			ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
-		} else {
-			ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
-		}
+	switch(m_draw_on) {
+	default:
+	case TMMODE_NOFORCE:
+		ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
+		break;
+	case TMMODE_CLONE:
+		ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
+		break;
+	case TMMODE_INPAINT:
+		ui.cropPixmapLabel->setCursor( Qt::WhatsThisCursor );
+		break;
+	}
+}
+
+void TamanoirApp::on_cloneButton_toggled(bool state) {
+
+	m_draw_on = (state ? TMMODE_CLONE : TMMODE_NOFORCE);
+	if(state) {
+		ui.inpaintButton->blockSignals(true);
+		ui.inpaintButton->setOn(false);
+		ui.inpaintButton->blockSignals(false);
+	}
+
+	switch(m_draw_on) {
+	default:
+	case TMMODE_NOFORCE:
+		ui.cropPixmapLabel->setCursor( Qt::ArrowCursor );
+		break;
+	case TMMODE_CLONE:
+		ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
+		break;
+	case TMMODE_INPAINT:
+		ui.cropPixmapLabel->setCursor( Qt::WhatsThisCursor );
+		break;
 	}
 }
 
@@ -776,11 +813,11 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 						A = ell_x / cos (th)
 						B = ell_y / sin (th)
 					  */
-					float ell_dist = sqrtf( ell_x*ell_x + ell_y*ell_y );
+/*					float ell_dist = sqrtf( ell_x*ell_x + ell_y*ell_y );
 					float cos_th = ell_x / ell_dist;
 					float sin_th = ell_y / ell_dist;
 					float theta = atan2(ell_y/ell_B, ell_x/ell_A);
-/*
+
 					fprintf(stderr, "%s:%d : in ellipse : x,y=%g,%g th=%g A,B=%g,%g\n",
 							__func__, __LINE__,
 							ell_x,ell_y, theta,
@@ -842,12 +879,15 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				// Move dest
 				current_dust.rel_dest_x = e->pos().x();
 				current_dust.rel_dest_y = e->pos().y();
-				if(m_draw_on) {
+				if(m_draw_on == TMMODE_CLONE) {
 					current_dust.rel_seed_x = e->pos().x();
 					current_dust.rel_seed_y = e->pos().y();
 
-					/** No search when we click = click=apply **/
+					/** No search when we click = click=apply clone **/
 					m_pImgProc->applyCorrection(current_dust, true);
+				} else {
+					/** No search when we click = click=apply inpainting **/
+					m_pImgProc->applyInpainting(current_dust, true);
 				}
 			}
 
@@ -896,30 +936,30 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 
 		dist_to_border = distToEllipse(current_dust, mouse_x, mouse_y);
 
-		int dist_to_center = radiusOfEllipse(current_dust, mouse_x, mouse_y);
 
 		// Dist to destination
-		int dx_dest = abs(e->pos().x() - current_dust.rel_dest_x );
-		int dy_dest = abs(e->pos().y() - current_dust.rel_dest_y );
+		int dx_dest = abs(mouse_x - current_dust.rel_dest_x );
+		int dy_dest = abs(mouse_y - current_dust.rel_dest_y );
 		int dist_to_dest = sqrtf(dx_dest*dx_dest +  dy_dest *dy_dest );
 
 		// Dist to source
-		int dx_src = abs(e->pos().x() - current_dust.rel_src_x );
-		int dy_src = abs(e->pos().y() - current_dust.rel_src_y );
+		int dx_src = abs(mouse_x - current_dust.rel_src_x );
+		int dy_src = abs(mouse_y - current_dust.rel_src_y );
 		int dist_to_src = sqrtf( dx_src*dx_src+ dy_src *dy_src);
 
 
 
 		switch(cropPixmapLabel_last_button) {
 		default:
-		case Qt::NoButton: {
-			if(!m_draw_on) {
+		case Qt::NoButton: { // We just move the mouse without clicking
+			if(!m_draw_on) { // not drawing = maybe just resizing the source or moving source/dest point
 				if( dist_to_border <= border_tolerance
 					&& dist_to_border <= dist_to_src) {
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
 					return;
 				}
 
+				int dist_to_center = radiusOfEllipse(current_dust, mouse_x, mouse_y);
 				// First check if click is closer to src or dest
 				if(tmmin(dist_to_src, dist_to_dest)
 					< dist_to_center/2
@@ -934,22 +974,23 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				}
 
 
-			} else {
-				current_dust.rel_dest_x = e->pos().x();
-				current_dust.rel_dest_y = e->pos().y();
-
-				current_dust.rel_seed_x = e->pos().x();
-				current_dust.rel_seed_y = e->pos().y();
+			} else { // we try to clone or to inpaint
+				current_dust.rel_dest_x = current_dust.rel_seed_x = mouse_x;
+				current_dust.rel_dest_y = current_dust.rel_seed_y = mouse_y;
 
 				// Compute correction
 				//g_debug_imgverbose = 255;
 				//g_debug_correlation = 255;
-				if(m_searchCloneSrc) {
+				if((m_draw_on == TMMODE_CLONE && m_searchCloneSrc)
+				   ||(m_draw_on == TMMODE_INPAINT)
+				   ) {
 					t_correction search_correct = current_dust;
 					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
+
 					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x,
 											current_dust.crop_y+current_dust.rel_seed_y,
-											&search_correct);
+											&search_correct,
+											m_draw_on /* used to prevent from correcting automatically in trust mode */);
 					g_debug_imgverbose = old_debug;
 					g_debug_correlation = old_correlation;
 
@@ -989,7 +1030,8 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 									"\n"
 								"%s %s flood=%g con=%g %s "
 									"\n"
-								"D=%g N=%g C=%g\n=>vis=%c "
+								"D=%g N=%g C=%.2g\n"
+								"=>vis=%c "
 								"dilateDust=%c "
 									"\n"
 								"bestCor=%d "
@@ -1007,7 +1049,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 								props.rel_grown_conn.rect.x, props.rel_grown_conn.rect.y,
 									props.rel_grown_conn.rect.width, props.rel_grown_conn.rect.height,
 								props.force_search ? "force":"",
-								props.big_enough? "big":"",
+								props.big_enough? "bigen":"",
 								props.flood_area, props.connect_area,
 								props.is_fiber ? "fiber":"",
 								props.mean_dust, props.mean_neighbour,
@@ -1036,16 +1078,18 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 						current_dust = search_correct;
 
 						//m_pImgProc->applyCorrection(search_correct, true);
-
-
 					}
 				}
 			}
+
 			int center_x = current_dust.rel_src_x;
 			int center_y = current_dust.rel_src_y;
 
-			m_pImgProc->setCopySrc(&current_dust,
-				center_x, center_y);
+			//if(m_draw_on != TMMODE_INPAINT)
+			{
+				m_pImgProc->setCopySrc(&current_dust,
+					center_x, center_y);
+			}
 
 			updateDisplay();
 
@@ -1061,19 +1105,19 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 							0);*/
 			if(is_src_selected) {
 				// Move src
-				current_dust.rel_src_x = e->pos().x();
-				current_dust.rel_src_y = e->pos().y();
+				current_dust.rel_src_x = mouse_x;
+				current_dust.rel_src_y = mouse_y;
 			} else {
 				// Move dest
-				current_dust.rel_dest_x = e->pos().x();
-				current_dust.rel_dest_y = e->pos().y();
+				current_dust.rel_dest_x = mouse_x;
+				current_dust.rel_dest_y = mouse_y;
 			}
 
-			if(m_draw_on) {
+			if(m_draw_on == TMMODE_CLONE) {
 
 				// Get move from last position
-				current_dust.rel_seed_x = current_dust.rel_dest_x = e->pos().x();
-				current_dust.rel_seed_y = current_dust.rel_dest_y = e->pos().y();
+				current_dust.rel_seed_x = current_dust.rel_dest_x = mouse_x;
+				current_dust.rel_seed_y = current_dust.rel_dest_y = mouse_y;
 
 				current_dust.rel_src_x = current_dust.rel_seed_x - dx;
 				current_dust.rel_src_y = current_dust.rel_seed_y - dy;
@@ -1091,17 +1135,10 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 					g_debug_correlation = old_correlation;
 
 					if(ret > 0) {`*/
-				int ret=0;
-				fprintf(stderr, "TamanoirApp::%s:%d : Seed = %d, %d => ret=%d\n", __func__, __LINE__,
-							current_dust.crop_x+current_dust.rel_seed_x ,
-							current_dust.crop_y+current_dust.rel_seed_y ,
-							ret);/*
-						current_dust = search_correct;
-
-
-					}
-				* No search when moving with the button down */
+				/* No search when moving with the button down */
 				m_pImgProc->applyCorrection(current_dust, true);
+			} else if(m_draw_on == TMMODE_INPAINT) {
+				m_pImgProc->applyInpainting(current_dust, true);
 			}
 
 			int center_x = current_dust.rel_src_x;
@@ -1118,9 +1155,6 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 
 			int dest_x = current_dust.rel_dest_x;
 			int dest_y = current_dust.rel_dest_y;
-
-			float ell_x = e->pos().x() - center_x;
-			float ell_y = center_y - e->pos().y(); // in trigo reference
 
 			current_dust.rel_dest_x = dest_x;
 			current_dust.rel_dest_y = dest_y;
@@ -1259,7 +1293,8 @@ int TamanoirApp::loadFile(QString s) {
 		__func__, __LINE__, s.latin1());
 	// Open file
 	if(!m_pImgProc) {
-		m_pImgProc = new TamanoirImgProc(ui.cropPixmapLabel->width() -2, ui.cropPixmapLabel->height() -2);
+		m_pImgProc = new TamanoirImgProc( ui.cropPixmapLabel->width() -2,
+										  ui.cropPixmapLabel->height() -2);
 
 		refreshMainDisplay();
 
@@ -1391,8 +1426,7 @@ int TamanoirApp::loadOptions() {
 	}
 	optionsFile = QString(homedir) + QString("/.tamanoirrc");
 
-	memset(&g_options, 0, sizeof(tm_options));
-
+	memset(&g_options, 0, sizeof(tm_options)); // set all to false
 
 	// Read
 	FILE * foptions = fopen(optionsFile.ascii(), "r");
@@ -1404,12 +1438,17 @@ int TamanoirApp::loadOptions() {
 		g_options.onlyEmpty = ui.emptyCheckBox->isChecked();
 		g_options.sensitivity = ui.sensitivityComboBox->currentIndex();
 
+
 		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
+		fprintf(stderr, "TamanoirApp::%s:%d :  no options file : use default in GUI\n",
+				__func__, __LINE__);
+		fprintfOptions(stderr, &g_options);
 
 		return 0;
 	}
 
 
+	// read each line
 	char line[512], *ret=line;
 	while(ret && !feof(foptions)) {
 		line[0] = '#';
@@ -1426,6 +1465,8 @@ int TamanoirApp::loadOptions() {
 				if(separation) {
 					*separation = '\0';
 					char * cmd = line, *arg = separation+1;
+					fprintf(stderr, "\t%s:%d : cmd='%s' arg='%s'\n",
+							__func__, __LINE__, cmd, arg);
 
 					if(strcasestr(cmd, "dir")) {
 						strcpy(g_display_options.currentDir, arg);
@@ -2287,14 +2328,15 @@ void TamanoirApp::updateCroppedDisplay()
 			current_dust.crop_width = ui.cropPixmapLabel->size().width();
 			current_dust.crop_height = ui.cropPixmapLabel->size().height();
 
-			m_pImgProc->cropCorrectionImages(current_dust);
+			m_pImgProc->cropCorrectionImages(current_dust, m_draw_on);
 		}
 
 //unused #define LABELWIDTH_MARGIN	2
 		IplImage * curImage;
 
 		// Top-left : Display cropped / detailled images -- ORIGINAL
-		curImage = m_pImgProc->getCrop();
+		curImage = m_pImgProc->getCropArrow();
+
 		if(curImage) {
 			QLabel * pLabel = ui.cropPixmapLabel;
 			//unused int label_width = pLabel->width()-LABELWIDTH_MARGIN;
@@ -2327,6 +2369,12 @@ void TamanoirApp::updateCroppedDisplay()
 				QPixmap::Color );
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
+		}
+
+		// Try inpainting
+		IplImage * grownImage = m_pImgProc->getMask();//getDiffCrop();
+		if(grownImage) {
+
 		}
 
 		// Bottom-left : Proposed correction -- CORRECTED

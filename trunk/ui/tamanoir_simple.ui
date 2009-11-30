@@ -800,7 +800,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="linearButton">
+             <widget class="QPushButton" name="cloneButton">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -836,12 +836,48 @@
                <string>Search for clone source (Alt+S)</string>
               </property>
               <property name="text">
-               <string>Search</string>
+               <string>&amp;Search</string>
               </property>
               <property name="shortcut">
-               <string>Alt+S</string>
+               <string>S</string>
               </property>
               <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="Line" name="line">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="inpaintButton">
+              <property name="toolTip">
+               <string>Use inpainting to fill the dust or fiber</string>
+              </property>
+              <property name="text">
+               <string>&amp;Inpaint</string>
+              </property>
+              <property name="shortcut">
+               <string>I</string>
+              </property>
+              <property name="checkable">
                <bool>true</bool>
               </property>
              </widget>
@@ -906,7 +942,7 @@
      <x>0</x>
      <y>0</y>
      <width>805</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">

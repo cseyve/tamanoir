@@ -27,7 +27,6 @@
  * OF THIS SOFTWARE.
  */
 
-#include "tif_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,16 +52,20 @@
 # include <io.h>
 #endif
 
-extern "C" {
-#include <tiffio.h>
-}
 
 
 // OpenCV
 #include <cv.h>
 #include <cv.hpp>
-#include <cv.hpp>
+#include <cvaux.hpp>
 #include <highgui.h>
+
+extern "C" {
+#include "tif_config.h"
+
+#include <tiffio.h>
+}
+
 
 #include "imgutils.h"
 

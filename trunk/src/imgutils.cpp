@@ -463,6 +463,16 @@ void tmFillRegion(IplImage * origImage,
 			fill_length);
 	}
 }
+/** use cache to fasten
+
+*/
+static pthread_mutex_t * coeftab_mutex = NULL;
+float *coeftab_src = NULL;
+float *coeftab_dest = NULL;
+int coeftab_size = 0;
+int coeftab_w = 0;
+int coeftab_h = 0;
+
 
 /*
  * Clone copy rectangle -> orig rectangle
@@ -472,6 +482,7 @@ void tmCloneRegion(IplImage * origImage,
 	int src_x, int src_y,
 	int copy_width, int copy_height,
 	IplImage * destImage ) {
+
 
 	// Compute top-left corner coordinates
 	dest_x -= copy_width/2;
@@ -486,6 +497,7 @@ void tmCloneRegion(IplImage * origImage,
 		copy_width, copy_height,
 		destImage );
 }
+
 /*
  * Clone copy rectangle -> orig rectangle
  */
@@ -495,33 +507,14 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 	int copy_width, int copy_height,
 	IplImage * destImage )
 {
-
-	int orig_width = origImage->width;
-	int orig_height = origImage->height;
+	if(!coeftab_mutex) {
+		coeftab_mutex = new pthread_mutex_t;
+		pthread_mutex_init(coeftab_mutex, NULL);
+	}
 
 	if(!destImage)
 		destImage = origImage;
 
-	if(dest_x<0) { dest_x = 0; }
-	if(dest_y<0) { dest_y = 0; }
-	if(src_x<0) { src_x = 0; }
-	if(src_y<0) { src_y = 0; }
-
-	// Clip copy or destination
-	if( dest_y > src_y) {
-		if(dest_y + copy_height > orig_height)
-			copy_height = orig_height - dest_y;
-	} else {
-		if(src_y + copy_height > orig_height)
-			copy_height = orig_height - src_y;
-	}
-	if( dest_x > src_x) {
-		if(dest_x + copy_width > orig_width)
-			copy_width = orig_width - dest_x;
-	} else {
-		if(src_x + copy_width > orig_width)
-			copy_width = orig_width - src_x;
-	}
 	if(copy_width <= 0 || copy_height<=0) {
 		fprintf(logfile, "imgutils : %s:%d : INVALID clone src=%d,%d+%dx%d => dest=%d,%d\n",
 			__func__, __LINE__,
@@ -530,60 +523,52 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 		return;
 	}
 
-	/*
-	if(g_debug_imgverbose) {
-		fprintf(logfile, "imgutils : %s:%d : clone %d,%d+%dx%d => %d,%d\n",
-			__func__, __LINE__,
-			src_x, src_y, copy_width, copy_height,
-			dest_x, dest_y);
-	}*/
+	pthread_mutex_lock(coeftab_mutex);
+	bool recompute_coeftab = false;
+	if(copy_width * copy_height > coeftab_size) {
+		// resize buffer
+		delete [] coeftab_src;
+		delete [] coeftab_dest;
+		coeftab_size = copy_width * copy_height ;
+		coeftab_src = new float [ coeftab_size ];
+		memset(coeftab_src , 0, sizeof(float)*coeftab_size );
+		coeftab_dest = new float [ coeftab_size ];
+		memset(coeftab_dest, 0, sizeof(float)*coeftab_size );
 
-	// Copy buffer
-	int pitch = origImage->widthStep;
-	int byte_depth = tmByteDepth(origImage);
-	int copylength = copy_width * byte_depth;
-	int channels = origImage->nChannels;
+		recompute_coeftab = true;
+	}
 
-	u8 * origImageBuffer = (u8 *)origImage->imageData;
-	u8 * destImageBuffer = (u8 *)destImage->imageData;
+	if(copy_width != coeftab_w ||
+	   copy_height != coeftab_h ) {
+		recompute_coeftab = true;
+	}
+	// reocmpute the coefficients
+	if(recompute_coeftab ) {
+		coeftab_w = copy_width;
+		coeftab_h = copy_height;
 
-	// Raw copy
-	if(0) {
-		for(int y=0; y<copy_height; y++, dest_y++, src_y++) {
-			memcpy(destImageBuffer + dest_y * pitch + dest_x*byte_depth,
-				origImageBuffer + src_y * pitch + src_x*byte_depth,
-				copylength);
-		}
-	} else { // Copy with fading on borders
+//		fprintf(stderr, "[imgutils]::%s:%d : recompute A=%d,B=%d\n",
+//				__func__, __LINE__, coeftab_w, coeftab_h);
+
+		int coefheight_2 = copy_height/2;
+		int coefwidth_2 = copy_width/2;
 		int y,x;
-		int height_margin = copy_height / 4;
-		if(height_margin < 2) height_margin = 2;
-		int width_margin = copy_width / 4;
-		if(width_margin < 2) width_margin = 2;
-		int copy_height_2 = copy_height/2;
-		int copy_width_2 = copy_width/2;
 
 		// Raw in center, proportional copy in border
-		for(y=0; y<copy_height; y++, dest_y++, src_y++) {
-			int dy = abs(y - copy_height_2);
-			float coef_y = 1.f;
-			if(dy > copy_height_2-height_margin)
-				coef_y = 1.f -(float)(dy-(copy_height_2-height_margin))/(float)(height_margin);
-
+		for(y=0; y<coeftab_h; y++) {
+			int dy = (y - coefheight_2);
 			float dy2 = dy*dy;
-			float dynorm = (float)-dy/copy_height_2;
-			for(x = 0; x<copy_width; x++) {
-				int dx = abs(x - copy_width_2);
-				float coef_x = 1.f;
-				if(dx > copy_width_2-width_margin)
-					coef_x = 1.f -(float)(dx-(copy_width_2-width_margin))/(float)(width_margin);
-
-				double theta = atan2(dynorm, (float)dx/copy_width_2);
+			float dynorm = (float)-dy/(float)coefheight_2;
+			int postab = y * coeftab_w;
+			for(x = 0; x<coeftab_w; x++, postab++) {
+				int dx = (x - coefwidth_2);
+				double theta = atan2(dynorm, (float)dx/coefwidth_2);
 				float radius = sqrt(dx*dx+dy*dy);
-				float maxdx = cos(theta)*(float)copy_width_2;
-				float maxdy = sin(theta)*(float)copy_height_2;
+				float maxdx = cos(theta)*(float)coefwidth_2;
+				float maxdy = sin(theta)*(float)coefheight_2;
+
 				float maxrad = sqrt(maxdx*maxdx+maxdy*maxdy);
-				float coef_copy = coef_x * coef_y;
+				float coef_copy;
 
 				float nominal = 0.6f * maxrad;
 				if(radius<nominal) {
@@ -600,47 +585,119 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 
 				float coef_orig = 1.f - coef_copy;
 
-				for(int d = 0; d<channels; d++) {
-					float val_orig=0, val_copy=0;
+				// store in tab
+				coeftab_src[postab] = coef_orig;
+				coeftab_dest[postab] = coef_copy;
+			}
+		}
+	}
+	/* if(g_debug_imgverbose) {
+		fprintf(logfile, "imgutils : %s:%d : clone %d,%d+%dx%d => %d,%d\n",
+			__func__, __LINE__,
+			src_x, src_y, copy_width, copy_height,
+			dest_x, dest_y);
+	} */
+/*
+	if(dest_x<0) { dest_x = 0; }
+	if(dest_y<0) { dest_y = 0; }
+	if(src_x<0) { src_x = 0; }
+	if(src_y<0) { src_y = 0; }
 
-					u8 * porig_u8 = NULL;
-					u16 * porig_u16 = NULL;
-					u8 * pdest_u8 = NULL;
-					u16 * pdest_u16 = NULL;
+	// Clip copy or destination : fixme : limit only the region
+	if( dest_y > src_y) {
+		if(dest_y + copy_height > orig_height)
+			copy_height = orig_height - dest_y;
+	} else {
+		if(src_y + copy_height > orig_height)
+			copy_height = orig_height - src_y;
+	}
+	if( dest_x > src_x) {
+		if(dest_x + copy_width > orig_width)
+			copy_width = orig_width - dest_x;
+	} else {
+		if(src_x + copy_width > orig_width)
+			copy_width = orig_width - src_x;
+	}
+*/
+	// Copy buffer
+	int pitch = origImage->widthStep;
+	int byte_depth = tmByteDepth(origImage);
+	int copylength = copy_width * byte_depth;
+	int channels = origImage->nChannels;
+	int src_width = origImage->width;
+	int src_height = origImage->height;
+	int dest_width = destImage->width;
+	int dest_height = destImage->height;
 
-					switch(origImage->depth) {
-					default:
-						break;
-					case IPL_DEPTH_8U:
-						pdest_u8 = (u8 *)((destImageBuffer + dest_y * origImage->widthStep)
-											+ channels * (dest_x + x)) + d;
-						porig_u8 = (u8 *)((origImageBuffer + dest_y * origImage->widthStep)
-											+ channels * (dest_x + x)) + d;
-						val_orig = (float)( *porig_u8);
-						val_copy = (float) *( (u8 *)(origImageBuffer + src_y * origImage->widthStep)
-											+ channels*( src_x + x) + d);
-						break;
-					case IPL_DEPTH_16U:
-						pdest_u16 = (u16 *)(destImageBuffer + dest_y * origImage->widthStep)
-											+ channels * (dest_x + x) + d;
-						val_copy = (float) *( (u16 *)(origImageBuffer + src_y * origImage->widthStep)
-											+ channels * (src_x + x) + d);
-						porig_u16 = (u16 *)(origImageBuffer + dest_y * origImage->widthStep)
-											+ channels * (dest_x + x) + d;
-						val_orig = (float)( *porig_u16);
-						break;
+	u8 * origImageBuffer = (u8 *)origImage->imageData;
+	u8 * destImageBuffer = (u8 *)destImage->imageData;
+
+	// Raw copy
+	if(0) {
+		for(int y=0; y<copy_height; y++, dest_y++, src_y++) {
+			memcpy(destImageBuffer + dest_y * pitch + dest_x*byte_depth,
+				origImageBuffer + src_y * pitch + src_x*byte_depth,
+				copylength);
+		}
+	} else { // Copy with fading on borders
+		int y,x;
+
+		// Raw in center, proportional copy in border
+		for(y=0; y<copy_height; y++, dest_y++, src_y++)
+		{
+			if(dest_y>=0 && dest_y<dest_height
+			   && src_y>=0 && src_y<src_height) {
+
+				int postab = y  * coeftab_w ;
+				for(x = 0; x<copy_width; x++, postab++) {
+					if(dest_x>=0 && dest_x<dest_width
+					   && src_x>=0 && src_x<src_width) {
+						float coef_copy = coeftab_dest[postab];
+						float coef_orig = coeftab_src[postab];
+						for(int d = 0; d<channels; d++) {
+							float val_orig=0, val_copy=0;
+
+							u8 * porig_u8 = NULL;
+							u16 * porig_u16 = NULL;
+							u8 * pdest_u8 = NULL;
+							u16 * pdest_u16 = NULL;
+
+							switch(origImage->depth) {
+							default:
+								break;
+							case IPL_DEPTH_8U:
+								pdest_u8 = (u8 *)((destImageBuffer + dest_y * origImage->widthStep)
+													+ channels * (dest_x + x)) + d;
+								porig_u8 = (u8 *)((origImageBuffer + dest_y * origImage->widthStep)
+													+ channels * (dest_x + x)) + d;
+								val_orig = (float)( *porig_u8);
+								val_copy = (float) *( (u8 *)(origImageBuffer + src_y * origImage->widthStep)
+													+ channels*( src_x + x) + d);
+								break;
+							case IPL_DEPTH_16U:
+								pdest_u16 = (u16 *)(destImageBuffer + dest_y * origImage->widthStep)
+													+ channels * (dest_x + x) + d;
+								val_copy = (float) *( (u16 *)(origImageBuffer + src_y * origImage->widthStep)
+													+ channels * (src_x + x) + d);
+								porig_u16 = (u16 *)(origImageBuffer + dest_y * origImage->widthStep)
+													+ channels * (dest_x + x) + d;
+								val_orig = (float)( *porig_u16);
+								break;
+							}
+
+							//float out_val = val_copy;
+							float out_val = coef_orig * val_orig + coef_copy * val_copy;
+							if(pdest_u8)
+								*pdest_u8 = (u8)roundf(out_val);
+							else if(pdest_u16)
+								*pdest_u16 = (u16)roundf(out_val);
+						}
 					}
-
-					//float out_val = val_copy;
-					float out_val = coef_orig * val_orig + coef_copy * val_copy;
-					if(pdest_u8)
-						*pdest_u8 = (u8)roundf(out_val);
-					else if(pdest_u16)
-						*pdest_u16 = (u16)roundf(out_val);
 				}
 			}
 		}
 	}
+	pthread_mutex_unlock(coeftab_mutex);
 }
 
 IplImage * tmClone(IplImage * img_src) {
@@ -1048,6 +1105,7 @@ void tmMarkCloneRegion(IplImage * origImage,
 		if(shorter_len < 8) {
 			shorter_len = 8;
 		}
+
 		copy_vector_x = (int)roundf((float)copy_vector_x * shorter_len / vector_len);
 		copy_vector_y = (int)roundf((float)copy_vector_y * shorter_len / vector_len);
 	}

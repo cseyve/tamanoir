@@ -60,6 +60,9 @@
 #define tmmax(a,b) ((a)>(b)?(a):(b))
 #endif
 
+/** @brief Get a pixel value in a 8bit IPL image */
+#define IPLPIX_8U(_img, _x, _y) *((u8 *)((_img)->imageData+(_y)*(_img)->widthStep \
+											+ (_x)*(_img)->nChannels))
 
 
 // DEBUG IMAGES DIRECTORY AND EXTENSION
