@@ -5,8 +5,9 @@
 	and proposing a correction with a clone operation
 
 	@author Christophe Seyve <cseyve@free.fr>
+*/
 
- *************************************************************************
+/*************************************************************************
  *            imgproc.h
  *
  *  Tue Oct 23 21:26:10 2007
@@ -80,7 +81,6 @@
   - LibTIFF for 16bit importation (not supported in OpenCV)
 
   @ref imgproc.h
-
 
   */
 
@@ -393,6 +393,9 @@ public:
 	void cropOriginalImage(t_correction correction);
 	/** @brief get the cropped corrected image around the proposed correction */
 	void cropCorrectImage(t_correction correction);
+
+	/** @brief Draw a circle in crop dilate mask for later inpainting */
+	void drawInpaintCircle(t_correction correction, int radius);
 
 	/** @brief Find a dust from (x, y) seed
 		  @param force search is forced by user, and its mode :
