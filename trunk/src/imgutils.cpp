@@ -508,8 +508,8 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 	IplImage * destImage )
 {
 	if(!coeftab_mutex) {
-		coeftab_mutex = new pthread_mutex_t;
-		pthread_mutex_init(coeftab_mutex, NULL);
+		coeftab_mutex = new Mutex_t;
+		MUTEX_INIT(coeftab_mutex);
 	}
 
 	if(!destImage)
@@ -523,7 +523,7 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 		return;
 	}
 
-	pthread_mutex_lock(coeftab_mutex);
+	MUTEX_LOCK(coeftab_mutex);
 	bool recompute_coeftab = false;
 	if(copy_width * copy_height > coeftab_size) {
 		// resize buffer
@@ -697,7 +697,7 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 			}
 		}
 	}
-	pthread_mutex_unlock(coeftab_mutex);
+	MUTEX_UNLOCK(coeftab_mutex);
 }
 
 IplImage * tmClone(IplImage * img_src) {

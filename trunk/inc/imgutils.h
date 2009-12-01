@@ -48,6 +48,24 @@
 #include <stdint.h>
 
 
+#ifndef WIN32
+#include <pthread.h>
+typedef pthread_mutex_t Mutex_t;
+#define MUTEX_INIT(m)	pthread_mutex_init((m), NULL);
+#define MUTEX_LOCK(m) pthread_mutex_lock((m));
+#define MUTEX_UNLOCK(m) pthread_mutex_unlock((m));
+#else
+#include <TIME.H>
+#include <STDIO.H>
+#include <Winsock2.h>	// contains mutex
+
+// Use Windows mutexex instead of POSIX
+typedef HANDLE Mutex_t;
+#define MUTEX_INIT(m)	{ *m = CreateMutex(NULL, FALSE, NULL); }
+#define MUTEX_LOCK(m)	{ WaitForSingleObject( *(m), INFINITE ); }
+#define MUTEX_UNLOCK(m)	ReleaseMutex(*(m))
+#endif
+
 // For Open CV Functions
 #include <cv.h>
 #include <cv.hpp>

@@ -1224,8 +1224,26 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 			if(l_correction->copy_width<=2 || l_correction->copy_height<=2)
 				return;
 		}
-		l_correction->copy_width  += inc;
-		l_correction->copy_height += inc;
+
+		if(m_draw_on == TMMODE_INPAINT) {
+			int radius = tmmin(l_correction->copy_width, l_correction->copy_height)/2 + inc;
+			l_correction->copy_width  =
+				l_correction->copy_height = radius*2;
+
+			// update cursor
+			QPixmap pixmap(2*radius+1, 2*radius+1);
+			QPainter painter(&pixmap);
+			painter.eraseRect(0,0, 2*radius+1, 2*radius+1 );
+			QPoint center(radius, radius);
+			painter.drawEllipse( center, radius, radius);
+			QCursor bmpcursor(pixmap, pixmap, radius, radius);
+			ui.cropPixmapLabel->setCursor( bmpcursor);
+		} else {
+			l_correction->copy_width  += inc;
+			l_correction->copy_height += inc;
+		}
+
+
 
 		// This function only update l_correction
 		m_pImgProc->setCopySrc(l_correction,

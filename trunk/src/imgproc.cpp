@@ -3220,7 +3220,7 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 			// inpaint into correction
 			cvInpaint(disp_cropColorImage, disp_dilateImage,
 					  disp_correctColorImage,
-					  11,
+					  15,
 					 // CV_INPAINT_TELEA
 					  CV_INPAINT_NS
 					  );
