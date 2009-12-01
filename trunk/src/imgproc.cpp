@@ -2959,6 +2959,31 @@ void TamanoirImgProc::cropViewImages() {
 	cropCorrectionImages(m_correct);
 }
 
+void TamanoirImgProc::drawInpaintCircle(t_correction correction, int radius) {
+	CvSize cropSize = processingSize;
+	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
+		cropSize = displayCropSize;
+	}
+
+	if(disp_cropColorImage) {
+		cropSize = cvSize( disp_cropColorImage->width, disp_cropColorImage->height );
+	}
+	if(!disp_dilateImage) {
+		disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_8U, 1);
+	}
+
+	fprintf(stderr, "TmImgProc::%s:%d : draw in dilate : %d,%d r=%d",
+			__func__, __LINE__,
+			correction.rel_dest_x, correction.rel_dest_y,
+			radius
+			);
+
+	// Draw in dilate image
+	cvCircle(disp_dilateImage,
+			 cvPoint(correction.rel_dest_x, correction.rel_dest_y),
+			 radius, cvScalarAll(255), -1);
+
+}
 
 void TamanoirImgProc::cropCorrectionImages(t_correction correction,
 										   int correct_mode
@@ -3018,7 +3043,9 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction,
 	}
 	CvConnectedComp ext_connect;
 
-	if(m_show_crop_debug || correct_mode == TMMODE_INPAINT)
+	if(m_show_crop_debug
+	   //|| correct_mode == TMMODE_INPAINT
+	   )
 	{ // Grown region
 		if(disp_dilateImage) {
 			if(disp_dilateImage->width != cropSize.width
@@ -3183,15 +3210,13 @@ The radius of circlular neighborhood of each point inpainted that is considered 
 The function cvInpaint reconstructs the selected image area from the pixel near the area boundary. The function may be used to remove dust and scratches from a scanned photo, or to remove undesirable objects from still images or video.
 	  */
 		if(//IPLPIX_8U(grownImage, current_dust.rel_seed_x, current_dust.rel_seed_y)
-			1 //m_draw_on==TMMODE_INPAINT
+			disp_dilateImage //m_draw_on==TMMODE_INPAINT
 			) {
-
-			fprintf(stderr, "[TamanoirImgProc]::%s:%d : try with inpainting\n", __func__, __LINE__);
-			IplImage * dilatedGrownImage = cvCreateImage(
-					cvSize(disp_dilateImage->width, disp_dilateImage->height),
-					IPL_DEPTH_8U, 1);
-			cvCopy(disp_dilateImage, dilatedGrownImage);
-			tmDilateImage(dilatedGrownImage, disp_dilateImage, 5, 1);
+//			IplImage * dilatedGrownImage = cvCreateImage(
+//					cvSize(disp_dilateImage->width, disp_dilateImage->height),
+//					IPL_DEPTH_8U, 1);
+//			cvCopy(disp_dilateImage, dilatedGrownImage);
+//			tmDilateImage(dilatedGrownImage, disp_dilateImage, 5, 1);
 			// inpaint into correction
 			cvInpaint(disp_cropColorImage, disp_dilateImage,
 					  disp_correctColorImage,
@@ -3200,7 +3225,7 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 					  CV_INPAINT_NS
 					  );
 
-			tmReleaseImage(&dilatedGrownImage);
+//			tmReleaseImage(&dilatedGrownImage);
 		}
 
 		CvScalar color =(disp_cropOrigImage->nChannels > 1 ? CV_RGB(255,0,0) :

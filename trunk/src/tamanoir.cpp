@@ -626,9 +626,24 @@ void TamanoirApp::on_inpaintButton_toggled(bool state) {
 	case TMMODE_CLONE:
 		ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
 		break;
-	case TMMODE_INPAINT:
-		ui.cropPixmapLabel->setCursor( Qt::WhatsThisCursor );
-		break;
+	case TMMODE_INPAINT: {
+
+		QPixmap pixmap(32, 32);
+		QPainter painter(&pixmap);
+		//painter.fill(Qt::transparent);
+		QPoint center(16,16);
+		painter.fillRect( 0,0,32,32, QBrush( qRgb(255,255, 255) ) );
+		painter.drawEllipse ( center, 4, 4 );
+
+// QBitmap QBitmap::fromImage ( const QImage & image, Qt::ImageConversionFlags flags = Qt::AutoColor )   [static]
+		QBitmap bitmap(pixmap);
+
+// QCursor::QCursor ( const QBitmap & bitmap, const QBitmap & mask, int hotX = -1, int hotY = -1 )
+		QCursor roundcursor(bitmap, bitmap);
+
+		ui.cropPixmapLabel->setCursor( roundcursor );
+				//Qt::WhatsThisCursor );
+		}break;
 	}
 }
 
@@ -886,6 +901,9 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 					/** No search when we click = click=apply clone **/
 					m_pImgProc->applyCorrection(current_dust, true);
 				} else {
+					// draw in inpainting mask
+					m_pImgProc->drawInpaintCircle(current_dust, 4);
+
 					/** No search when we click = click=apply inpainting **/
 					m_pImgProc->applyInpainting(current_dust, true);
 				}
@@ -1138,6 +1156,8 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				/* No search when moving with the button down */
 				m_pImgProc->applyCorrection(current_dust, true);
 			} else if(m_draw_on == TMMODE_INPAINT) {
+				// draw in inpainting mask
+				m_pImgProc->drawInpaintCircle(current_dust, 4);
 				m_pImgProc->applyInpainting(current_dust, true);
 			}
 
