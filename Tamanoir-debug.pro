@@ -4,13 +4,21 @@
 
 TEMPLATE = app
 TARGET = Tamanoir-debug
-mac::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d | sed 's/0//'`"
-linux-g++::DEFINES += VERSION_YY="`date +%Y`" VERSION_MM="`date +%m`" VERSION_DD="`date +%d  | sed 's/0//'`"
+mac::DEFINES += VERSION_YY="`date +%Y`" \
+	VERSION_MM="`date +%m | sed 's/0//'`" \
+	VERSION_DD="`date +%d | sed 's/0//'`"
+linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
+	VERSION_MM="`date +%m | sed 's/0//'`" \
+	VERSION_DD="`date +%d | sed 's/0//'`" \
+	__LINUX__
+win32::DEFINES += VERSION_YY="2009" \
+	VERSION_MM="11" \
+	VERSION_DD="25"
 
 DEPENDPATH += . inc src ui
 INCLUDEPATH += . inc ui
 OBJECTS_DIR = .obj-debug
-MOC_DIR = .mpc-debug
+MOC_DIR = .moc-debug
 
 DEFINES += QT3_SUPPORT
 
@@ -42,7 +50,7 @@ SOURCES = src/imgproc.cpp \
 linux-g++:TMAKE_CXXFLAGS += -Wall -O2 -g \
 	-fexceptions -Wimplicit -Wreturn-type \
 	-Wunused -Wswitch -Wcomment -Wuninitialized -Wparentheses  \
-	-Wpointer-arith 
+	-Wpointer-arith
 
 linux-g++:DEFINES += LINUX
 
@@ -54,8 +62,8 @@ message( "Installation directory  = $(PWD) ")
 
 LIBS =
 
-DYN_LIBS = 
-STATIC_LIBS = 
+DYN_LIBS =
+STATIC_LIBS =
 
 
 unix: {
@@ -65,7 +73,7 @@ unix: {
 		DYN_LIBS += -L/usr/local/lib
 		SOURCES += src/cv2tiff.cpp
 		DEFINES += HAVE_LIBTIFF
-		
+
 		STATIC_LIBS += /usr/local/lib/libtiff.a
 	} else {
 		exists( /opt/local/include/tiffio.h ) {
@@ -73,16 +81,16 @@ unix: {
 			DYN_LIBS += -L/opt/local/lib
 			SOURCES += src/cv2tiff.cpp
 			DEFINES += HAVE_LIBTIFF
-			
+
 			STATIC_LIBS += /opt/local/lib/libtiff.a
-		
+
 		} else {
 			exists( /sw/include/tiffio.h ) {
 				INCLUDEPATH += /sw/include
 				DYN_LIBS += -L/sw/lib
 				SOURCES += src/cv2tiff.cpp
 				DEFINES += HAVE_LIBTIFF
-				
+
 				STATIC_LIBS += /sw/lib/libtiff.a
 			} else {
 				exists( /usr/include/tiffio.h ) {
@@ -90,56 +98,56 @@ unix: {
 					DYN_LIBS += -L/usr/lib
 					SOURCES += src/cv2tiff.cpp
 					DEFINES += HAVE_LIBTIFF
-					
+
 					STATIC_LIBS += /usr/lib/libtiff.a
 				}
 			}
 		}
 	}
-	
-	
-	
+
+
+
 	# Test if OpenCV library is present
-	OPENCV_STATIC_LIBDIR = 
+	OPENCV_STATIC_LIBDIR =
 	exists( /opt/local/include/opencv/cv.hpp) {
 		message("OpenCV found in /opt/local/include/opencv.")
 		INCLUDEPATH += /opt/local/include/opencv
-		
+
 		CVINSTPATH = /opt/local
 		CVINCPATH = /opt/local/include/opencv
-		
+
 		DYN_LIBS += -L/opt/local/lib
-		
+
 		OPENCV_STATIC_LIBDIR = /opt/local/lib
-		
+
 	} else {
 		exists( /usr/local/include/opencv/cv.hpp ) {
 			message("OpenCV found in /usr/local/include.")
 			INCLUDEPATH += /usr/local/include/opencv
-			
+
 			CVINSTPATH = /usr/local
 			CVINCPATH = /usr/local/include/opencv
-			
-			DYN_LIBS += -L/usr/local/lib 
+
+			DYN_LIBS += -L/usr/local/lib
 			OPENCV_STATIC_LIBDIR = /usr/local/lib
 		} else {
-			exists( /usr/include/opencv/cv.hpp ) 
+			exists( /usr/include/opencv/cv.hpp )
 			{
 				message("OpenCV found in /usr/include.")
 				CVINSTPATH = /usr
 				CVINCPATH = /usr/include/opencv
 				INCLUDEPATH += /usr/include/opencv
-				
+
 				DYN_LIBS += -L/usr/lib
 				OPENCV_STATIC_LIBDIR = /usr/local/lib
 			} else {
-				exists( /sw/include/opencv/cv.hpp ) 
+				exists( /sw/include/opencv/cv.hpp )
 				{
 					message("OpenCV found in /usr/include.")
 					CVINSTPATH = /usr
 					CVINCPATH = /usr/include/opencv
 					INCLUDEPATH += /usr/include/opencv
-					
+
 					DYN_LIBS += -L/sw/lib
 					OPENCV_STATIC_LIBDIR = /sw/lib
 				} else {
@@ -149,19 +157,19 @@ unix: {
 		}
 	}
 
-	
+
 
 	# on MacOS X with OpenCV 1, we must also link with cxcore
-	message( Dynamic libraries extension : '$$LIBS_EXT' ) 
+	message( Dynamic libraries extension : '$$LIBS_EXT' )
 	CXCORE_LIB = $$CVINSTPATH/lib/libcxcore.$$LIBS_EXT
 	message ( Testing CxCore lib = '$$CXCORE_LIB' )
 	exists( $$CXCORE_LIB ) {
 		message( " => Linking with CxCore in '$$CVINSTPATH' ")
 		DYN_LIBS += -lcxcore
-		
-		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cxcore.a 
+
+		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cxcore.a
 	}
-	
+
 	# For Ubuntu 7.10 for example, the link option is -lcv instead of -lopencv
 	CV_LIB = $$CVINSTPATH/lib/libcv.$$LIBS_EXT
 	message ( Testing CV lib = '$$CV_LIB' )
@@ -169,17 +177,17 @@ unix: {
 		message( " => Linking with -lcv ('$$CV_LIB' exists)")
 		DYN_LIBS += -lcv
 		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cxcore.a
-		
+
 	} else {
 		message( " => Linking with -lopencv ('$$CV_LIB' does not exist)")
 		DYN_LIBS += -lopencv
-		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/libopencv.a 
+		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/libopencv.a
 	}
 
 	INSTALL_DUSTHOOVER = $(DUSTHOOVER_DIR)
 	message( Reading installation directory : '$$INSTALL_DUSTHOOVER')
-	
-	
+
+
 	count( $$INSTALL_DUSTHOOVER , 0 ) {
 		message("Installation directory is undefined !! Installing in '/usr/local/tamanoir'.")
 	}
@@ -188,13 +196,13 @@ unix: {
 		DEFINES += BASE_DIRECTORY=$$INSTALL_DUSTHOOVER
 		message( defines : $$DEFINES )
 	}
-	
+
 }
 
 
 
 DYN_LIBS += -lcvaux -lhighgui -ltiff
-STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a $$OPENCV_STATIC_LIBDIR/lib_cvaux.a $$OPENCV_STATIC_LIBDIR/lib_highgui.a 
+STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a $$OPENCV_STATIC_LIBDIR/lib_cvaux.a $$OPENCV_STATIC_LIBDIR/lib_highgui.a
 
 BUILD_STATIC = $$(BUILD_STATIC)
 
