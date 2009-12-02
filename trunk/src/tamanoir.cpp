@@ -902,7 +902,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 					m_pImgProc->applyCorrection(current_dust, true);
 				} else {
 					// draw in inpainting mask
-					m_pImgProc->drawInpaintCircle(current_dust, 4);
+					m_pImgProc->drawInpaintCircle(current_dust);
 
 					/** No search when we click = click=apply inpainting **/
 					m_pImgProc->applyInpainting(current_dust, true);
@@ -1157,7 +1157,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				m_pImgProc->applyCorrection(current_dust, true);
 			} else if(m_draw_on == TMMODE_INPAINT) {
 				// draw in inpainting mask
-				m_pImgProc->drawInpaintCircle(current_dust, 4);
+				m_pImgProc->drawInpaintCircle(current_dust);
 				m_pImgProc->applyInpainting(current_dust, true);
 			}
 
@@ -1227,8 +1227,11 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 
 		if(m_draw_on == TMMODE_INPAINT) {
 			int radius = tmmin(l_correction->copy_width, l_correction->copy_height)/2 + inc;
+
+			if(radius < 1) radius = 1;
+
 			l_correction->copy_width  =
-				l_correction->copy_height = radius*2;
+				l_correction->copy_height = radius*2+1;
 
 			// update cursor
 			QPixmap pixmap(2*radius+1, 2*radius+1);

@@ -377,7 +377,7 @@ public:
 	void cropCorrectImage(t_correction correction);
 
 	/** @brief Draw a circle in crop dilate mask for later inpainting */
-	void drawInpaintCircle(t_correction correction, int radius);
+	void drawInpaintCircle(t_correction correction);
 
 	/** @brief Find a dust from (x, y) seed
 		  @param force search is forced by user, and its mode :

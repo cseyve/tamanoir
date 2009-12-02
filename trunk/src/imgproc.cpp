@@ -2959,7 +2959,7 @@ void TamanoirImgProc::cropViewImages() {
 	cropCorrectionImages(m_correct);
 }
 
-void TamanoirImgProc::drawInpaintCircle(t_correction correction, int radius) {
+void TamanoirImgProc::drawInpaintCircle(t_correction correction) {
 	CvSize cropSize = processingSize;
 	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
 		cropSize = displayCropSize;
@@ -2972,7 +2972,8 @@ void TamanoirImgProc::drawInpaintCircle(t_correction correction, int radius) {
 		disp_dilateImage = tmCreateImage(cropSize, IPL_DEPTH_8U, 1);
 	}
 
-	fprintf(stderr, "TmImgProc::%s:%d : draw in dilate : %d,%d r=%d",
+	int radius = correction.copy_width / 2 ;
+	fprintf(stderr, "TmImgProc::%s:%d : draw in dilate : %d,%d r=%d\n",
 			__func__, __LINE__,
 			correction.rel_dest_x, correction.rel_dest_y,
 			radius
@@ -3022,6 +3023,17 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction,
 		}
 	}
 
+	if(disp_dilateImage) {
+		if(disp_dilateImage->width != cropSize.width
+			|| disp_dilateImage->height != cropSize.height) {
+			fprintf(stderr, "[imgproc]::%s:%d : size does not fit : %dx%d != %dx%d\n",
+					__func__, __LINE__,
+					disp_dilateImage->width, disp_dilateImage->height,
+					cropSize.width, cropSize.height);
+			tmReleaseImage(&disp_dilateImage);
+		}
+	}
+
 
 	// Allocate images
 	if(!disp_cropOrigImage) {
@@ -3033,6 +3045,13 @@ void TamanoirImgProc::cropCorrectionImages(t_correction correction,
 	if(!disp_correctColorImage) {
 		disp_correctColorImage = tmCreateImage(cropSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
+	if(!disp_dilateImage && correct_mode == TMMODE_INPAINT) {
+		disp_dilateImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
+	}
+
+
+
+
 
 	if(g_debug_savetmp) {// force debug
 		m_show_crop_debug = true;
@@ -3217,10 +3236,26 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 //					IPL_DEPTH_8U, 1);
 //			cvCopy(disp_dilateImage, dilatedGrownImage);
 //			tmDilateImage(dilatedGrownImage, disp_dilateImage, 5, 1);
+
+			for(int r=0; r<disp_dilateImage->height; r++) {
+				u8 * dilateline = (u8 *)(disp_dilateImage->imageData
+										 + r*disp_dilateImage->widthStep);
+
+				for(int c=0; c<disp_dilateImage->width; c++) {
+					if(dilateline[c] == 255) {
+						cvLine(disp_cropColorImage,
+							   cvPoint(c,r), cvPoint(c,r),
+							   getFakeColor(disp_cropOrigImage->nChannels, COLORMARK_FAILED),
+							   1);
+					}
+				}
+			}
+
+
 			// inpaint into correction
-			cvInpaint(disp_cropColorImage, disp_dilateImage,
+			cvInpaint(disp_cropOrigImage, disp_dilateImage,
 					  disp_correctColorImage,
-					  15,
+					  correction.copy_width + 7,
 					 // CV_INPAINT_TELEA
 					  CV_INPAINT_NS
 					  );
@@ -3307,8 +3342,11 @@ void TamanoirImgProc::setCopySrc(t_correction * pcorrection, int rel_x, int rel_
 		undoImage_y = pcorrection->crop_y;
 		tmCropImage(originalImage, undoImage, undoImage_x, undoImage_y);
 
-		//fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage : top-left=%d,%d\n", __func__, __LINE__,
-		//		undoImage_x, undoImage_y);
+		// Clear display dilateImage for Inpainting reset
+		tmReleaseImage(&disp_dilateImage);
+
+		fprintf(stderr, "[imgproc]::%s:%d : resnap undoImage : top-left=%d,%d\n", __func__, __LINE__,
+				undoImage_x, undoImage_y);
 	}
 
 	/*

@@ -161,6 +161,8 @@ IMGUTILS_EXTERN u8 g_debug_savetmp IMGUTILS_ZERO;
 #define VISIBLE_DIFF	40
 
 
+/** @brief Return a fake color from the color type and the number of channels of input image */
+CvScalar getFakeColor(int nChannels, unsigned char color);
 
 /** @brief Init global variables and settings */
 void tmInitGlobals();
