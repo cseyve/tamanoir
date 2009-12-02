@@ -5,5 +5,7 @@
         <file>icon/tamanoir_about.png</file>
         <file>qss/tamanoir-Gray.qss</file>
         <file>icon/tamanoir.ico</file>
+        <file>icon/stock-tool-clone-22.png</file>
+        <file>icon/stock-tool-heal-22.png</file>
     </qresource>
 </RCC>

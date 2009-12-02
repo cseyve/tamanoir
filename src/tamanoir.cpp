@@ -628,11 +628,13 @@ void TamanoirApp::on_inpaintButton_toggled(bool state) {
 		break;
 	case TMMODE_INPAINT: {
 
-		QPixmap pixmap(32, 32);
+		current_dust.copy_width =
+			current_dust.copy_height = 9;
+		QPixmap pixmap(9, 9);
 		QPainter painter(&pixmap);
 		//painter.fill(Qt::transparent);
-		QPoint center(16,16);
-		painter.fillRect( 0,0,32,32, QBrush( qRgb(255,255, 255) ) );
+		QPoint center(4,4);
+		painter.fillRect( 0,0,9,9, QBrush( qRgb(255,255, 255) ) );
 		painter.drawEllipse ( center, 4, 4 );
 
 // QBitmap QBitmap::fromImage ( const QImage & image, Qt::ImageConversionFlags flags = Qt::AutoColor )   [static]
@@ -763,6 +765,16 @@ int distantToRect(t_correction current_dust, int mouse_x, int mouse_y) {
 
 void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 	m_overCorrected = false;
+	if(m_pImgProc) {
+		m_pImgProc->lockInpaintDrawing(false);
+		if(m_draw_on == TMMODE_INPAINT) {
+			ui.cropPixmapLabel->setCursor(Qt::WaitCursor);
+
+			updateDisplay(); // compute inpainting
+			// restor cursor
+			updateCroppedCursor();
+		}
+	}
 
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	cropPixmapLabel_last_button = Qt::NoButton;
@@ -808,7 +820,8 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		case Qt::LeftButton: {
 			if(!m_draw_on) {
 				// Check if the click is near the border of the rectangle
-				if( dist_to_border <= 5 && dist_to_border <= dist_to_src) {
+				if( dist_to_border <= 5
+					&& dist_to_border <= dist_to_src) {
 
 					cropPixmapLabel_last_button = Qt::RightButton; // e->button();
 					ui.cropPixmapLabel->setCursor( Qt::SizeFDiagCursor);
@@ -894,18 +907,21 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				// Move dest
 				current_dust.rel_dest_x = e->pos().x();
 				current_dust.rel_dest_y = e->pos().y();
+
+				current_dust.rel_seed_x = e->pos().x();
+				current_dust.rel_seed_y = e->pos().y();
+
 				if(m_draw_on == TMMODE_CLONE) {
-					current_dust.rel_seed_x = e->pos().x();
-					current_dust.rel_seed_y = e->pos().y();
+
 
 					/** No search when we click = click=apply clone **/
 					m_pImgProc->applyCorrection(current_dust, true);
 				} else {
 					// draw in inpainting mask
+					m_pImgProc->lockInpaintDrawing(true);
 					m_pImgProc->drawInpaintCircle(current_dust);
-
 					/** No search when we click = click=apply inpainting **/
-					m_pImgProc->applyInpainting(current_dust, true);
+					//m_pImgProc->applyInpainting(current_dust, true);
 				}
 			}
 
@@ -1000,7 +1016,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 				//g_debug_imgverbose = 255;
 				//g_debug_correlation = 255;
 				if((m_draw_on == TMMODE_CLONE && m_searchCloneSrc)
-				   ||(m_draw_on == TMMODE_INPAINT)
+				   //||(m_draw_on == TMMODE_INPAINT)
 				   ) {
 					t_correction search_correct = current_dust;
 					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
@@ -1103,13 +1119,14 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 			int center_x = current_dust.rel_src_x;
 			int center_y = current_dust.rel_src_y;
 
-			//if(m_draw_on != TMMODE_INPAINT)
+			if(m_draw_on != TMMODE_INPAINT)
 			{
 				m_pImgProc->setCopySrc(&current_dust,
 					center_x, center_y);
+				updateDisplay();
 			}
 
-			updateDisplay();
+
 
 			}break;
 		case Qt::LeftButton:
@@ -1156,9 +1173,11 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				/* No search when moving with the button down */
 				m_pImgProc->applyCorrection(current_dust, true);
 			} else if(m_draw_on == TMMODE_INPAINT) {
+				current_dust.rel_seed_x = current_dust.rel_dest_x = mouse_x;
+				current_dust.rel_seed_y = current_dust.rel_dest_y = mouse_y;
 				// draw in inpainting mask
+				m_pImgProc->lockInpaintDrawing(true);
 				m_pImgProc->drawInpaintCircle(current_dust);
-				m_pImgProc->applyInpainting(current_dust, true);
 			}
 
 			int center_x = current_dust.rel_src_x;
@@ -1207,7 +1226,27 @@ void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		updateDisplay();
 	}
 }
+void TamanoirApp::updateCroppedCursor() {
+	if(m_draw_on == TMMODE_INPAINT) {
+		t_correction * l_correction = &current_dust;
+		int radius = tmmin(l_correction->copy_width,
+						   l_correction->copy_height)/2 ;
 
+		if(radius < 1) radius = 1;
+
+		l_correction->copy_width  =
+			l_correction->copy_height = radius*2+1;
+
+		// update cursor
+		QPixmap pixmap(2*radius+1, 2*radius+1);
+		QPainter painter(&pixmap);
+		painter.eraseRect(0,0, 2*radius+1, 2*radius+1 );
+		QPoint center(radius, radius);
+		painter.drawEllipse( center, radius, radius);
+		QCursor bmpcursor(pixmap, pixmap, radius, radius);
+		ui.cropPixmapLabel->setCursor( bmpcursor);
+	}
+}
 void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 	if(e && m_pProcThread) {
 		t_correction * l_correction = &current_dust;
@@ -1225,35 +1264,18 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 				return;
 		}
 
-		if(m_draw_on == TMMODE_INPAINT) {
-			int radius = tmmin(l_correction->copy_width, l_correction->copy_height)/2 + inc;
+		l_correction->copy_width  += inc;
+		l_correction->copy_height += inc;
+		updateCroppedCursor();
 
-			if(radius < 1) radius = 1;
+		if(m_draw_on != TMMODE_INPAINT) {
+			// This function only update l_correction
+			m_pImgProc->setCopySrc(l_correction,
+				center_x,
+				center_y);
 
-			l_correction->copy_width  =
-				l_correction->copy_height = radius*2+1;
-
-			// update cursor
-			QPixmap pixmap(2*radius+1, 2*radius+1);
-			QPainter painter(&pixmap);
-			painter.eraseRect(0,0, 2*radius+1, 2*radius+1 );
-			QPoint center(radius, radius);
-			painter.drawEllipse( center, radius, radius);
-			QCursor bmpcursor(pixmap, pixmap, radius, radius);
-			ui.cropPixmapLabel->setCursor( bmpcursor);
-		} else {
-			l_correction->copy_width  += inc;
-			l_correction->copy_height += inc;
+			updateDisplay();
 		}
-
-
-
-		// This function only update l_correction
-		m_pImgProc->setCopySrc(l_correction,
-			center_x,
-			center_y);
-
-		updateDisplay();
 	}
 }
 

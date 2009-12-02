@@ -379,6 +379,9 @@ public:
 	/** @brief Draw a circle in crop dilate mask for later inpainting */
 	void drawInpaintCircle(t_correction correction);
 
+	/** @brief Lock inpainting search : true when the user is drawing, and goes ot false when the mouse is released */
+	void lockInpaintDrawing(bool lock);
+
 	/** @brief Find a dust from (x, y) seed
 		  @param force search is forced by user, and its mode :
 			TMMODE_NOFORCE : no force,
@@ -387,6 +390,7 @@ public:
 		@return 1 if must return now
 	*/
 	int findDust(int x, int y, t_correction * pcorrection, int force = 0);
+
 
 private:
 	/** @brief Initialize buffers */
@@ -455,6 +459,10 @@ private:
 	IplImage * undoImage;
 	/// Undo image crop position (top-left)
 	int undoImage_x, undoImage_y;
+
+	/// Lock inpainting search : true when the user is drawing, and goes ot false when the mouse is released
+	bool m_inpainting_lock;
+	bool m_inpainting_rendered;
 
 	/// Original image, blurred for grain removal
 	IplImage * origBlurredImage;

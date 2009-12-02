@@ -819,6 +819,10 @@
               <property name="text">
                <string>&amp;Clone</string>
               </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/stock-tool-clone-22.png</normaloff>:/icon/stock-tool-clone-22.png</iconset>
+              </property>
               <property name="shortcut">
                <string>C</string>
               </property>
@@ -873,6 +877,10 @@
               </property>
               <property name="text">
                <string>&amp;Inpaint</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/stock-tool-heal-22.png</normaloff>:/icon/stock-tool-heal-22.png</iconset>
               </property>
               <property name="shortcut">
                <string>I</string>
