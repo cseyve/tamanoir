@@ -189,7 +189,8 @@ private:
 	void updateMainDisplay();
 	/** Update cropped images views */
 	void updateCroppedDisplay();
-
+	/** Update cropped cursor */
+	void updateCroppedCursor();
 
 	QTimer refreshTimer;
 	int m_curCommand;
