@@ -51,4 +51,10 @@ void PrefsDialog::on_showAutoCheckBox_toggled(bool on)
 	g_display_options.show_auto = (on ? 1 : 0);
 	tmApp->saveOptions();
 }
+void PrefsDialog::on_exportLayerCheckBox_toggled(bool on)
+{
+	fprintf(stderr, "PrefsDialog::%s:%d : on=%d\n", __func__, __LINE__, on?'T':'F');
+	g_display_options.export_layer = (on ? 1 : 0);
+	tmApp->saveOptions();
+}
 

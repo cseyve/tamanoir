@@ -107,6 +107,27 @@ typedef uint32_t u32;
 typedef int32_t i32;
 #endif
 
+// Debug/message levels //
+
+// Debug modes
+#define TMLOG_TRACE				5	/*! Display every step */
+#define TMLOG_DEBUG				4	/*! Display debug message */
+
+// Std verbose modes
+#define TMLOG_INFO				3	/*! Display information message (main steps, ...) */
+#define TMLOG_WARNING			2	/*! Display warnings (can be recovered) */
+#define TMLOG_ERROR				1	/*! Display errors (cannot be recovered) */
+
+const char tmlog_msgtab[6][12] = {
+		"none   ",
+		"ERROR  ",
+		"WARNING",
+		"INFO   ",
+		"DEBUG  ",
+		"TRACE  "
+};
+
+#define TMLOG_MSG(a) ((a)>=0&&(a)<=TMLOG_TRACE?tmlog_msgtab[(a)]:"UNKNOWN")
 
 
 /** @brief Temporary directory for saving debug images
@@ -123,12 +144,6 @@ IMGUTILS_EXTERN char g_tmp_directory[512]
 IMGUTILS_EXTERN u8 g_debug_importexport IMGUTILS_ZERO;
 
 
-// Debug/message levels
-#define TMLOG_TRACE		2
-#define TMLOG_DEBUG		1
-#define TMLOG_INFO		0
-#define TMLOG_WARNING	-1
-#define TMLOG_ERROR		-2
 
 
 
