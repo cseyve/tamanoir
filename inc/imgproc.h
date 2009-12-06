@@ -470,6 +470,9 @@ private:
 	/// Inpainting mask image
 	IplImage * inpaintMaskImage;
 
+	/// Drawing mode
+	int m_last_mode;
+
 	/// Purge and crop images for display since size changed
 	void recropImages(CvSize cropSize, int crop_x, int crop_y);
 

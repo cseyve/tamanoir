@@ -94,6 +94,8 @@ TamanoirImgProc::TamanoirImgProc(int bw, int bh) {
 
 void TamanoirImgProc::init() {
 
+	m_last_mode = TMMODE_NOFORCE;
+
 	m_filename[0] = '\0';
 
 
@@ -2987,10 +2989,18 @@ void TamanoirImgProc::drawInpaintCircle(t_correction correction) {
 	if(!undoImage) {
 		setCopySrc(&correction, correction.rel_seed_x, correction.rel_seed_y);
 	}
+
 	if(!undoImage) {
 		TMIMG_printf(TMLOG_ERROR, "no undoImage ! return")
 		return;
 	}
+
+	if(	m_last_mode != TMMODE_INPAINT) {
+		// we switched mode, so reupdate undoImage because we will use undoImage to perform inpainting
+		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
+	}
+
+	m_last_mode = TMMODE_INPAINT;
 	CvSize cropSize = cvSize(undoImage->width, undoImage->height);
 
 
@@ -3131,6 +3141,12 @@ void TamanoirImgProc::cropCorrectionImages(
 		recropImages(cropSize, correction.crop_x,  correction.crop_y);
 	}
 
+	if(	m_last_mode != correct_mode) {
+		// we switched mode, so reupdate undoImage because we will use undoImage to perform inpainting
+		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
+	}
+
+	m_last_mode = correct_mode;
 
 	// Now we should have the right size of images
 
@@ -3556,6 +3572,8 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 
 		return -1; // no available correction
 	}
+
+	m_last_mode = TMMODE_CLONE;
 
 	/* Update stats */
 	m_dust_stats.nb_grown_validated++;
