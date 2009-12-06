@@ -350,6 +350,9 @@ public:
 	/** @brief Get cropped corrected image */
 	IplImage * getCorrectImage() { return correctImage; };
 
+	/** @brief Get cropped mask of dust automatically erased */
+	IplImage * getDustMask() { return diffImage; };
+
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
 
@@ -455,10 +458,20 @@ private:
 	// Image buffers
 	IplImage * originalImage;
 	IplImage * originalSmallImage;
+
 	/// Undo image
 	IplImage * undoImage;
+
 	/// Undo image crop position (top-left)
 	int undoImage_x, undoImage_y;
+
+	/// Inpainting rendered image
+	IplImage * inpaintRenderImage;
+	/// Inpainting mask image
+	IplImage * inpaintMaskImage;
+
+	/// Purge and crop images for display since size changed
+	void recropImages(CvSize cropSize, int crop_x, int crop_y);
 
 	/// Lock inpainting search : true when the user is drawing, and goes ot false when the mouse is released
 	bool m_inpainting_lock;

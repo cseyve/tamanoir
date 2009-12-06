@@ -54,6 +54,7 @@ typedef struct {
 	// optional display
 	bool show_auto;			/*! Show auto button */
 	bool show_hotpixels;	/*! Show hot pixels button */
+	bool export_layer;		/*! Propose to export dust mask as layer when saving image */
 
 	// Display options
 	char stylesheet[512];	/*! Stylesheet */

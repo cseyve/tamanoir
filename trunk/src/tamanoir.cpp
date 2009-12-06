@@ -453,6 +453,8 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		memset(&current_dust, 0, sizeof(t_correction));
 		current_dust.crop_x = std::max(0, (int)roundf( (e->pos().x()-offset_x) * scale_x) -crop_w/2);
 		current_dust.crop_y = std::max(0, (int)roundf( (e->pos().y()-offset_y) * scale_y) -crop_h/2);
+		current_dust.crop_width = crop_w;
+		current_dust.crop_height = crop_h;
 
 		// Clip
 		current_dust.rel_src_x = current_dust.rel_dest_x = crop_w / 2;
@@ -630,23 +632,18 @@ void TamanoirApp::on_inpaintButton_toggled(bool state) {
 
 		current_dust.copy_width =
 			current_dust.copy_height = 9;
-		QPixmap pixmap(9, 9);
-		QPainter painter(&pixmap);
-		//painter.fill(Qt::transparent);
-		QPoint center(4,4);
-		painter.fillRect( 0,0,9,9, QBrush( qRgb(255,255, 255) ) );
-		painter.drawEllipse ( center, 4, 4 );
 
-// QBitmap QBitmap::fromImage ( const QImage & image, Qt::ImageConversionFlags flags = Qt::AutoColor )   [static]
-		QBitmap bitmap(pixmap);
+		updateCroppedCursor();
 
-// QCursor::QCursor ( const QBitmap & bitmap, const QBitmap & mask, int hotX = -1, int hotY = -1 )
-		QCursor roundcursor(bitmap, bitmap);
-
-		ui.cropPixmapLabel->setCursor( roundcursor );
-				//Qt::WhatsThisCursor );
+		//
+		if(m_pImgProc) {
+			m_pImgProc->setCopySrc(&current_dust, current_dust.rel_seed_x, current_dust.rel_seed_y);
+		}
+		updateDisplay();//to remove the arrow
 		}break;
 	}
+
+	updateDisplay();
 }
 
 void TamanoirApp::on_cloneButton_toggled(bool state) {
@@ -665,6 +662,10 @@ void TamanoirApp::on_cloneButton_toggled(bool state) {
 		break;
 	case TMMODE_CLONE:
 		ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
+		if(m_pImgProc) {
+			m_pImgProc->setCopySrc(&current_dust, current_dust.rel_seed_x, current_dust.rel_seed_y);
+		}
+		updateDisplay();//to remove the arrow
 		break;
 	case TMMODE_INPAINT:
 		ui.cropPixmapLabel->setCursor( Qt::WhatsThisCursor );
@@ -1119,14 +1120,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 			int center_x = current_dust.rel_src_x;
 			int center_y = current_dust.rel_src_y;
 
-			if(m_draw_on != TMMODE_INPAINT)
-			{
-				m_pImgProc->setCopySrc(&current_dust,
+			m_pImgProc->setCopySrc(&current_dust,
 					center_x, center_y);
-				updateDisplay();
-			}
-
-
+			updateDisplay();
 
 			}break;
 		case Qt::LeftButton:
@@ -1158,20 +1154,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				current_dust.rel_src_y = current_dust.rel_seed_y - dy;
 
 				/* No search when moving with the button down
-				// Compute correction
-				t_correction search_correct = current_dust;
-					u8 old_debug = g_debug_imgverbose, old_correlation = g_debug_correlation;
-					//g_debug_imgverbose = 255;
-					//g_debug_correlation = 255;
-					int ret = m_pImgProc->findDust(current_dust.crop_x+current_dust.rel_seed_x ,
-										current_dust.crop_y+current_dust.rel_seed_y ,
-											&search_correct);
-					g_debug_imgverbose = old_debug;
-					g_debug_correlation = old_correlation;
-
-					if(ret > 0) {`*/
-				/* No search when moving with the button down */
+				just apply current src->dest correction */
 				m_pImgProc->applyCorrection(current_dust, true);
+
 			} else if(m_draw_on == TMMODE_INPAINT) {
 				current_dust.rel_seed_x = current_dust.rel_dest_x = mouse_x;
 				current_dust.rel_seed_y = current_dust.rel_dest_y = mouse_y;
@@ -1242,8 +1227,15 @@ void TamanoirApp::updateCroppedCursor() {
 		QPainter painter(&pixmap);
 		painter.eraseRect(0,0, 2*radius+1, 2*radius+1 );
 		QPoint center(radius, radius);
+		painter.setPen( QPen(QBrush(qRgb(0,0,0)), 1) );
 		painter.drawEllipse( center, radius, radius);
-		QCursor bmpcursor(pixmap, pixmap, radius, radius);
+		painter.drawEllipse( center, radius-1, radius-1);
+
+		QPixmap pixmap_bg(pixmap);
+		QPoint centerW(radius, radius);
+		painter.setPen( QPen(QBrush(qRgb(255,255,255)), 1) );
+		painter.drawEllipse( centerW, radius, radius);
+		QCursor bmpcursor(pixmap, pixmap_bg, radius, radius);
 		ui.cropPixmapLabel->setCursor( bmpcursor);
 	}
 }
@@ -1433,14 +1425,37 @@ void TamanoirApp::on_loadButton_clicked()
 
 void TamanoirApp::on_saveButton_clicked()
 {
+	if(!m_pImgProc) {
+		// error, nothing to be saved
+		fprintf(stderr, "TamanoirApp::%s:%d : cannot save, no image proc object \n", __func__, __LINE__);
+		return;
+	}
 	fprintf(stderr, "TamanoirApp::%s:%d : saving in original file, and use a copy for backup...\n", __func__, __LINE__);
 
 	QFileInfo fi(m_currentFile);
 	QString ext = fi.extension(FALSE);
 	QString base = fi.baseName( TRUE );
 
+	if(g_display_options.export_layer)
+	{
+
+		// FIXME : ask to save layer as PNG ?
+		QString strname = base + tr("-mask") + ".png";
+		int ret = QMessageBox::warning(this,
+					   tr("Tamanoir - Save dust layer as image ?"),
+					   tr("Do you want to save the dust layer mask as ") + strname
+					   + tr(" ?"),
+					   QMessageBox::Ok,
+					   QMessageBox::Cancel);
+
+		if(ret == QMessageBox::Ok) {
+			// Save file with standard cvSaveImage for PNG
+			tmSaveImage(strname, m_pImgProc->getDustMask());
+		}
+	}
+
 	// Save a copy before saving output image
-	QString copystr = base + tr("-copy.") + ext;
+	QString copystr = base + tr("-orig.") + ext;
 	if(m_pImgProc) {
 		QString msg = tr("Saving ") + m_currentFile;
 
@@ -1476,6 +1491,8 @@ void fprintfDisplayOptions(FILE * f, tm_display_options * p_options) {
 
 	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
 	fprintf(f, "Stylesheet:%s\n", p_options->stylesheet);
+	fprintf(f, "ShowAuto:%s\n", p_options->show_auto?"T":"F");
+	fprintf(f, "ExportLayer:%s\n", p_options->export_layer?"T":"F");
 
 	fflush(f);
 }
@@ -1556,11 +1573,21 @@ int TamanoirApp::loadOptions() {
 					if(strcasestr(cmd, "stylesheet")) {
 						strcpy(g_display_options.stylesheet, arg);
 					}
+					if(strcasestr(cmd, "ShowAuto")) {
+						if(strstr(arg, "T"))
+							g_display_options.show_auto = true;
+						else
+							g_display_options.show_auto = false;
+					}
+					if(strcasestr(cmd, "Export")) {
+						if(strstr(arg, "T"))
+							g_display_options.export_layer = true;
+						else
+							g_display_options.export_layer = false;
+					}
 				}
 			}
 		}
-
-		//
 
 	}
 
