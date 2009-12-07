@@ -2,6 +2,8 @@ tamanoir (0.svn20091207-1) unstable; urgency=low
 
   * Added inpainting tool and full auto correction mode
 
+ -- Christophe Seyve <cseyve@free.fr>  Mon, 7 Dec 2009 23:23:00 +0200
+
 tamanoir (0.svn20090422-1) unstable; urgency=low
 
   * Added auto mode, and a few minor bug fixes in correlation 
