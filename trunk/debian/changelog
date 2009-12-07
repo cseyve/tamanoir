@@ -1,3 +1,7 @@
+tamanoir (0.svn20091207-1) unstable; urgency=low
+
+  * Added inpainting tool and full auto correction mode
+
 tamanoir (0.svn20090422-1) unstable; urgency=low
 
   * Added auto mode, and a few minor bug fixes in correlation 
