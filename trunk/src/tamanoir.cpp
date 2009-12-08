@@ -68,6 +68,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 		m_fileDialog = NULL;
 	m_pImgProc = NULL;
 	m_pProcThread = NULL;
+	m_pProgressDialog = NULL;
 	force_mode = false;
 	cropPixmapLabel_last_button = Qt::NoButton;
 	is_src_selected = true;
@@ -160,7 +161,6 @@ void TamanoirApp::on_actionShortcuts_activated() {
 	QString item = QString("<li>"), itend = QString("</li>\n");
 	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
 						  + verstr.sprintf("svn%04d%02d%02d", VERSION_YY, VERSION_MM, VERSION_DD)
-
 						  + QString("<br>Website & Wiki: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
 						  + tr("Shortcuts :<br><ul>\n")
 							+ item + cmd + tr("O: Open a picture file") + itend
@@ -256,26 +256,34 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	// Then force update of crops
 	updateDisplay();
 }
+void TamanoirApp::on_m_pProgressDialog_canceled()
+{
 
+}
 
 void TamanoirApp::on_refreshTimer_timeout() {
 	if(m_pProcThread) {
 		if(refreshTimer.isActive() &&
 			m_pProcThread->getCommand() == PROTH_NOTHING) {
 			// Stop timer only if not in auto mode
-			if( !m_pProcThread->getModeAuto())
+			if( !m_pProcThread->getModeAuto()) {
 				refreshTimer.stop();
-
+			} else {
+				m_pProgressDialog->setValue( 100 );
+				m_pProgressDialog->hide();
+			}
 			lockTools(false);
 		}
 
 		if(m_curCommand == PROTH_NOTHING &&
-			m_pProcThread->getCommand() != PROTH_NOTHING)
+		   m_pProcThread->getCommand() != PROTH_NOTHING) {
 			m_curCommand = m_pProcThread->getCommand();
+		}
 
 		if(g_debug_TmThread)
-			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
-				m_curCommand, m_pProcThread->getCommand());
+			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d progress=%d\n", __func__, __LINE__,
+				m_curCommand, m_pProcThread->getCommand(),
+				m_pImgProc->getProgress());
 
 		// If nothing changed, just update GUI
 		if( m_curCommand == m_pProcThread->getCommand()
@@ -284,6 +292,12 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 			// Update Progress bar
 			ui.overAllProgressBar->setValue( m_pImgProc->getProgress() );
+
+			if(m_pProcThread->getModeAuto()) {
+				// update progress
+				m_pProgressDialog->setValue( m_pImgProc->getProgress() );
+				m_pProgressDialog->update();
+			}
 
 			// Do specific updates
 			switch(m_curCommand) {
@@ -1450,7 +1464,8 @@ void TamanoirApp::on_saveButton_clicked()
 
 		if(ret == QMessageBox::Ok) {
 			// Save file with standard cvSaveImage for PNG
-			tmSaveImage(strname, m_pImgProc->getDustMask());
+			QString pathmask = fi.absolutePath () + "/" + strname;
+			tmSaveImage(pathmask, m_pImgProc->getDustMask());
 		}
 	}
 
@@ -1846,8 +1861,25 @@ void TamanoirApp::on_autoButton_clicked()
 	if(ret == QMessageBox::Cancel)
 		return;
 
+	// update progress dialog
+	if(!m_pProgressDialog) {
+		m_pProgressDialog = new QProgressDialog(
+				tr("Operation in progress."),
+				tr("Cancel"),
+				0, 100);
+		m_pProgressDialog->setWindowModality(Qt::WindowModal);
+
+		connect(m_pProgressDialog, SIGNAL(canceled()), this, SLOT(on_m_pProgressDialog_canceled()));
+	}
+	m_pProgressDialog->setValue(0);
+	m_pProgressDialog->show();
+	m_pProgressDialog->update();
+
 	statusBar()->showMessage(tr("Auto-correct running... please wait."));
 	statusBar()->update();
+
+
+
 
 	fprintf(stderr, "TamanoirApp::%s:%d : AUTO MODE ...\n", __func__, __LINE__);
 		/*if(logfile == stderr) {
@@ -1868,21 +1900,19 @@ void TamanoirApp::on_autoButton_clicked()
 				logfilename);
 		}
 		} else */
-		{
+	{
 		g_debug_imgverbose = 0;
 	}
 	g_debug_savetmp = 0;
 
+	ui.overAllProgressBar->setValue(0);
+
 	// Apply previous correction
 	if(m_pProcThread) {
 		m_pProcThread->setModeAuto(true);
-		refreshTimer.start(1000);
+		refreshTimer.start(500);
 	}
 	fflush(logfile);
-
-
-
-	ui.overAllProgressBar->setValue(0);
 
 	// Update little frame displays
 	updateDisplay();

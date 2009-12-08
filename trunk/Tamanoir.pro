@@ -2,18 +2,6 @@
 # TAMANOIR Qt PROJECT
 # #####################################################################
 TEMPLATE = app
-
-mac::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m | sed 's/0//'`" \
-	VERSION_DD="`date +%d | sed 's/0//'`"
-linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m | sed 's/0//'`" \
-	VERSION_DD="`date +%d | sed 's/0//'`" \
-	__LINUX__
-win32::DEFINES += VERSION_YY="2009" \
-	VERSION_MM="10" \
-	VERSION_DD="13"
-
 # Use lowercase name for Linux
 TARGET = tamanoir
 
@@ -30,6 +18,13 @@ INCLUDEPATH += . \
 OBJECTS_DIR = .obj-simple
 DEFINES += SIMPLE_VIEW \
 	QT3_SUPPORT
+CONFIG += qt \
+	warn_on \
+	build_all \
+	release
+
+
+
 TRANSLATIONS = tamanoir_French.ts
 
 # icon
@@ -70,9 +65,14 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
 	-Wuninitialized \
 	-Wparentheses \
 	-Wpointer-arith
-linux-g++:DEFINES += LINUX
-LIBS_EXT = dylib
-linux-g++:LIBS_EXT = so
+
+linux-g++::DEFINES += LINUX
+LIBS_EXT = so
+
+macx::LIBS_EXT = dylib
+linux-g++::LIBS_EXT = so
+linux:LIBS_EXT = so
+
 win32:LIBS_EXT = lib
 message( "Installation directory = $(PWD) ")
 LIBS =
@@ -91,7 +91,6 @@ win32: {
 }
 
 unix: {
-
 
 	# Test if OpenCV library is present
 	OPENCV_STATIC_LIBDIR =
@@ -222,19 +221,19 @@ STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
 BUILD_STATIC = $$(BUILD_STATIC)
 
 # contains(BUILD_STATIC, true)
-macx: contains(BUILD_STATIC, true) { 
-    message("Building static version of binary : Universal=x86 ppc")
-    CONFIG += x86 ppc
-    
-    # Test for building releases
-    LIBS += $$STATIC_LIBS
-}
-else { 
-    message("Building dynamic libraries version of binary :")
-    CONFIG += debug
+macx: contains(BUILD_STATIC, true) {
+	message("Building static version of binary : Universal=x86 ppc")
+	CONFIG += x86 ppc
 
-    # Dynamic libraries version
-    LIBS += $$DYN_LIBS
+	# Test for building releases
+	LIBS += $$STATIC_LIBS
+}
+else {
+	message("Building dynamic libraries version of binary :")
+	CONFIG += debug
+
+	# Dynamic libraries version
+	LIBS += $$DYN_LIBS
 }
 OTHER_FILES += build_mac_bundle.sh \
 	build_mac_dmg.py \
@@ -242,25 +241,31 @@ OTHER_FILES += build_mac_bundle.sh \
 	qss/tamanoir-Gray.qss
 
 macx: {
-    message("MacOS X specific options =================================================")
+	message("MacOS X specific options =================================================")
 
 #TARGET = $$join(TARGET,,,_debug)
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 }
 
 
-linux-g++ { 
-    message("Linux specific options =================================================")
-    DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
+linux-g++ {
+	message("Linux specific options =================================================")
+	DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
 win32:TARGET = $$join(TARGET,,d)
 
 # }
 
-CONFIG += qt \
-    warn_on \
-    build_all \
-    release
+
+unix: {
+	DEFINES += VERSION_YY="`date +%Y`" \
+		VERSION_MM="`date +%m | sed 's/0//'`" \
+		VERSION_DD="`date +%d | sed 's/0//'`" \
+		__LINUX__
+}
+win32: DEFINES += VERSION_YY="2009" \
+	VERSION_MM="10" \
+	VERSION_DD="13"
 
 #linux-g++::CONFIG += debug_and_release
 
