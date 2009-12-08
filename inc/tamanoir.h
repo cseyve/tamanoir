@@ -36,6 +36,7 @@
 
 #include <QtGui>
 #include <QFileDialog>
+#include <QProgressDialog>
 
 
 // Tamanoir processing thread commands
@@ -259,7 +260,7 @@ private slots:
 	void on_emptyCheckBox_toggled(bool);
 
 	void on_refreshTimer_timeout();
-
+	void on_m_pProgressDialog_canceled();
 
 private:
 	/** @brief lock tools while doing big tasks : loading/saving/settings */
@@ -271,7 +272,7 @@ private:
 	QList<t_correction> skipped_list;
 	bool force_mode;
 
-
+	QProgressDialog * m_pProgressDialog;
 
 	/** @brief Correction mode
 	  0: no forced correction, 1: clone, 2: inpaint
