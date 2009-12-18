@@ -249,6 +249,8 @@ private slots:
 	void on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 	void on_cropPixmapLabel_signalWheelEvent(QWheelEvent *);
 
+	void on_correctPixmapLabel_signalFocusInEvent(QFocusEvent *);
+	void on_correctPixmapLabel_signalFocusOutEvent(QFocusEvent *);
 	void on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent *);
 
 	void on_typeComboBox_currentIndexChanged(int);

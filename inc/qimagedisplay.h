@@ -43,12 +43,15 @@ private:
     void mousePressEvent(QMouseEvent * e);
     void mouseMoveEvent(QMouseEvent * e);
     void wheelEvent ( QWheelEvent * e );
-
+	void focusInEvent ( QFocusEvent * event ) ;
+	void focusOutEvent ( QFocusEvent * event ) ;
 signals:
     void signalMousePressEvent(QMouseEvent * e);
     void signalMouseReleaseEvent(QMouseEvent * e);
     void signalMouseMoveEvent(QMouseEvent * e);
     void signalWheelEvent( QWheelEvent * e );
+	void signalFocusInEvent ( QFocusEvent * event ) ;
+	void signalFocusOutEvent ( QFocusEvent * event ) ;
 };
 
 #endif

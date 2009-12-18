@@ -1,5 +1,5 @@
 /***************************************************************************
- *           imgproc.cpp - Main image processing
+ *  imgproc.cpp - Main image processing for dust detection & removing
  *
  *  Tue Oct 23 22:10:56 2007
  *  Copyright  2007  Christophe Seyve
@@ -68,7 +68,7 @@ int nb_known_dusts_forced = 0;
 int max_known_dusts = 0;
 double orig_width=0, orig_height=0;
 
-u8 g_debug_TamanoirImgProc = TMLOG_DEBUG;
+u8 g_debug_TamanoirImgProc = TMLOG_INFO;
 
 #define TMIMG_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirImgProc ) { \
@@ -112,6 +112,7 @@ void TamanoirImgProc::init() {
 	- DPI : 2400 dpi
 	- hot pixels : no (scan from film !)
 	*/
+	memset(&m_options, 0, sizeof(tm_options));
 	m_options.filmType = FILM_UNDEFINED;
 	m_options.hotPixels = false;
 	m_options.sensitivity = 0;
@@ -119,11 +120,14 @@ void TamanoirImgProc::init() {
 	m_options.dpi = 2400;
 	m_options.hotPixels = false;
 
+
 	/** Original image size */
 	originalSize = cvSize(0,0);
 
 	/** Processed imge size */
 	processingSize = cvSize(0,0);
+
+	m_block_seed_width = m_block_seed_height = 0;
 
 	MUTEX_INIT(&mutex)
 
@@ -139,7 +143,7 @@ void TamanoirImgProc::init() {
 	// Working images : full size
 	grayImage = NULL;
 	medianImage = NULL;
-	diffImage = NULL;
+	diffImage = dustMaskImage = NULL;
 	varianceImage = NULL;
 	growImage = NULL;
 
@@ -218,6 +222,7 @@ void TamanoirImgProc::purge() {
 	tmReleaseImage(&origBlurredImage);
 	tmReleaseImage(&medianImage);
 	tmReleaseImage(&diffImage);
+	tmReleaseImage(&dustMaskImage);
 	tmReleaseImage(&varianceImage);
 	tmReleaseImage(&growImage);
 
@@ -243,6 +248,11 @@ void TamanoirImgProc::purgeCropped() {
 	processingSize = cvSize(0,0);
 }
 
+#define PURGE_SIZECHANGED(_img, _size) if(_img && \
+						((_img)->width != (_size).width \
+						 || (_img)->height != (_size).height)) { \
+							tmReleaseImage(&(_img)); \
+						}
 void TamanoirImgProc::purgeDisplay() {
 	fprintf(stderr, "TamanoirImgProc::%s:%d \n", __func__, __LINE__);
 	// Display images
@@ -943,6 +953,41 @@ void TamanoirImgProc::allocCropped() {
 	}
 }
 
+IplImage * TamanoirImgProc::getDustMask() {
+
+
+	// Difference must be allocated and filled
+	if(!diffImage) {
+		TMIMG_printf(TMLOG_INFO, "Cannot export dust mask layer : no diffImage")
+		return NULL;
+	}
+	// alloc and clear before filling mask
+	if(!dustMaskImage) {
+		dustMaskImage = tmCreateImage(cvSize(diffImage->width, diffImage->height),
+			IPL_DEPTH_8U, 1);
+	} else {
+		cvZero(dustMaskImage);
+	}
+	TMIMG_printf(TMLOG_INFO, "Exporting dust mask layer: %dx%d",
+				 dustMaskImage->width, dustMaskImage->height)
+
+	// Only fill mask with points where diffImage has been corrected
+	for(int r=0; r<diffImage->height; r++) {
+		u8 * diffline = (u8 *)(diffImage->imageData + r * diffImage->widthStep);
+		u8 * dustline = (u8 *)(dustMaskImage->imageData + r * dustMaskImage->widthStep);
+
+		for(int c = 0; c<diffImage->width; c++) {
+			if(diffline[c] == DIFF_CORRECTED) {
+				dustline[c] = 255;
+			}
+		}
+	}
+
+	TMIMG_printf(TMLOG_INFO, "export dust mask layer : done")
+	return dustMaskImage;
+}
+
+
 /*
  Epson 4990 :
 	N&B, 2400dpi, 400ISO: Tile 225,344 : diff_mean=2.24707 variance = 6.97754
@@ -1119,29 +1164,32 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 
 	// If the sensitivity changed, clear also
 	if(m_options.sensitivity != opt.sensitivity) {
-		if(opt.sensitivity > m_options.sensitivity)
+		if(opt.sensitivity > m_options.sensitivity) {
 			// We need less sensibility so we can resume from where we were
 			rewind_to_previous = true;
-		else
+		} else {
 			rewind_to_start = true;
+		}
 	}
 
 	if(m_options.onlyEmpty != opt.onlyEmpty) {
-		if(opt.onlyEmpty)
+		if(opt.onlyEmpty) {
 			// We need less sensibility so we can resume from where we were
 			rewind_to_previous = true;
-		else
+		} else {
 			rewind_to_start = true;
+		}
 	}
 
 	// Then set resolution, because we process the min size here
 	if(m_options.dpi != opt.dpi) {
-		if(opt.dpi < m_options.dpi )
+		if(opt.dpi < m_options.dpi ) {
 			// we're looking for smaller dust (in pixel size)
 			// so we have to go back to start
 			rewind_to_start = true;
-		else
+		} else {
 			rewind_to_previous = true;
+		}
 
 		processResolution(opt.dpi);
 	}
@@ -1155,10 +1203,11 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
 		preProcessImage();
 		firstDust();
-	}
-	else if(rewind_to_previous) {
-		if(m_block_seed_width<=0) m_block_seed_width = 1;
-		if(m_block_seed_height<=0) m_block_seed_height = 1;
+
+	} else if(rewind_to_previous) {
+		if(m_block_seed_width<=0) { m_block_seed_width = 1; }
+		if(m_block_seed_height<=0) { m_block_seed_height = 1; }
+
 		// use previous values
 		m_seed_x = m_last_correction.crop_x + m_last_correction.rel_seed_x;
 		m_seed_y = m_last_correction.crop_y + m_last_correction.rel_seed_y;
@@ -1407,7 +1456,9 @@ int TamanoirImgProc::findDust(int x, int y,
 
 	MUTEX_LOCK(&mutex);
 
+	// Porperties of current dust
 	memset(&m_dust_detection_props, 0, sizeof(t_dust_detection_props));
+
 	m_dust_detection_props.seed_x = x;
 	m_dust_detection_props.seed_y = y;
 
@@ -1448,12 +1499,11 @@ int TamanoirImgProc::findDust(int x, int y,
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
-		int xright = xleft + pcorrection->copy_width;
+		int xright = x + pcorrection->copy_width/2;
 		if(xright<0) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
-		}
-		else if(xright >= lw) xright = lw-1;
+		} else if(xright >= lw) { xright = lw-1; }
 
 		if(xright <= xleft) {
 			MUTEX_UNLOCK(&mutex)
@@ -1471,8 +1521,7 @@ int TamanoirImgProc::findDust(int x, int y,
 		if(ybottom<0) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
-		}
-		else if(ybottom >= lh) ybottom = lh-1;
+		} else if(ybottom >= lh) { ybottom = lh-1; }
 
 		if( diffImageBuffer[y * diffImage->widthStep + x] != DIFF_THRESHVAL) {
 			// No difference at this point
@@ -1484,7 +1533,7 @@ int TamanoirImgProc::findDust(int x, int y,
 					if(diffImageBuffer[ ly*lpitch + lx] == DIFF_THRESHVAL) {
 						int dx = xin - lx;
 						int dy = yin - ly;
-						int dist = sqrt(dx*dx+dy*dy);
+						int dist = (dx*dx+dy*dy);
 						if(dist < closest_dist) {
 							closest_dist = dist;
 							x = lx; y = ly;
@@ -1496,7 +1545,7 @@ int TamanoirImgProc::findDust(int x, int y,
 
 
 		// Clear gnown buffer to enable second region growing
-		for(int ly=ytop; ly<ybottom; ly++) {
+		for(int ly=ytop; ly<=ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
 	}
@@ -1536,15 +1585,17 @@ int TamanoirImgProc::findDust(int x, int y,
 	//if(connect.area <=0) return 0;
 	// this is a dust if the size if big enough or the force mode is active
 	bool is_a_dust = ( (connect.area >= m_dust_area_min &&
-	   connect.area < m_dust_area_max)
-	   || force_search
-	   );
+							 connect.area < m_dust_area_max)
+					   //do not search for very small dusts any more: || force_search
+					   );
 
 	m_dust_detection_props.big_enough = is_a_dust;
 
+	// If we search manually, force criterion on size
+	is_a_dust |= force_search;
+
 	// Crop image and search for a dust on cropped images
-	if( is_a_dust )
-	{
+	if( is_a_dust ) {
 		int connect_area = (int)connect.area;
 		int connect_width = connect.rect.width;
 		int connect_height = connect.rect.height;
@@ -1581,14 +1632,13 @@ int TamanoirImgProc::findDust(int x, int y,
 		}
 
 
-		if(crop_x < 0)
-			crop_x = 0;
-		if(crop_x + crop_width >= originalImage->width)
-			crop_x = originalImage->width - crop_width-1;
+		if(crop_x < 0) { crop_x = 0; }
+		else if(crop_x + crop_width >= originalImage->width)
+			crop_x = tmmax(0, originalImage->width - crop_width-1);
 
-		if(crop_y < 0) 		crop_y = 0;
-		if(crop_y + crop_height >= originalImage->height)
-			crop_y = originalImage->height - crop_height-1;
+		if(crop_y < 0) { crop_y = 0; }
+		else if(crop_y + crop_height >= originalImage->height)
+			crop_y = tmmax(0, originalImage->height - crop_height-1);
 
 
 
@@ -1597,11 +1647,13 @@ int TamanoirImgProc::findDust(int x, int y,
 		int crop_center_y = y - crop_y;
 
 		if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
-			fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d => %d,%d in cropped image...\n",
+			fprintf(logfile, "TamanoirImgProc::%s:%d : grown dust at %d,%d+%dx%d "
+					"=> %d,%d in cropped image (crop +%d,%d)...\n",
 				__func__, __LINE__,
 				connect.rect.x,connect.rect.y,
 				connect.rect.width, connect.rect.height,
-				crop_center_x, crop_center_y
+				crop_center_x, crop_center_y,
+				crop_x, crop_y
 				);
 		}
 
@@ -1610,6 +1662,7 @@ int TamanoirImgProc::findDust(int x, int y,
 		float sum_dust = 0.f, sum_neighbour = 0.f;
 
 
+		// Dilate dust around the seed
 		is_a_dust = dilateDust(crop_x, crop_y,
 								crop_center_x, crop_center_y,
 								&crop_connect,
@@ -1628,13 +1681,10 @@ int TamanoirImgProc::findDust(int x, int y,
 	*/
 		if(is_a_dust) {
 
-#ifdef SIMPLE_VIEWER
 			// Use more strict search condition
 			if(force_search) {
-				best_correl = (int)(2.f * fabsf(sum_dust - sum_neighbour)):
+				best_correl = (int)(2.f * fabsf(sum_dust - sum_neighbour));
 			}
-#endif
-
 
 			// Process search around the dust in original image
 			// Use center x,y - width,height
@@ -1647,7 +1697,7 @@ int TamanoirImgProc::findDust(int x, int y,
 			int connect_center_y = crop_connect.rect.y + connect_height/2;
 
 			// If the search if forced, limit search to input size
-			if(force_search) {
+			if( force_search ) {
 				if( (x-crop_x) < connect_center_x-connect_width/2
 					|| (x-crop_x) > connect_center_x+connect_width/2
 					|| (y-crop_y) < connect_center_y-connect_height/2
@@ -1705,7 +1755,7 @@ int TamanoirImgProc::findDust(int x, int y,
 
 			// If we try only to use inpainting, we don't need to find a replacement
 			if(force_search &&
-					force_mode == TMMODE_INPAINT) {
+				force_mode == TMMODE_INPAINT) {
 				// no need for replacement
 				ret = 0;
 				copy_width = connect_width;
@@ -1886,7 +1936,8 @@ int TamanoirImgProc::findDust(int x, int y,
 				// are in the same extended grown region,
 				// (tree branch, building edge...)
 		// FIXME : improve this connection search
-		m_dust_detection_props.src_connected_to_dest = is_a_dust = srcNotConnectedToDest(pcorrection);
+		m_dust_detection_props.src_not_connected_to_dest = is_a_dust =
+							srcNotConnectedToDest(pcorrection);
 
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
@@ -1952,9 +2003,11 @@ int TamanoirImgProc::findDust(int x, int y,
 				   && m_options.onlyEmpty
 				   && !force_search  // only when we're not forcing to search a specific dust
 				   ) {
-
 					m_dust_detection_props.neighbourhoodEmpty =
 						is_a_dust = neighbourhoodEmpty( pcorrection );
+
+					TMIMG_printf(TMLOG_DEBUG, "onlyEmpty: neighbourhood is %s",
+								 m_dust_detection_props.neighbourhoodEmpty ?"empty":"filled")
 
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
@@ -2562,8 +2615,10 @@ bool TamanoirImgProc::dilateDust(
 	CvConnectedComp flood_connect;
 	memset(&flood_connect, 0, sizeof(CvConnectedComp));
 
-	unsigned char seedValue = *(u8 *)((cropImage->imageData + crop_center_y * cropImage->widthStep)
-							  + crop_center_x);
+	unsigned char seedValue = *(u8 *)(
+			(cropImage->imageData + crop_center_y * cropImage->widthStep)
+				+ crop_center_x);
+
 	tmFloodRegion(
 		(u8 *)cropImage->imageData,
 		(u8 *)dilateImage->imageData,
@@ -2622,10 +2677,11 @@ bool TamanoirImgProc::dilateDust(
 
 
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : "
-				"=> grown dust at %d,%d+%dx%d surf=%d.\n"
-				"=> flooded at %d,%d+%dx%d surf=%d.\n",
+		fprintf(logfile, "TamanoirImgProc::%s:%d : seedValue=%d "
+				"=> grown dust at %d,%d+%dx%d surf=%d "
+				"=> flooded at %d,%d+%dx%d surf=%d\n",
 			__func__, __LINE__,
+			(int)seedValue,
 			crop_connect.rect.x, crop_connect.rect.y,
 			crop_connect.rect.width, crop_connect.rect.height,
 			(int)crop_connect.area,
@@ -2639,7 +2695,8 @@ bool TamanoirImgProc::dilateDust(
 
 	if( (crop_connect.area >= m_dust_area_min &&
 	   crop_connect.area < m_dust_area_max)
-	   || ( force_search && crop_connect.area>0))
+	   || ( force_search && crop_connect.area>0)
+		)
 	{
 		/* LOW LEVEL DEBUG ONLY : WHEN NOT COMENTED, IT DESTROY THE INPUT IMAGE !!
 		if(g_debug_savetmp)
@@ -2890,7 +2947,8 @@ bool TamanoirImgProc::dilateDust(
 			if(pbest_correl ) {
 				*pbest_correl = best_correl;
 			}
-			float contrast = (sum_dust - sum_neighbour ) / (sum_neighbour + sum_dust);
+			float contrast = (sum_dust - sum_neighbour )
+							 / (sum_neighbour + sum_dust);
 
 			if(force_search) {
 #ifdef SIMPLE_VIEWER
@@ -2917,45 +2975,47 @@ bool TamanoirImgProc::dilateDust(
 			m_dust_detection_props.mean_dust = sum_dust;
 			m_dust_detection_props.contrast = contrast;
 
-			m_dust_detection_props.visible_enough = 1;
+			m_dust_detection_props.visible_enough = 0;
 
 			// test if colour is different enough
-			if(!force_search) {
-				switch(m_options.filmType) {
-				default:
-				case FILM_UNDEFINED:
-					if( fabs(sum_neighbour - sum_dust) <= 10.f
-					   || fabsf(contrast)<0.02f) { //m_threshold
-						// no difference visible => not a dust
-						is_a_dust = false;
-						m_dust_detection_props.visible_enough = 0;
-					}
-					break;
-				case FILM_POSITIVE:
-					if( sum_dust >= sum_neighbour - 10.f
-						|| contrast>-0.02f) { //m_threshold
-						// not darker than neighbourhood  => not a dust
-						is_a_dust = false;
-						m_dust_detection_props.visible_enough = 0;
-					}
-					break;
-				case FILM_NEGATIVE:
-					if( sum_dust <= sum_neighbour + 10.f
-						|| contrast < 0.02f) { //m_threshold
-						// not lighter than neighbourhood  => not a dust
-						is_a_dust = false;
-						m_dust_detection_props.visible_enough = 0;
-					}
-					break;
+			switch(m_options.filmType) {
+			default:
+			case FILM_UNDEFINED:
+				if( fabs(sum_neighbour - sum_dust) <= 10.f
+				   || fabsf(contrast)<0.02f) { //m_threshold
+					// no difference visible => not a dust
+					is_a_dust = false;
+				} else {
+					m_dust_detection_props.visible_enough = 1;
 				}
+				break;
+			case FILM_POSITIVE:
+				if( sum_dust >= sum_neighbour - 10.f
+					|| contrast>-0.02f) { //m_threshold
+					// not darker than neighbourhood  => not a dust
+					is_a_dust = false;
+				} else {
+					m_dust_detection_props.visible_enough = 1;
+				}
+				break;
+			case FILM_NEGATIVE:
+				if( sum_dust <= sum_neighbour + 10.f
+					|| contrast < 0.02f) { //m_threshold
+					// not lighter than neighbourhood  => not a dust
+					is_a_dust = false;
+				} else {
+					m_dust_detection_props.visible_enough = 1;
+				}
+				break;
+			}
 
-				if(force_search) {
-					fprintf(stderr, "\t ===> is a dust = %c\n",
+			if(force_search) {
+				fprintf(stderr, "\t ===> is a dust = %c\n",
 							(is_a_dust ? 'T' : 'F')
 							);
-				}
-
+//				is_a_dust = true;
 			}
+
 		}
 
 		if(pmean_dust) {
@@ -3030,7 +3090,16 @@ void TamanoirImgProc::drawInpaintCircle(t_correction correction) {
 
 
 void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
-	purgeDisplay();
+	// purge if size has changed
+	PURGE_SIZECHANGED( disp_cropImage, cropSize)
+	PURGE_SIZECHANGED( disp_cropColorImage, cropSize)
+	PURGE_SIZECHANGED( disp_cropOrigImage, cropSize)
+	PURGE_SIZECHANGED( disp_correctColorImage, cropSize)
+	PURGE_SIZECHANGED( disp_dilateImage, cropSize)
+
+	PURGE_SIZECHANGED( undoImage, cropSize)
+	PURGE_SIZECHANGED( inpaintMaskImage, cropSize)
+	PURGE_SIZECHANGED( inpaintRenderImage, cropSize)
 
 	// Crop original, undo, ...
 	// Allocate images
@@ -3136,13 +3205,18 @@ void TamanoirImgProc::cropCorrectionImages(
 	   ) {
 		tmReleaseImage(&disp_cropOrigImage);
 	}
+
 	if(!disp_cropOrigImage) {
 		// some size changed, purge every cropped image
 		recropImages(cropSize, correction.crop_x,  correction.crop_y);
 	}
 
-	if(	m_last_mode != correct_mode) {
+	if(	undoImage && m_last_mode != correct_mode) {
 		// we switched mode, so reupdate undoImage because we will use undoImage to perform inpainting
+		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
+	}
+	if(	undoImage && (undoImage_x != correction.crop_x
+		|| undoImage_y != correction.crop_y)) {
 		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
 	}
 
@@ -3640,11 +3714,18 @@ int TamanoirImgProc::applyCorrection(t_correction correction, bool force)
 
 	// Delete same region in diff image to never find it again, even if we
 	// use the rewind function
-	//if(!force)
+	/*
 	tmFillRegion(  diffImage,
 				   correction_dest_x, correction_dest_y,
 				   correction.copy_width, correction.copy_height,
-				   DIFF_NEUTRALIZE);
+				   DIFF_CORRECTED);
+	*/
+	cvEllipse(diffImage,
+				cvPoint(correction_dest_x, correction_dest_y),
+				cvSize( (correction.copy_width+1)/2, (correction.copy_height+1)/2),
+				0, 0, 360,
+				cvScalarAll(DIFF_CORRECTED),
+				-1);
 
 
 	if( displayImage ) {
@@ -3890,5 +3971,54 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 
 
 
+/** @brief Return film type by its W/H ratio */
+tm_film_size getFilmType(int w, int h, int * dpi) {
+	tm_film_size retval;
+	memset(&retval, 0, sizeof(tm_film_size));
+	// search for closest H/W or W/H ratio
+	int ifound = -1;
+	bool best_is_wh = false;
+	float ratio_in = (float)w/(float)h;
+	float ratio_min = 0.5f;
+	for(int i=0; g_film_types[i].width_mm>0; i++) {
+		float ratio_wh =g_film_types[i].width_mm/g_film_types[i].height_mm;
+		if(fabs(ratio_wh - ratio_in)< ratio_min) {
+			ratio_min = fabs(ratio_wh - ratio_in);
+			ifound = i;
+			best_is_wh = true;
+		}
+		float ratio_hw =g_film_types[i].height_mm/g_film_types[i].width_mm;
+		if(fabs(ratio_hw - ratio_in) < ratio_min) {
+			ratio_min = fabs(ratio_hw - ratio_in);
+			ifound = i;
+			best_is_wh = false;
+		}
+	}
+	if(ifound >= 0) {
+		retval = g_film_types[ifound];
+	}
+	//
+	TMIMG_printf(TMLOG_INFO, "img=%dx%d pix => ratio w/h=%g %s"
+				 "=> best is film[%d]=%gx%g mm = '%s' ratio=%g",
+					w,h,  (float)w/(float)h,
+					best_is_wh ? "portrait":"landscape",
+				 ifound,
+				 retval.width_mm, retval.height_mm, retval.format,
+					best_is_wh ? retval.width_mm/retval.height_mm: retval.height_mm/retval.width_mm
+				 )
+	if(dpi && ifound >= 0) {
+		int olddpi = *dpi;
+		int dpi_w = (int)roundf((float)w /( (best_is_wh ? retval.width_mm: retval.height_mm)/ 25.4 ));
+		int dpi_h = (int)roundf((float)h / ((best_is_wh ? retval.height_mm: retval.width_mm) / 25.4 ));
+
+		// round to 50 dpi
+		*dpi = (int)roundf(tmmax(dpi_w, dpi_h)/50.f)*50;
+
+		TMIMG_printf(TMLOG_INFO, " => dpi guess = %d dpi x %d dpi => %d dpi", dpi_w, dpi_h, *dpi)
+	}
+
+
+	return retval;
+}
 
 
