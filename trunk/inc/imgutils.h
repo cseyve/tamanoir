@@ -163,6 +163,10 @@ IMGUTILS_EXTERN u8 g_debug_importexport IMGUTILS_ZERO;
 /// Difference image value for preventing from region growing (force copy)
 #define DIFF_NEUTRALIZE 64
 
+/// Difference image value for preventing from region growing (force copy)
+#define DIFF_CORRECTED 65
+
+
 /// Difference image value for regions which have been considered as not being a dust
 #define DIFF_NOT_DUST 128
 

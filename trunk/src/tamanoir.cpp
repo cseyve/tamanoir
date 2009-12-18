@@ -89,6 +89,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	ui.setupUi((QMainWindow *)this);
 	ui.infoFrame->hide();
 
+	ui.correctPixmapLabel->setFocusPolicy(Qt::StrongFocus);
+
+
 	m_resize_rect_xscale = m_resize_rect_yscale = 2;
 	m_resize_rect = false;
 	m_overCorrected = false;
@@ -268,10 +271,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Stop timer only if not in auto mode
 			if( !m_pProcThread->getModeAuto()) {
 				refreshTimer.stop();
-			} else {
-				m_pProgressDialog->setValue( 100 );
-				m_pProgressDialog->hide();
 			}
+
 			lockTools(false);
 		}
 
@@ -280,7 +281,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			m_curCommand = m_pProcThread->getCommand();
 		}
 
-		if(g_debug_TmThread)
+		//if(g_debug_TmThread)
 			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d progress=%d\n", __func__, __LINE__,
 				m_curCommand, m_pProcThread->getCommand(),
 				m_pImgProc->getProgress());
@@ -293,7 +294,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Update Progress bar
 			ui.overAllProgressBar->setValue( m_pImgProc->getProgress() );
 
-			if(m_pProcThread->getModeAuto()) {
+			if(m_pProgressDialog &&
+			   m_pProcThread->getModeAuto()) {
 				// update progress
 				m_pProgressDialog->setValue( m_pImgProc->getProgress() );
 				m_pProgressDialog->update();
@@ -341,37 +343,50 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					+ fi.fileName() + tr(". Size:") + str);
 				ui.loadingTextLabel->setText( fi.fileName() );
 
+				// Guess dpi by image size and ratio
+				int guess_dpi = 0;
+				tm_film_size film_guess = getFilmType(curImage->width, curImage->height, &guess_dpi);
+
 				// Change resolution after reading in file
 				tm_options l_options = m_pImgProc->getOptions();
 				fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
-						"resolution=%d dpi (current=%d)\n", __func__, __LINE__,
-						l_options.dpi, g_options.dpi);
+						"resolution=%d dpi (current=%d guess=%d dpi)\n", __func__, __LINE__,
+						l_options.dpi, g_options.dpi, guess_dpi);
 
 				// lower than 300 dpi is the resolution of print, not of scan
-				if( l_options.dpi >0 && l_options.dpi<300
-					&& g_options.dpi != l_options.dpi) {
-					QString str;
+				if( (l_options.dpi >0 && l_options.dpi<300
+					&& g_options.dpi != l_options.dpi)
+
+					|| (guess_dpi !=  0 &&
+						abs(guess_dpi - l_options.dpi) > 300
+						)
+					) {
+					QString str, guess_str;
 					str.sprintf("%d", l_options.dpi);
+					guess_str.sprintf("%d", guess_dpi);
 					int ret = QMessageBox::warning(this,
-												   tr("Tamanoir - Resolution warning"),
+												   tr("Tamanoir - Resolution mismatch"),
 												   tr("The resolution of ") + str
 												   + tr(" dpi, read in file, may be too low for the scanner resolution. "
 														"It may be the print resolution. \n"
 													  "Do you want to apply this resolution of ")
-												   + str + tr(" dpi ?"),
+												   + str + tr(" dpi read in file ? Else the resolution would be ")
+												   + guess_str + tr(" dpi for ")
+												   + QString(film_guess.format),
 												   QMessageBox::Apply,
 												   QMessageBox::Ignore);
 
 					if(ret == QMessageBox::Ignore) {
-						l_options.dpi = 0;
-						fprintf(stderr, "TamanoirApp::%s:%d : FORCE FORMER RESOLUTION => "
-							"resolution=%d dpi => current=%d\n", __func__, __LINE__,
+						l_options.dpi = guess_dpi;
+
+						fprintf(stderr, "TamanoirApp::%s:%d : ignore resolution of file => FORCE FORMER RESOLUTION => "
+							"resolution=%d dpi => current=g_options.dpi=%d\n", __func__, __LINE__,
 							l_options.dpi, g_options.dpi);
+
 						// apply old resolution
 						m_curCommand = PROTH_OPTIONS;
 						m_pProcThread->setOptions(g_options);
 					}
-
 				}
 
 
@@ -1077,15 +1092,15 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 									"\n"
 								"rel:%d,%d+%dx%d"
 									"\n"
-								"%s %s flood=%g con=%g %s "
+								"%s %s flood=%g con=%g %s " // ... fiber
 									"\n"
-								"D=%g N=%g C=%.2g\n"
+								"mean{D=%g N=%g C=%.2g}\n"
 								"=>vis=%c "
 								"dilateDust=%c "
 									"\n"
 								"bestCor=%d "
 									"\n"
-								"D/src=%g conn=%c"
+								"D/src=%g !conn(src/dst)=%c"
 									"\n"
 								"diff/N=%c "
 								"diff/dest=%c "
@@ -1100,14 +1115,14 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 								props.force_search ? "force":"",
 								props.big_enough? "bigen":"",
 								props.flood_area, props.connect_area,
-								props.is_fiber ? "fiber":"",
+									props.is_fiber ? "fiber":"",
 								props.mean_dust, props.mean_neighbour,
 									props.contrast, props.visible_enough ? 'T':'F',
 								props.dilateDust ? 'T':'F',
 								props.searchBestCorrelation,
 								props.correl_dust_src,
 
-								props.src_connected_to_dest ? 'T':'F',
+								props.src_not_connected_to_dest ? 'T':'F',
 								props.diff_from_neighbour? 'T':'F',
 								props.diff_from_dest? 'T':'F',
 								props.correctedBetterThanOriginal? 'T':'F',
@@ -1208,9 +1223,28 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 	}
 }
 
+void TamanoirApp::on_correctPixmapLabel_signalFocusInEvent(QFocusEvent * e) {
+	if(e && m_pProcThread && m_pImgProc) {
+		m_pImgProc->showDebug(true);
+		fprintf(stderr, "TmApp::%s:%d : focus in \n", __func__, __LINE__);
+		m_overCorrected = true;
 
+		updateDisplay();
+	}
+}
+void TamanoirApp::on_correctPixmapLabel_signalFocusOutEvent(QFocusEvent * e) {
+	if(e && m_pProcThread && m_pImgProc) {
+		m_pImgProc->showDebug(true);
+
+		fprintf(stderr, "TmApp::%s:%d : focus out \n", __func__, __LINE__);
+		m_overCorrected = false;
+
+		updateDisplay();
+	}
+}
 
 void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
+
 	if(e && m_pProcThread && m_pImgProc) {
 		m_pImgProc->showDebug(true);
 		m_overCorrected = false;
@@ -1452,7 +1486,6 @@ void TamanoirApp::on_saveButton_clicked()
 
 	if(g_display_options.export_layer)
 	{
-
 		// FIXME : ask to save layer as PNG ?
 		QString strname = base + tr("-mask") + ".png";
 		int ret = QMessageBox::warning(this,
@@ -1465,7 +1498,14 @@ void TamanoirApp::on_saveButton_clicked()
 		if(ret == QMessageBox::Ok) {
 			// Save file with standard cvSaveImage for PNG
 			QString pathmask = fi.absolutePath () + "/" + strname;
-			tmSaveImage(pathmask, m_pImgProc->getDustMask());
+			IplImage * maskImg = m_pImgProc->getDustMask();
+			fprintf(stderr, "TmApp::%s:%d saving mask %p as '%s'",
+					__func__, __LINE__,
+					maskImg,
+					pathmask.ascii());
+			if(maskImg) {
+				tmSaveImage(pathmask.ascii(), maskImg);
+			}
 		}
 	}
 
@@ -1761,6 +1801,7 @@ void TamanoirApp::on_skipButton_clicked()
 			if(ret == 0) // Finished
 			{
 				ui.overAllProgressBar->setValue(100);
+
 				statusBar()->showMessage( tr("Finished") );
 
 				updateDisplay(); // To show corrections

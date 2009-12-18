@@ -32,6 +32,21 @@ QImageDisplay::QImageDisplay(QWidget * l_parent)
 	setMouseTracking(false);
 }
 
+void QImageDisplay::focusInEvent ( QFocusEvent * e ) {
+
+	//if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+
+	emit signalFocusInEvent(e);
+}
+void QImageDisplay::focusOutEvent ( QFocusEvent * e ) {
+
+//	if(g_debug_QImageDisplay)
+		fprintf(stderr, "QImageDisplay::%s:%d : e=%p\n", __func__, __LINE__, e);
+
+	emit signalFocusOutEvent(e);
+}
+
 void QImageDisplay::mousePressEvent(QMouseEvent * e)
 {
 	if(g_debug_QImageDisplay)

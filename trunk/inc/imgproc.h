@@ -193,7 +193,7 @@ typedef struct {
 	int searchBestCorrelation;		/*! Result of search best correlation */
 
 	float correl_dust_src;			/*! Correlation between dust (seed growing) and source proposal */
-	u8 src_connected_to_dest;		/*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); */
+	u8 src_not_connected_to_dest;	/*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); */
 
 	u8 diff_from_neighbour;			/*! return of @see differentFromNeighbourHood(pcorrection, diffref); */
 	u8 diff_from_dest;				/*! return of @see srcDifferentFromDest(pcorrection); */
@@ -231,6 +231,27 @@ void processAndPrintStats(dust_stats_t * dust_stats, FILE * f = NULL);
 /** @brief Test if dust is already knwon */
 bool testKnownDust(t_correction, int img_w, int img_h);
 
+
+/** @brief Film size format */
+typedef struct {
+	float width_mm;
+	float height_mm;
+	char format[32];
+} tm_film_size;
+
+const tm_film_size g_film_types[] = {
+	{3, 4, "4/3 digital"},
+	{24, 36, "135/24x36 or 120/6x9"},
+	{24, 55, "135/24x55 (pano)"},
+	{56, 56, "120/6x6"},
+	{56, 68, "120/6x7"},
+	{56, 166, "120/6x17"},
+	{4*2.54f, 5*2.45, "4x5 or 8x10"},
+	{-1.f, -1.f, ""}
+};
+
+/** @brief Return film type by its W/H ratio */
+tm_film_size getFilmType(int w, int h, int * dpi);
 
 /** @brief Tamanoir image processing settings/options */
 typedef struct {
@@ -351,7 +372,7 @@ public:
 	IplImage * getCorrectImage() { return correctImage; };
 
 	/** @brief Get cropped mask of dust automatically erased */
-	IplImage * getDustMask() { return diffImage; };
+	IplImage * getDustMask();
 
 	CvConnectedComp getDustComp() { return m_lastDustComp; };
 	dust_stats_t getDustStats() { return m_dust_stats; };
@@ -486,6 +507,8 @@ private:
 	IplImage * grayImage;
 	IplImage * medianImage;
 	IplImage * diffImage;
+	IplImage * dustMaskImage;
+
 	IplImage * varianceImage;
 	IplImage * growImage;
 
