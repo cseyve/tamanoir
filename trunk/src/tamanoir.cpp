@@ -1445,7 +1445,7 @@ void TamanoirApp::on_loadButton_clicked()
 {
 	if(!m_fileDialog) {
 		m_fileDialog = new QFileDialog(this,
-						tr("Tamanoir - Open a picture to be cleaned"),
+						tr("Tamanoir - Open a picture for cleaning"),
 						g_display_options.currentDir,
 						tr("Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp *.cr2"
 							"*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP *.CR2)"));

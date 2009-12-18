@@ -98,8 +98,8 @@ MacApp::MacApp(int & argc, char ** argv)
 	m_argv = new char * [m_argc + 10]; // Leave one more space for "Open with"
 	memset(m_argv, 0, sizeof(char *)*m_argc + 10);
 	if(m_argc == 0) {
-	}
-	else {
+
+	} else {
 		// Copy strings
 		for(int c=0; c<m_argc; c++) {
 			m_argv[c] = NULL;
