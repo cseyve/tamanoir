@@ -1450,9 +1450,15 @@ int TamanoirImgProc::findDust(int x, int y,
 
 	if(x<0 || x>=diffImage->width
 	   || y<0 || y>=diffImage->height ) {
+		TMIMG_printf(TMLOG_WARNING, "invalid x,y=%d,%d / diffImage = %dx%d",
+					 x,y, diffImage->width, diffImage->height)
 		return -1;
 	}
-	if(!cropImage) return -1; // Loading is not finished
+
+	if(!cropImage) {
+		TMIMG_printf(TMLOG_WARNING, "no cropImage => Loading is not finished : abort dust searching")
+		return -1; // Loading is not finished
+	}
 
 	MUTEX_LOCK(&mutex);
 
@@ -1463,7 +1469,7 @@ int TamanoirImgProc::findDust(int x, int y,
 	m_dust_detection_props.seed_y = y;
 
 	CvConnectedComp connect;
-	memset(&connect, 0, sizeof(CvConnectedComp));
+
 
 	u8 * diffImageBuffer = (u8 *)diffImage->imageData;
 	u8 * growImageBuffer = (u8 *)growImage->imageData;
@@ -1486,6 +1492,7 @@ int TamanoirImgProc::findDust(int x, int y,
 
 	bool force_search = (pcorrection != &m_correct); // force search
 	m_dust_detection_props.force_search = force_search;
+	int diffpitch = diffImage->widthStep;
 
 	if(force_search) {
 		int lw = growImage->width;
@@ -1523,37 +1530,59 @@ int TamanoirImgProc::findDust(int x, int y,
 			return 0;
 		} else if(ybottom >= lh) { ybottom = lh-1; }
 
-		if( diffImageBuffer[y * diffImage->widthStep + x] != DIFF_THRESHVAL) {
+		if( diffImageBuffer[y * diffpitch + x] != DIFF_THRESHVAL) {
 			// No difference at this point
 			// return 0;
 			int closest_dist = 20*20 ;
 			int xin = x, yin = y;
 			for(int ly=ytop; ly<=ybottom; ly++) {
 				for(int lx=xleft; lx<=xright; lx++) {
-					if(diffImageBuffer[ ly*lpitch + lx] == DIFF_THRESHVAL) {
+					if(diffImageBuffer[ ly*diffpitch + lx] == DIFF_THRESHVAL) {
 						int dx = xin - lx;
 						int dy = yin - ly;
 						int dist = (dx*dx+dy*dy);
 						if(dist < closest_dist) {
 							closest_dist = dist;
 							x = lx; y = ly;
+							if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
+								fprintf(logfile, "TamanoirImgProc::%s:%d : changed seed at %d,%d "
+										"=> diffImage[%d,%d]=%d / DIFF_THRESHVAL=%d / dist=%d\n",
+										__func__, __LINE__, x, y, x, y,
+										(int)diffImageBuffer[ y*diffpitch + x],
+										DIFF_THRESHVAL, dist);
+							}
+
 						}
 					}
 				}
 			}
 		}
 
-
-		// Clear gnown buffer to enable second region growing
+		// Process a region growing
+		/*tmGrowRegion( growImageBuffer, growImageBuffer,
+			diffImage->widthStep, diffImage->height,
+			x, y,
+			1,
+			0,
+			&connect );*/
+		// Clear grown buffer to enable second region growing
 		for(int ly=ytop; ly<=ybottom; ly++) {
 			memset(growImageBuffer + ly*lpitch + xleft, 0, xright - xleft);
 		}
 	}
 
+	// Check if we can continue
+	if( diffImageBuffer[y * diffpitch + x] != DIFF_THRESHVAL) {
+
+		MUTEX_UNLOCK(&mutex)
+		return 0;
+	}
+
+
 	if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : found seed at %d,%d "
-				"=> growImage[x,y]=%d / DIFF_THRESHVAL=%d\n",
-				__func__, __LINE__, x, y,
+				"=> diffImage[%d,%d]=%d / DIFF_THRESHVAL=%d\n",
+				__func__, __LINE__, x, y, x, y,
 				(int)diffImageBuffer[ y*diffImage->widthStep + x],
 				DIFF_THRESHVAL);
 	}
@@ -3104,9 +3133,11 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 	// Crop original, undo, ...
 	// Allocate images
 	if(!disp_cropOrigImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc disp_cropOrigImage %dx%d", cropSize.width, cropSize.height)
 		disp_cropOrigImage = tmCreateImage(cropSize, IPL_DEPTH_8U, originalImage->nChannels);
 	}
 	if(!disp_cropColorImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc disp_cropColorImage %dx%d", cropSize.width, cropSize.height)
 		disp_cropColorImage = tmCreateImage(cropSize, IPL_DEPTH_8U, originalImage->nChannels);
 	}
 
@@ -3118,11 +3149,13 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 	cvCopy( disp_cropOrigImage, disp_cropColorImage);
 
 	if(!disp_correctColorImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc disp_correctColorImage %dx%d", cropSize.width, cropSize.height)
 		disp_correctColorImage = tmCreateImage(cropSize,IPL_DEPTH_8U, originalImage->nChannels);
 	}
 	cvCopy( disp_cropOrigImage, disp_correctColorImage);
 
 	if(!disp_dilateImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc disp_dilateImage %dx%d", cropSize.width, cropSize.height)
 		disp_dilateImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
 
@@ -3132,16 +3165,26 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 	// Crop undo images
 	undoImage_x = crop_x;
 	undoImage_y = crop_y;
-	undoImage = tmCreateImage(cvSize(cropSize.width, cropSize.height),
+	if(!undoImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc  %dx%d", cropSize.width, cropSize.height)
+		undoImage = tmCreateImage(cvSize(cropSize.width, cropSize.height),
 							  originalImage->depth, originalImage->nChannels);
+	}
 
 	tmCropImage(originalImage, undoImage,
 				undoImage_x, undoImage_y);
 
-	inpaintMaskImage = tmCreateImage(cvSize(undoImage->width, undoImage->height), IPL_DEPTH_8U, 1);
-	inpaintRenderImage = tmCreateImage(cvSize(undoImage->width, undoImage->height),
+	if(!inpaintMaskImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc inpaintMaskImage %dx%d", cropSize.width, cropSize.height)
+		inpaintMaskImage = tmCreateImage(cvSize(undoImage->width, undoImage->height), IPL_DEPTH_8U, 1);
+	} else {
+		cvZero(inpaintMaskImage);
+	}
+	if(!inpaintRenderImage) {
+		TMIMG_printf(TMLOG_TRACE, "realloc inpaintRenderImage %dx%d", cropSize.width, cropSize.height)
+		inpaintRenderImage = tmCreateImage(cvSize(undoImage->width, undoImage->height),
 									   originalImage->depth, originalImage->nChannels);
-
+	}
 }
 
 void TamanoirImgProc::cropCorrectionImages(
