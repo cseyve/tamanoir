@@ -649,11 +649,14 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 			   && src_y>=0 && src_y<src_height) {
 
 				int postab = y  * coeftab_w ;
+
 				for(x = 0; x<copy_width; x++, postab++) {
-					if(dest_x>=0 && dest_x<dest_width
-					   && src_x>=0 && src_x<src_width) {
+					if(dest_x+x>=0 && dest_x+x<dest_width
+					   && src_x+x>=0 && src_x+x<src_width)
+					{
 						float coef_copy = coeftab_dest[postab];
 						float coef_orig = coeftab_src[postab];
+
 						for(int d = 0; d<channels; d++) {
 							float val_orig=0, val_copy=0;
 

@@ -517,6 +517,9 @@
           <height>4</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Proposed correction. When the mouse is over the display, the dust is shown in red.</string>
+        </property>
         <property name="title">
          <string>After</string>
         </property>
@@ -574,9 +577,6 @@
            </property>
            <property name="mouseTracking">
             <bool>true</bool>
-           </property>
-           <property name="toolTip">
-            <string>Proposed correction. When the mouse is over the display, the dust is shown in red.</string>
            </property>
            <property name="pixmap">
             <pixmap/>
@@ -783,6 +783,9 @@
           <height>300</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</string>
+        </property>
         <property name="title">
          <string>Before / Original image</string>
         </property>
@@ -920,7 +923,7 @@
             <enum>Qt::DefaultContextMenu</enum>
            </property>
            <property name="toolTip">
-            <string>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</string>
+            <string/>
            </property>
            <property name="pixmap">
             <pixmap/>
@@ -950,7 +953,7 @@
      <x>0</x>
      <y>0</y>
      <width>805</width>
-     <height>24</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">
