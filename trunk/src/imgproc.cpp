@@ -1499,14 +1499,16 @@ int TamanoirImgProc::findDust(int x, int y,
 		int lpitch = growImage->widthStep;
 		int lh = growImage->height;
 
+		int search_width = tmmin(16,tmmax(pcorrection->copy_width, pcorrection->copy_height))/2;
+
 		// search a dust for region growing in
-		int xleft = x - pcorrection->copy_width/2;
+		int xleft = x - search_width ;
 		if(xleft<0) xleft = 0;
 		else if(xleft >= lw) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
-		int xright = x + pcorrection->copy_width/2;
+		int xright = x + search_width ;
 		if(xright<0) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
@@ -1517,14 +1519,14 @@ int TamanoirImgProc::findDust(int x, int y,
 			return 0;
 		}
 
-		int ytop  = y - pcorrection->copy_height/2;
+		int ytop  = y - search_width ;
 		if(ytop<0) ytop = 0;
 		else if(ytop >= lh) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
 		}
 
-		int ybottom = y + pcorrection->copy_height/2;
+		int ybottom = y + search_width ;
 		if(ybottom<0) {
 			MUTEX_UNLOCK(&mutex)
 			return 0;
@@ -3183,7 +3185,10 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 	if(!inpaintRenderImage) {
 		TMIMG_printf(TMLOG_TRACE, "realloc inpaintRenderImage %dx%d", cropSize.width, cropSize.height)
 		inpaintRenderImage = tmCreateImage(cvSize(undoImage->width, undoImage->height),
-									   originalImage->depth, originalImage->nChannels);
+										   //originalImage->depth,
+										   // cvInpaintImage only supports IPL_DEPTH_8U
+										   IPL_DEPTH_8U,
+										   originalImage->nChannels);
 	}
 }
 
@@ -3506,14 +3511,23 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 				if(!inpaintRenderImage) {
 					TMIMG_printf(TMLOG_DEBUG, "create inpaintRenderImage(%dx%d)",
 								undoImage->width, undoImage->height)
+					// cvInpaintImage only supports IPL_DEPTH_8U
 					inpaintRenderImage = tmCreateImage(
 							cvSize(undoImage->width, undoImage->height),
-							originalImage->depth,
+							IPL_DEPTH_8U, //originalImage->depth,
 							originalImage->nChannels);
 				}
 
+				// cvInpaintImage only supports IPL_DEPTH_8U
+				IplImage * l_srcImage = undoImage;
+				if(undoImage->depth != IPL_DEPTH_8U) {
+					l_srcImage = tmCreateImage(cvSize(undoImage->width, undoImage->height),
+											   IPL_DEPTH_8U, undoImage->nChannels);
+					tmCropImage(undoImage, l_srcImage, 0, 0);
+				}
+
 				//
-				cvInpaint(undoImage, inpaintMaskImage,
+				cvInpaint(l_srcImage, inpaintMaskImage,
 					  inpaintRenderImage,
 					  correction.copy_width+9,
 						// CV_INPAINT_TELEA
@@ -3529,6 +3543,9 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 				// fixme: how to reinsert image ? since the user can draw the mask in several times, and at last we must not
 				tmInsertImage(inpaintRenderImage, originalImage,
 							  undoImage_x, undoImage_y);
+				if(l_srcImage != undoImage) {
+					tmReleaseImage(&l_srcImage);
+				}
 			}
 
 //			tmReleaseImage(&dilatedGrownImage);
