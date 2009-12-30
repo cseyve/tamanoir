@@ -98,6 +98,8 @@ void TamanoirImgProc::init() {
 
 	m_filename[0] = '\0';
 
+	memset(&m_findDust_last_connect, 0, sizeof(CvConnectedComp ));
+	m_findDust_last_seed_x = m_findDust_last_seed_y = -1;
 
 #ifdef SIMPLE_VIEW
 	m_show_crop_debug = false;
@@ -281,7 +283,6 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 		return;
 	}
 
-
 	if(!originalImage) { return; }
 
 	IplImage * old_displayImg = displayBlockImage;
@@ -444,10 +445,12 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	struct timeval tvLoad1;
 	gettimeofday(&tvLoad1, NULL);
 	int file_dpi = 0;
+
 	originalImage = tmLoadImage(filename, &file_dpi);
 	m_progress = 10;
 
 	if(file_dpi > 0) {
+		TMIMG_printf(TMLOG_INFO, "resolution read in file: %d dpi", file_dpi)
 		// There were an resolution in file
 		m_options.dpi = file_dpi;
 	}
@@ -619,9 +622,9 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 25;
 
 
-
-	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
 /* unused & slow
+	float mean = 0.f, variance = 0.f, diff_mean = 0.f;
+
 	int uniform = findUniform(&mean, &diff_mean, &variance);
 	if(uniform >= 0) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : Process uniform zone detection => mean=%g, diff=%g, var=%g\n",
@@ -1153,13 +1156,20 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	/*
 	 * Activate/desactivate hot pixels filtering
 	 */
+	m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400);
 	if(opt.hotPixels != m_options.hotPixels) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : %s hot pixels filtering\n", __func__, __LINE__,
 			(opt.hotPixels ? "ACTIVATE" : "DESACTIVATE" ) );
-		m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400);
+
+		processResolution(opt.dpi);
 		if(opt.hotPixels) {
+			// we're looking for smaller dust (in pixel size)
+			// so we have to go back to start
+			rewind_to_start = true;
+
 			m_dust_area_min = HOTPIXEL_MIN_SIZE;
 		}
+
 	}
 
 	// If the sensitivity changed, clear also
@@ -1295,11 +1305,13 @@ int TamanoirImgProc::setBlockSize(int w, int h) {
 	if(w == blockSize.width && h == blockSize.height) {
 		return 0;
 	}
+	TMIMG_printf(TMLOG_INFO, "(w=%d, h=%d) => recall firstDust()", w, h)
 	blockSize = cvSize(w,h);
 	firstDust();
 
 	return 0;
 }
+
 CvSize TamanoirImgProc::getDisplayCropSize() {
 
 	if(displayCropSize.width > 0 && displayCropSize.height > 0) {
@@ -1309,6 +1321,7 @@ CvSize TamanoirImgProc::getDisplayCropSize() {
 	// Else return default size for analysis
 	return processingSize;
 }
+
 void TamanoirImgProc::undo() {
 	fprintf(stderr, "TamanoirImgProc::%s:%d : UNDO\n", __func__, __LINE__);
 	if(undoImage) {
@@ -1468,6 +1481,7 @@ int TamanoirImgProc::findDust(int x, int y,
 	m_dust_detection_props.seed_x = x;
 	m_dust_detection_props.seed_y = y;
 
+
 	CvConnectedComp connect;
 
 
@@ -1492,14 +1506,20 @@ int TamanoirImgProc::findDust(int x, int y,
 
 	bool force_search = (pcorrection != &m_correct); // force search
 	m_dust_detection_props.force_search = force_search;
+
+	u8 diff_threshold = (force_search ? DIFF_NOT_DUST : DIFF_THRESHVAL);
+
 	int diffpitch = diffImage->widthStep;
 
-	if(force_search) {
+	// If forced search, find another seed if the current one is not different enough from background
+	if(force_search
+	   && diffImageBuffer[y * diffpitch + x] < diff_threshold
+	   ) { //
 		int lw = growImage->width;
 		int lpitch = growImage->widthStep;
 		int lh = growImage->height;
 
-		int search_width = tmmin(16,tmmax(pcorrection->copy_width, pcorrection->copy_height))/2;
+		int search_width = 8; //tmmin(16, tmmax(pcorrection->copy_width, pcorrection->copy_height))/2;
 
 		// search a dust for region growing in
 		int xleft = x - search_width ;
@@ -1532,32 +1552,35 @@ int TamanoirImgProc::findDust(int x, int y,
 			return 0;
 		} else if(ybottom >= lh) { ybottom = lh-1; }
 
-		if( diffImageBuffer[y * diffpitch + x] != DIFF_THRESHVAL) {
-			// No difference at this point
-			// return 0;
-			int closest_dist = 20*20 ;
-			int xin = x, yin = y;
-			for(int ly=ytop; ly<=ybottom; ly++) {
-				for(int lx=xleft; lx<=xright; lx++) {
-					if(diffImageBuffer[ ly*diffpitch + lx] == DIFF_THRESHVAL) {
-						int dx = xin - lx;
-						int dy = yin - ly;
-						int dist = (dx*dx+dy*dy);
-						if(dist < closest_dist) {
-							closest_dist = dist;
-							x = lx; y = ly;
-							if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
-								fprintf(logfile, "TamanoirImgProc::%s:%d : changed seed at %d,%d "
-										"=> diffImage[%d,%d]=%d / DIFF_THRESHVAL=%d / dist=%d\n",
-										__func__, __LINE__, x, y, x, y,
-										(int)diffImageBuffer[ y*diffpitch + x],
-										DIFF_THRESHVAL, dist);
-							}
 
+		// No difference at this point
+		// return 0;
+		int closest_dist = 20*20 ;
+		int xin = x, yin = y;
+		for(int ly=ytop; ly<=ybottom; ly++) {
+			int dy = yin - ly;
+
+			for(int lx=xleft; lx<=xright; lx++) {
+				if(diffImageBuffer[ ly*diffpitch + lx] >= diff_threshold) {
+					int dx = xin - lx;
+					int dist = (dx*dx+dy*dy);
+					if(dist < closest_dist) {
+						closest_dist = dist;
+						x = lx; y = ly;
+						if(g_debug_imgverbose > 1 || g_debug_dust_seek) {
+							fprintf(logfile, "TamanoirImgProc::%s:%d : changed seed at %d,%d => %d,%d "
+									"=> diffImage[%d,%d]=%d / diff_threshold=%d / dist=%d\n",
+									__func__, __LINE__,
+									xin, yin,
+									x, y, x, y,
+									(int)diffImageBuffer[ y*diffpitch + x],
+									(int)diff_threshold, dist);
 						}
+
 					}
 				}
 			}
+
 		}
 
 		// Process a region growing
@@ -1574,8 +1597,14 @@ int TamanoirImgProc::findDust(int x, int y,
 	}
 
 	// Check if we can continue
-	if( diffImageBuffer[y * diffpitch + x] != DIFF_THRESHVAL) {
+	if( diffImageBuffer[y * diffpitch + x] < diff_threshold) {
 
+		MUTEX_UNLOCK(&mutex)
+		return 0;
+	}
+	if(m_findDust_last_seed_x == x && m_findDust_last_seed_y == y) {
+		TMIMG_printf(TMLOG_DEBUG, "same as last seed %d,%d",
+					 m_findDust_last_seed_x, m_findDust_last_seed_y)
 		MUTEX_UNLOCK(&mutex)
 		return 0;
 	}
@@ -1593,9 +1622,23 @@ int TamanoirImgProc::findDust(int x, int y,
 	tmGrowRegion( diffImageBuffer, growImageBuffer,
 		diffImage->widthStep, diffImage->height,
 		x, y,
-		DIFF_THRESHVAL,
+		diff_threshold,
 		255,
 		&connect );
+	if(connect.rect.x == m_findDust_last_connect.rect.x
+	   && connect.rect.y == m_findDust_last_connect.rect.y
+	   && connect.rect.width == m_findDust_last_connect.rect.width
+	   && connect.rect.height == m_findDust_last_connect.rect.height
+	   && connect.area == m_findDust_last_connect.area ) {
+		TMIMG_printf(TMLOG_DEBUG, "same as grown region %d,%d+%dx%d",
+					(int)connect.rect.x, (int)connect.rect.y,
+					(int)connect.rect.width, (int)connect.rect.height
+					)
+		MUTEX_UNLOCK(&mutex)
+		return 0;
+	}
+
+	memcpy(&m_findDust_last_connect, &connect, sizeof(CvConnectedComp ));
 
 	m_dust_detection_props.abs_grown_conn = connect;
 	m_dust_detection_props.connect_area = connect.area;
@@ -1740,7 +1783,7 @@ int TamanoirImgProc::findDust(int x, int y,
 							connect_width, connect_height
 							);
 
-					// FIXME : Maybe not a good ideao to limit position of search
+					// FIXME : Maybe not a good idea to limit position of search
 					// because this point can be at the border of the dust
 					// so the search rectangle may be too small
 					connect_center_x = x - crop_x;
@@ -1826,6 +1869,7 @@ int TamanoirImgProc::findDust(int x, int y,
 						&nbdiff
 						);
 				m_dust_detection_props.correl_dust_src = l_dist;
+
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
 	- correctImage = grown(cropImage/diffImage)
@@ -1886,7 +1930,8 @@ int TamanoirImgProc::findDust(int x, int y,
 				copy_height = copy_height * 3/2;
 
 				// Store correction in full image buffer
-				if(!force_search)
+				if(1 ||  // FIXME : remove this for normal clone mode
+				   !force_search)
 				{
 //					pcorrection->dest_x = crop_x + copy_dest_x;
 //					pcorrection->dest_y = crop_y + copy_dest_y;
@@ -1915,6 +1960,8 @@ int TamanoirImgProc::findDust(int x, int y,
 					copy_src_y += offset_y;
 				}
 
+
+
 				// Relative storage
 				pcorrection->crop_x = crop_x;
 				pcorrection->crop_y = crop_y;
@@ -1925,6 +1972,10 @@ int TamanoirImgProc::findDust(int x, int y,
 
 				pcorrection->rel_seed_x = crop_center_x;
 				pcorrection->rel_seed_y = crop_center_y;
+
+				// copy vector = dest - src
+				m_dust_detection_props.copy_dx =  copy_dest_x - copy_src_x;
+				m_dust_detection_props.copy_dy =  copy_dest_y - copy_src_y;
 
 				// Update dest
 //				pcorrection->src_x = pcorrection->crop_x + pcorrection->rel_src_x;
@@ -1981,7 +2032,8 @@ int TamanoirImgProc::findDust(int x, int y,
 				// Dust must be visible faced to other different regions
 				//		count pixels over this level
 				u8 diffref = (u8)fabsf(sum_dust - sum_neighbour);
-				bool diff_from_neighbour = differentFromNeighbourHood(pcorrection, diffref);
+				bool diff_from_neighbour = differentFromNeighbourHood(pcorrection,
+																	  diffref);
 				m_dust_detection_props.diff_from_neighbour = diff_from_neighbour;
 				if(is_a_dust) {
 					is_a_dust = diff_from_neighbour;
@@ -1991,7 +2043,8 @@ int TamanoirImgProc::findDust(int x, int y,
 				// Dust and correction must be different (for avoiding periodical patterns)
 				if(is_a_dust) {
 		// FIXME : to be improved for windows edges, building windows...
-					m_dust_detection_props.diff_from_dest = is_a_dust = srcDifferentFromDest(pcorrection);
+					m_dust_detection_props.diff_from_dest = is_a_dust =
+															srcDifferentFromDest(pcorrection);
 
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
@@ -2015,9 +2068,7 @@ int TamanoirImgProc::findDust(int x, int y,
 				}
 
 
-				if(is_a_dust)
-				{
-					is_a_dust = is_correctedBetterThanOriginal;
+				is_a_dust &= is_correctedBetterThanOriginal;
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 
@@ -2025,7 +2076,6 @@ int TamanoirImgProc::findDust(int x, int y,
 - dilateImage = tmpCropImage-correctImage
 - correctImage = grown(dilateImage)
 */
-				}
 
 
 				// =========== OPTION : ONLY DETECTION IN EMPTY AREA =============
@@ -2146,6 +2196,7 @@ int TamanoirImgProc::findDust(int x, int y,
 					MUTEX_UNLOCK(&mutex);
 					return 1;
 				}
+
 			} else {
 				if(!force_search) m_perf_stats.no_proposal++;
 				// DEBUG FUNCTIONS
@@ -2224,13 +2275,11 @@ int TamanoirImgProc::findDust(int x, int y,
 		}
 	}
 
-
-
 	if(!is_a_dust
 	   && !force_search
 	   ) {
 		if(g_debug_dust_seek) {
-			fprintf(stderr, "TamanoirImgProc::%s:%d : not a dust @ %d,%d area=%g\n", __func__, __LINE__,
+			fprintf(stderr, "TamanoirImgProc::%s:%d : conclusion : not a dust @ %d,%d area=%g\n", __func__, __LINE__,
 				x, y, connect.area);
 		}
 
@@ -2267,6 +2316,8 @@ bool TamanoirImgProc::srcNotConnectedToDest(t_correction * pcorrection)
 		DIFF_CONTOUR,
 		242,
 		&ext_connect);
+	
+	
 /* CROPPED IMAGES :
 - cropImage = crop(diffImage)
 - dilateImage = dilate(correctImage)
@@ -2279,17 +2330,35 @@ bool TamanoirImgProc::srcNotConnectedToDest(t_correction * pcorrection)
 	// the source would be filled with 242
 	float src_failure = tmNonZeroRatio(
 			correctImage,
-			pcorrection->rel_src_x, pcorrection->rel_src_y,
-			pcorrection->copy_width, pcorrection->copy_height,
-				pcorrection->copy_width, pcorrection->copy_height, 0,0,// No exclusion ROI
+			pcorrection->rel_src_x-pcorrection->copy_width/2,
+				pcorrection->rel_src_y-pcorrection->copy_height/2,
+			pcorrection->copy_width,
+				pcorrection->copy_height,
+				correctImage->width,correctImage->height,0,0,// No exclusion ROI
 			242);
 
-	if(src_failure > 0.f) {
-		if(g_debug_imgverbose) {
+	if(g_debug_savetmp) {
+		tmSaveImage(TMP_DIRECTORY "crop7-srcNotConnectedToDest-1-in" IMG_EXTENSION, cropImage);
+
+		/*
+		IPLPIX_8U(correctImage, pcorrection->rel_seed_x, pcorrection->rel_seed_y ) = 32;
+		IPLPIX_8U(correctImage, pcorrection->rel_src_x, pcorrection->rel_src_y ) = 132;
+
+		tmMarkCloneRegion(correctImage,
+						  pcorrection->rel_dest_x, pcorrection->rel_dest_y,
+						  pcorrection->rel_src_x, pcorrection->rel_src_y,
+						  pcorrection->copy_width, pcorrection->copy_height,
+						  true);*/
+		tmSaveImage(TMP_DIRECTORY "crop7-srcNotConnectedToDest-2-grownContour" IMG_EXTENSION, correctImage);
+	}
+
+	if(src_failure > 0.2f) {
+		if(g_debug_imgverbose || g_debug_dust_seek) {
 			fprintf(stderr, "\t[imgproc]::%s:%d : ratio=%g => src and dest are connected : this is an edge, not a dust\n",
 				__func__, __LINE__, src_failure);
 		}
-		return false;
+
+		//return false;
 	}
 
 	return true;
@@ -2303,9 +2372,8 @@ bool TamanoirImgProc::srcNotConnectedToDest(t_correction * pcorrection)
  */
 bool TamanoirImgProc::differentFromNeighbourHood(
 		t_correction * pcorrection,
-		u8 diffref) {
-
-
+		u8 diffref)
+{
 	// Analysis of the repartition of difference in region
 	int rect_cmin = tmmax(0,
 						  tmmin(pcorrection->rel_src_x - pcorrection->copy_width,
@@ -2319,38 +2387,52 @@ bool TamanoirImgProc::differentFromNeighbourHood(
 		rect_rmax = tmmin(cropImage->height,
 						  tmmax(pcorrection->rel_src_y + pcorrection->copy_height,
 							pcorrection->rel_dest_y + pcorrection->copy_height));
-	int diffcount = 0, r, c;
+	if(rect_cmin>=rect_cmax
+	   || rect_rmin>=rect_rmax) {
+		pcorrection->equivalent_diff = -1;
+		return false;
+	}
+
+	int diffcount = 0, r, c, nb=0;
 	for(r=rect_rmin;r<rect_rmax; r++) {
 		u8 * diffImageLine = (u8 *)(cropImage->imageData + r*cropImage->widthStep);
 		u8 * dilateImageLine = (u8 *)(dilateImage->imageData + r*dilateImage->widthStep);
 		for(c=rect_cmin; c<rect_cmax; c++) {
-			if(diffImageLine[c] > diffref
-			   && !dilateImageLine[c]) {
-				diffcount ++;
+			if(!dilateImageLine[c]) {
+				nb++;
+				if(diffImageLine[c] > diffref ) {
+					diffcount ++;
+				}
 			}
 		}
 	}
+
 	// dust must be visible faced to other different regions
 	// count pixels over this level
-	if(g_debug_imgverbose) {
-		fprintf(stderr, "TamanoirImgProc::%s:%d : count=%d / area=%d\n",
+	if(g_debug_imgverbose || g_debug_dust_seek) {
+		fprintf(stderr, "TamanoirImgProc::%s:%d : count=%d>diffref=%d / nbpix=%d / area=%d"
+				" => eqdiff=(%g)/(%g)\n",
 				__func__, __LINE__,
-				diffcount, pcorrection->area );
+				diffcount, (int)diffref, nb, pcorrection->area,
+				(float)(diffcount - pcorrection->area ),
+				(float)((rect_rmax - rect_rmin)*(rect_cmax - rect_cmin))
+				);
 	}
 
 	pcorrection->equivalent_diff = (float)(diffcount - pcorrection->area ) /
 						(float)((rect_rmax - rect_rmin)*(rect_cmax - rect_cmin));
 
-
-	// If more than 20% of the area has difference with median, then
+	// If more than 15% of the area has difference with median, then
 	// it's a textured area, not a dust
-	if(pcorrection->equivalent_diff > 0.15f) {
-		/*
-		fprintf(stderr, "[imgproc] %s:%d : TEXTURED AREA : equivalent_diff=%g\n",
-			__func__, __LINE__,
-			pcorrection->equivalent_diff);
-		*/
-		return false;
+	if(pcorrection->equivalent_diff > 0.2f) {
+
+		if(g_debug_imgverbose || g_debug_dust_seek) {
+			fprintf(stderr, "[imgproc] %s:%d : TEXTURED AREA : equivalent_diff=%g\n",
+				__func__, __LINE__,
+				pcorrection->equivalent_diff);
+		}
+
+		//FIXMEdisabled because it does not work very well:		return false;
 	}
 
 	return true;
@@ -2433,19 +2515,21 @@ bool TamanoirImgProc::correctedBetterThanOriginal(t_correction * pcorrection) {
 - correctImage = grown(dilateImage)
 */
 	if(after_connect.area > m_dust_area_min) {
-		fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
-				"%d,%d+%dx%d=>%d,%d "
-			"area=%d => AFTER= STILL A DUST => grown:%d,%d+%dx%d area=%d > area_min=%d\n",
-			__func__, __LINE__,
-			pcorrection->rel_src_x, pcorrection->rel_src_y, // src
-			pcorrection->copy_width, pcorrection->copy_height,
-				pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
+		if(g_debug_dust_seek) {
+			fprintf(stderr, "\t::%s:%d : NOT SO GOOD : AFTER CORRECTION "
+					"%d,%d+%dx%d=>%d,%d "
+				"area=%d => AFTER= STILL A DUST => grown:%d,%d+%dx%d area=%d > area_min=%d\n",
+				__func__, __LINE__,
+				pcorrection->rel_src_x, pcorrection->rel_src_y, // src
+				pcorrection->copy_width, pcorrection->copy_height,
+					pcorrection->rel_dest_x, pcorrection->rel_dest_y, // dest
 
-			pcorrection->area,
-			(int)after_connect.rect.x, (int)after_connect.rect.y,
-			(int)after_connect.rect.width, (int)after_connect.rect.height,
-			(int)after_connect.area, m_dust_area_min
-			);
+				pcorrection->area,
+				(int)after_connect.rect.x, (int)after_connect.rect.y,
+				(int)after_connect.rect.width, (int)after_connect.rect.height,
+				(int)after_connect.area, m_dust_area_min
+				);
+		}
 
 		//FIXME : bad region growing return false;
 	}
@@ -2604,7 +2688,6 @@ bool TamanoirImgProc::srcDifferentFromDest(t_correction * pcorrection)
 - tmpCropImage = crop(medianImage)
 - correctImage = smooth(tmpCropImage)
 */
-
 	if(l_dist < tmmin(10, fabsf(pcorrection->bg_diff))
 		|| maxdiff < tmmin(10, fabsf(pcorrection->bg_diff))
 		) {
@@ -2682,7 +2765,7 @@ bool TamanoirImgProc::dilateDust(
 		(u8 *)correctImage->imageData,
 		cropImage->widthStep, cropImage->height,
 		crop_center_x, crop_center_y,
-		DIFF_THRESHVAL,
+		(force_search ? DIFF_NOT_DUST : DIFF_THRESHVAL),
 		255,
 		&crop_connect);
 
@@ -2725,7 +2808,7 @@ bool TamanoirImgProc::dilateDust(
 	m_dust_detection_props.flood_area = flood_connect.area;
 
 	if( (crop_connect.area >= m_dust_area_min &&
-	   crop_connect.area < m_dust_area_max)
+		  crop_connect.area < m_dust_area_max)
 	   || ( force_search && crop_connect.area>0)
 		)
 	{
@@ -3040,11 +3123,15 @@ bool TamanoirImgProc::dilateDust(
 				break;
 			}
 
-			if(force_search) {
-				fprintf(stderr, "\t ===> is a dust = %c\n",
+			if(force_search && !is_a_dust) {
+				if(g_debug_dust_seek) {
+					fprintf(stderr, "%s:%d\t ===> is a dust = %c => force true here\n",
+						__func__, __LINE__,
 							(is_a_dust ? 'T' : 'F')
 							);
-//				is_a_dust = true;
+				}
+
+				is_a_dust = true;
 			}
 
 		}
@@ -3220,6 +3307,10 @@ void TamanoirImgProc::cropCorrectionImages(
 	if(displayCropSize.width > 0 && displayCropSize.height > 0
 	   && (cropSize.width != displayCropSize.width
 			|| cropSize.height != displayCropSize.height) ) {
+		TMIMG_printf(TMLOG_DEBUG, "cropSize=%dx%d != displayCropSize=%dx%d => purgeDisplay and resize",
+					 cropSize.width, cropSize.height,
+					 displayCropSize.width, displayCropSize.height)
+
 		cropSize = displayCropSize;
 	}
 
@@ -3238,15 +3329,18 @@ void TamanoirImgProc::cropCorrectionImages(
 	if(disp_dilateImage) {
 		if(disp_dilateImage->width != cropSize.width
 			|| disp_dilateImage->height != cropSize.height) {
-			fprintf(stderr, "[imgproc]::%s:%d : size does not fit : %dx%d != %dx%d\n",
+/*
+			fprintf(stderr, "[imgproc]::%s:%d : size does not fit : "
+					"disp_dilateImage=%dx%d != "
+					"cropSize=%dx%d\n",
 					__func__, __LINE__,
 					disp_dilateImage->width, disp_dilateImage->height,
 					cropSize.width, cropSize.height);
+*/
 			// maybe not a good idea...
 			displayCropSize = cropSize = cvSize( correction.crop_width, correction.crop_height );
 		}
 	}
-
 
 	if(disp_cropOrigImage
 	   && (cropSize.width != disp_cropOrigImage->width || cropSize.height!=disp_cropOrigImage->height)
@@ -3263,6 +3357,7 @@ void TamanoirImgProc::cropCorrectionImages(
 		// we switched mode, so reupdate undoImage because we will use undoImage to perform inpainting
 		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
 	}
+
 	if(	undoImage && (undoImage_x != correction.crop_x
 		|| undoImage_y != correction.crop_y)) {
 		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
@@ -3526,7 +3621,7 @@ The function cvInpaint reconstructs the selected image area from the pixel near 
 					tmCropImage(undoImage, l_srcImage, 0, 0);
 				}
 
-				//
+				// extrapolate the dust marked in inpaintMaskImage with inpainting
 				cvInpaint(l_srcImage, inpaintMaskImage,
 					  inpaintRenderImage,
 					  correction.copy_width+9,

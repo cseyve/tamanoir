@@ -176,8 +176,46 @@ void tmPrintProperties(IplImage * img) {
 
 }
 
+typedef struct {
+	IplImage * img_ptr;
+	int ram_size;
+} t_iplimage_usage;
+
+static t_iplimage_usage * g_iplimg_usage_tab = NULL;
+static int g_max_iplimg_usage = 0;
+static int g_iplimg_usage_total_ram = 0;
+
 /* Create an IplImage width OpenCV's cvCreateImage and clear buffer */
 IplImage * tmCreateImage(CvSize size, int depth, int channels) {
+
+	int usage_space = -1;
+	if(!g_iplimg_usage_tab ) {
+		g_max_iplimg_usage = 30;
+		g_iplimg_usage_tab = new t_iplimage_usage [ g_max_iplimg_usage ];
+		memset(g_iplimg_usage_tab, 0, sizeof(g_iplimg_usage_tab)*g_max_iplimg_usage );
+		usage_space = 0;
+	} else {
+		for(int sp=0; usage_space<0 && sp<g_max_iplimg_usage; sp++) {
+			if(g_iplimg_usage_tab[sp].img_ptr == NULL ) {
+				usage_space = sp;
+			}
+		}
+		if(usage_space < 0) {
+			// there was no more space => resize the
+			int old_max_iplimg_usage = g_max_iplimg_usage ;
+			g_max_iplimg_usage += 10;
+			t_iplimage_usage * old_iplimg_usage_tab = g_iplimg_usage_tab;
+			fprintf(stderr, "[utils] %s:%d : resize array %d => %d\n",__func__, __LINE__,
+					old_max_iplimg_usage, g_max_iplimg_usage );
+			g_iplimg_usage_tab = new t_iplimage_usage [ g_max_iplimg_usage ];
+			memset(g_iplimg_usage_tab, 0, sizeof(g_iplimg_usage_tab)*g_max_iplimg_usage );
+			memcpy(g_iplimg_usage_tab, old_iplimg_usage_tab, sizeof(g_iplimg_usage_tab)*old_max_iplimg_usage );
+			usage_space = old_max_iplimg_usage; // last old is new first available
+
+			delete [] old_iplimg_usage_tab;
+		}
+	}
+
 
 	/*
 	fprintf(stderr, "[utils] %s:%d : creating IplImage : %dx%d x depth=%d x channels=%d\n",
@@ -186,6 +224,10 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 	*/
 	IplImage * img = cvCreateImage(size, depth, channels);
 	if(img) {
+		g_iplimg_usage_tab[usage_space].img_ptr = img;
+		g_iplimg_usage_total_ram += img->widthStep * img->height;
+		g_iplimg_usage_tab[usage_space].ram_size = img->widthStep * img->height;
+
 		if(!(img->imageData)) {
 			fprintf(stderr, "[utils] %s:%d : ERROR : img->imageData=NULL while "
 				"creating IplImage => %dx%d x depth=%d x channels=%d\n",
@@ -213,9 +255,44 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 void tmReleaseImage(IplImage ** img) {
 	if(!img) return;
 	if(!(*img) ) return;
+
+	int found = -1;
+	for(int i = 0; found<0 && i<g_max_iplimg_usage; i++) {
+		if(g_iplimg_usage_tab[i].img_ptr == *img) {
+			found = i;
+			g_iplimg_usage_tab[i].img_ptr = NULL;
+			g_iplimg_usage_tab[i].ram_size = 0;
+			g_iplimg_usage_total_ram -= (*img)->widthStep * (*img)->height;
+		}
+	}
+
+	if( !(*img)->imageData ) return;
 	cvReleaseImage(img);
 	*img = NULL;
 }
+
+
+/** @brief print the list of allocated IplImage */
+void tmPrintIplImages() {
+	fprintf(stderr, "[imgutils] %s:%d : total RAM used : %d B = %G MB : \n",
+			__func__, __LINE__,
+			g_iplimg_usage_total_ram, (float)g_iplimg_usage_total_ram/(1024.f*1024.f)
+			);
+	for(int i = 0; i<g_max_iplimg_usage; i++) {
+		if(g_iplimg_usage_tab[i].img_ptr) {
+			fprintf(stderr, "\t%p : %d x %d x %d ch x %d bytes\n",
+					g_iplimg_usage_tab[i].img_ptr,
+					g_iplimg_usage_tab[i].img_ptr->width, g_iplimg_usage_tab[i].img_ptr->height,
+					g_iplimg_usage_tab[i].img_ptr->nChannels, tmByteDepth(g_iplimg_usage_tab[i].img_ptr)
+					);
+		}
+	}
+}
+
+
+
+
+
 
 /** process a dilatation around the dust */
 void tmDilateImage(IplImage * src, IplImage * dst,
@@ -376,7 +453,6 @@ float tmNonZeroRatio(IplImage * origImage,
 					int exclu_x, int exclu_y, int exclu_w, int exclu_h,
 					u8 threshval)
 {
-
 	int orig_width = origImage->width;
 	int orig_height = origImage->height;
 	if(w <= 0)
@@ -2131,8 +2207,9 @@ extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * c
 IplImage * tmLoadImage(const char *filename, int * dpi) {
 	IplImage * originalImage = NULL;
 	if(strcasestr(filename, ".tif")) {
-		originalImage  =
-			tmOpenTiffImage(filename, dpi);
+
+		originalImage  = tmOpenTiffImage(filename, dpi);
+
 		if(originalImage) {
 
 			if(g_debug_importexport) {

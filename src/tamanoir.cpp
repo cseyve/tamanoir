@@ -37,7 +37,7 @@
 
 // Preferences UI
 #include "prefsdialog.h"
-
+#include <sys/time.h>
 
 /* File for logging messages */
 extern FILE * logfile;
@@ -50,6 +50,35 @@ extern u8 g_evaluate_mode;
 
 extern QString g_application_path;
 u8 g_debug_TmThread = 0;
+
+
+u8 g_debug_TamanoirApp = TMLOG_DEBUG;
+
+#define TMAPP_printf(a,...)       { \
+			if( (a)<=g_debug_TamanoirApp ) { \
+					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
+					fprintf(stderr,"%d.%03d %s [TmApp]::%s:%d : ", \
+							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
+							TMLOG_MSG((a)), __func__,__LINE__); \
+					fprintf(stderr,__VA_ARGS__); \
+					fprintf(stderr,"\n"); \
+			} \
+	}
+
+u8 g_debug_TamanoirThread = TMLOG_DEBUG;
+
+#define TMTHR_printf(a,...)       { \
+			if( (a)<=g_debug_TamanoirThread ) { \
+					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
+					fprintf(stderr,"%d.%03d %s [TmThread]::%s:%d : ", \
+							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
+							TMLOG_MSG((a)), __func__,__LINE__); \
+					fprintf(stderr,__VA_ARGS__); \
+					fprintf(stderr,"\n"); \
+			} \
+	}
+
+
 #ifdef SIMPLE_VIEW
 u8 g_debug_displaylabel = 0;
 #else
@@ -121,6 +150,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 #endif
 	int size_w = (ui.cropPixmapLabel->size().width()/4)*4+2;
 	int size_h = (ui.cropPixmapLabel->size().height()/4)*4+2;
+
 	m_blockSize = cvSize(size_w, size_h);
 
 }
@@ -130,6 +160,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 TamanoirApp::~TamanoirApp()
 {
 	purge();
+
+	TMAPP_printf(TMLOG_INFO, "at quit : memory usage:")
+	tmPrintIplImages();
 }
 
 
@@ -247,11 +280,11 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 		ui.cropGroupBox->size().width(), ui.cropGroupBox->size().height(),
 		groupBoxWidth, groupBoxHeight);
 
-	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) -1)*4;
-	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) -1)*4;
+	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) )*4;
+	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) )*4;
 	m_blockSize = cvSize(size_w, size_h);
-	size_w += 2;
-	size_h += 2;
+//	size_w += 2;
+//	size_h += 2;
 
 	ui.cropPixmapLabel->resize( size_w, size_h);
 	ui.correctPixmapLabel->resize( size_w, size_h);
@@ -270,6 +303,9 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			m_pProcThread->getCommand() == PROTH_NOTHING) {
 			// Stop timer only if not in auto mode
 			if( !m_pProcThread->getModeAuto()) {
+
+				TMAPP_printf(TMLOG_DEBUG, "not in auto mode => stop refresh timer")
+
 				refreshTimer.stop();
 			}
 
@@ -296,15 +332,22 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 			if(m_pProgressDialog &&
 			   m_pProcThread->getModeAuto()) {
+				TMAPP_printf(TMLOG_DEBUG, "auto mode => refresh progress bar : %d %%",
+							 m_pImgProc->getProgress() )
+
 				// update progress
 				m_pProgressDialog->setValue( m_pImgProc->getProgress() );
 				m_pProgressDialog->update();
+				m_pProgressDialog->repaint();
 			}
 
 			// Do specific updates
 			switch(m_curCommand) {
 			default:
 				if( m_pProcThread->getModeAuto()) {
+					TMAPP_printf(TMLOG_DEBUG, "auto mode => refresh global image : %d %%",
+								 m_pImgProc->getProgress() )
+
 					updateMainDisplay();
 				}
 				break;
@@ -317,10 +360,14 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				updateDisplay();
 				break;
 			case PROTH_SEARCH:
+
 				updateDisplay();
 				break;
 			}
 
+
+			TMAPP_printf(TMLOG_DEBUG, "return at progress=%d %%",
+						 m_pImgProc->getProgress() )
 			return;
 		}
 
@@ -379,9 +426,9 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					if(ret == QMessageBox::Ignore) {
 						l_options.dpi = guess_dpi;
 
-						fprintf(stderr, "TamanoirApp::%s:%d : ignore resolution of file => FORCE FORMER RESOLUTION => "
-							"resolution=%d dpi => current=g_options.dpi=%d\n", __func__, __LINE__,
-							l_options.dpi, g_options.dpi);
+						TMAPP_printf(TMLOG_INFO, "ignore resolution of file => FORCE FORMER RESOLUTION => "
+							"resolution=%d dpi => current=g_options.dpi=%d\n",
+							l_options.dpi, g_options.dpi)
 
 						// apply old resolution
 						m_curCommand = PROTH_OPTIONS;
@@ -390,22 +437,25 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				}
 
 
-				if( l_options.dpi > 0
-					) {
+				// We used a local resolution different from old one
+				if( l_options.dpi > 0 ) {
 					g_options.dpi = l_options.dpi;
-
 
 					// update resolution button
 					QString str;
 					str.sprintf("%d", g_options.dpi);
+
 					int ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 					if(ind >= 0) {
+						TMAPP_printf(TMLOG_INFO, "Use supported resolution in l_options=%d dpi => combo index %d",
+									 g_options.dpi,
+									 ind)
 						ui.dpiComboBox->setCurrentIndex(ind);
-					}
-					else { // add an item
+
+					} else { // add an item
 						ui.dpiComboBox->insertItem(str + tr(" dpi"));
-						fprintf(stderr, "TamanoirApp::%s:%d : A a resolution: resolution=%d dpi\n", __func__, __LINE__,
-							g_options.dpi);
+						TMAPP_printf(TMLOG_INFO, "Add a new resolution in l_options=%d dpi in combo",
+									 g_options.dpi)
 
 						ind = ui.dpiComboBox->findText(str, Qt::MatchContains);
 						if(ind >= 0) ui.dpiComboBox->setCurrentIndex(ind);
@@ -414,10 +464,15 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			}
 
 			ui.overAllProgressBar->setValue(0);
-			fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED ! m_curCommand=%d m_pProcThread=%d\n", __func__, __LINE__,
-				m_curCommand, m_pProcThread->getCommand());
 
-			if(m_curCommand == PROTH_LOAD_FILE) {
+			TMAPP_printf(TMLOG_INFO, "LOADING FINISHED ! "
+						 "m_curCommand=%d m_pProcThread=%d\n",
+				m_curCommand, m_pProcThread->getCommand())
+
+			if(m_curCommand == PROTH_LOAD_FILE
+			   && !m_pProcThread->getModeAuto()) {
+				TMAPP_printf(TMLOG_INFO, "Load finished, skipped to next dust : m_curCommand=%d m_pProcThread=%d",
+					m_curCommand, m_pProcThread->getCommand());
 				on_skipButton_clicked();
 			}
 
@@ -484,6 +539,13 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		current_dust.crop_y = std::max(0, (int)roundf( (e->pos().y()-offset_y) * scale_y) -crop_h/2);
 		current_dust.crop_width = crop_w;
 		current_dust.crop_height = crop_h;
+		// Limit to right and bottom
+		if(current_dust.crop_x +current_dust.crop_width >= origImage->width) {
+			current_dust.crop_x = std::max(0, origImage->width - current_dust.crop_width-1);
+		}
+		if(current_dust.crop_y +current_dust.crop_height >= origImage->height) {
+			current_dust.crop_y = std::max(0, origImage->height - current_dust.crop_height-1);
+		}
 
 		// Clip
 		current_dust.rel_src_x = current_dust.rel_dest_x = crop_w / 2;
@@ -1057,80 +1119,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 											m_draw_on /* used to prevent from correcting automatically in trust mode */);
 					g_debug_imgverbose = old_debug;
 					g_debug_correlation = old_correlation;
-
-					if(!ui.infoFrame->isHidden()) {
-						//
-						t_dust_detection_props props =
-								m_pImgProc->getDustProps();
-						/*
-u8 big_enough;					*! Size if big enough to be a dust (dpeend on dpi) *
-
-float connect_area
-float flood_area;				*! Area of region growing on gray level *
-u8 is_fiber;					*! Fiber (surf of rect >> surf of diff region growing *
-float mean_neighbour;			*! Mean value of neighbouring *
-float mean_dust;				*! Mean value of dust *
-float contrast;					*! Contrast between neighbouring and dust *
-u8 visible_enough;				*! Different enough from neighbour *
-u8 dilateDust ;					*! => Still a dust after function dilateDust() *
-
-int searchBestCorrelation;		*! Result of search best correlation *
-
-float correl_dust_src;			*! Correlation between dust (seed growing) and source proposal *
-u8 src_connected_to_dest;		*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); *
-
-u8 diff_from_neighbour;			*! return of @see differentFromNeighbourHood(pcorrection, diffref); *
-u8 diff_from_dest;				*! return of @see srcDifferentFromDest(pcorrection); *
-u8 correctedBetterThanOriginal; *! return of @see correctedBetterThanOriginal(pcorrection); *
-u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
-} t_dust_detection_props;
-
-						  */
-						char proptxt[1024];
-						sprintf(proptxt, "seed:%d,%d "
-								"grown:%d,%d+%dx%d"
-									"\n"
-								"rel:%d,%d+%dx%d"
-									"\n"
-								"%s %s flood=%g con=%g %s " // ... fiber
-									"\n"
-								"mean{D=%g N=%g C=%.2g}\n"
-								"=>vis=%c "
-								"dilateDust=%c "
-									"\n"
-								"bestCor=%d "
-									"\n"
-								"D/src=%g !conn(src/dst)=%c"
-									"\n"
-								"diff/N=%c "
-								"diff/dest=%c "
-									"\n"
-								"better/orig=%c Nempt=%c"
-													  ,
-								props.seed_x, props.seed_y,
-								props.abs_grown_conn.rect.x, props.abs_grown_conn.rect.y,
-									props.abs_grown_conn.rect.width, props.abs_grown_conn.rect.height,
-								props.rel_grown_conn.rect.x, props.rel_grown_conn.rect.y,
-									props.rel_grown_conn.rect.width, props.rel_grown_conn.rect.height,
-								props.force_search ? "force":"",
-								props.big_enough? "bigen":"",
-								props.flood_area, props.connect_area,
-									props.is_fiber ? "fiber":"",
-								props.mean_dust, props.mean_neighbour,
-									props.contrast, props.visible_enough ? 'T':'F',
-								props.dilateDust ? 'T':'F',
-								props.searchBestCorrelation,
-								props.correl_dust_src,
-
-								props.src_not_connected_to_dest ? 'T':'F',
-								props.diff_from_neighbour? 'T':'F',
-								props.diff_from_dest? 'T':'F',
-								props.correctedBetterThanOriginal? 'T':'F',
-								props.neighbourhoodEmpty? 'T':'F'
-								);
-
-						ui.dustInfoLabel->setText(proptxt);
-					}
 
 					if(ret > 0) {
 						/*
@@ -2492,6 +2480,93 @@ void TamanoirApp::updateCroppedDisplay()
 			m_pImgProc->cropCorrectionImages(current_dust, m_draw_on);
 		}
 
+
+		static u8 old_debug = g_debug_imgverbose,
+					old_correlation = g_debug_correlation;
+
+		if(!ui.infoFrame->isHidden()) {
+			// force debug
+			g_debug_imgverbose = g_debug_savetmp = 1;
+
+			//
+			t_dust_detection_props props =
+					m_pImgProc->getDustProps();
+			/*
+u8 big_enough;					*! Size if big enough to be a dust (dpeend on dpi) *
+
+float connect_area
+float flood_area;				*! Area of region growing on gray level *
+u8 is_fiber;					*! Fiber (surf of rect >> surf of diff region growing *
+float mean_neighbour;			*! Mean value of neighbouring *
+float mean_dust;				*! Mean value of dust *
+float contrast;					*! Contrast between neighbouring and dust *
+u8 visible_enough;				*! Different enough from neighbour *
+u8 dilateDust ;					*! => Still a dust after function dilateDust() *
+
+int searchBestCorrelation;		*! Result of search best correlation *
+
+float correl_dust_src;			*! Correlation between dust (seed growing) and source proposal *
+u8 src_connected_to_dest;		*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); *
+
+u8 diff_from_neighbour;			*! return of @see differentFromNeighbourHood(pcorrection, diffref); *
+u8 diff_from_dest;				*! return of @see srcDifferentFromDest(pcorrection); *
+u8 correctedBetterThanOriginal; *! return of @see correctedBetterThanOriginal(pcorrection); *
+u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
+} t_dust_detection_props;
+
+			  */
+			char proptxt[1024];
+			sprintf(proptxt, "seed:%d,%d "
+					"grown:%d,%d+%dx%d:%d"
+						"\n"
+					"rel:%d,%d+%dx%d"
+						"\n"
+					"%s %s flood=%g area=%g %s " // ... fiber
+						"\n"
+					"mean{D=%g N=%g C=%.2g}\n"
+					"=>vis=%c "
+					"dilateDust=%c "
+						"\n"
+					"bestCor=%d "
+						"\n"
+					"corr/src=%g !conn(src/dst)=%c"
+						"\n"
+					"diff/N=%c eqdif=%.2g "
+					"diff/dest=%c dx,y=%d,%d "
+						"\n"
+					"better/orig=%c Nempt=%c"
+					 ,
+					props.seed_x, props.seed_y,
+					props.abs_grown_conn.rect.x, props.abs_grown_conn.rect.y,
+						props.abs_grown_conn.rect.width, props.abs_grown_conn.rect.height,
+						(int)props.abs_grown_conn.area,
+					props.rel_grown_conn.rect.x, props.rel_grown_conn.rect.y,
+						props.rel_grown_conn.rect.width, props.rel_grown_conn.rect.height,
+					props.force_search ? "force":"",
+					props.big_enough? "bigen":"",
+					props.flood_area, props.connect_area,
+						props.is_fiber ? "fiber":"",
+					props.mean_dust, props.mean_neighbour,
+						props.contrast, props.visible_enough ? 'T':'F',
+					props.dilateDust ? 'T':'F',
+					props.searchBestCorrelation,
+					props.correl_dust_src,
+						props.src_not_connected_to_dest ? 'T':'F',
+					props.diff_from_neighbour? 'T':'F',
+						current_dust.equivalent_diff,
+					props.diff_from_dest? 'T':'F',
+						props.copy_dx, props.copy_dy,
+					props.correctedBetterThanOriginal? 'T':'F',
+					props.neighbourhoodEmpty? 'T':'F'
+					);
+
+			ui.dustInfoLabel->setText(proptxt);
+		} else {
+			g_debug_imgverbose = old_debug;
+			g_debug_correlation = old_correlation;
+		}
+
+
 //unused #define LABELWIDTH_MARGIN	2
 		IplImage * curImage;
 
@@ -2657,16 +2732,17 @@ void TamanoirApp::updateCroppedDisplay()
 
 
 		// Top-right : Display dust info
+		if(g_debug_TamanoirApp >= TMLOG_DEBUG) {
+			float width_mm = current_dust.width_mm;
+			float height_mm = current_dust.height_mm;
 
-		float width_mm = current_dust.width_mm;
-		float height_mm = current_dust.height_mm;
-
-		QString strinfo;
-		strinfo.sprintf( "%d pix/%.1gx%.1g mm",
-			current_dust.area,
-			width_mm, height_mm);
-		QString str = tr("Corrected: dust: ") + strinfo ;
-		ui.dustGroupBox->setTitle(str);
+			QString strinfo;
+			strinfo.sprintf( "%d pix/%.1gx%.1g mm",
+				current_dust.area,
+				width_mm, height_mm);
+			QString str = tr("Corrected: dust: ") + strinfo ;
+			ui.dustGroupBox->setTitle(str);
+		}
 
 		// Bottom-right : Display diff image (neighbouring)
 		if(!ui.diffPixmapLabel->isHidden()) {
@@ -2928,9 +3004,17 @@ int TamanoirThread::nextDust() {
 }
 
 int TamanoirThread::getProgress() {
-	if(current_command == PROTH_NOTHING) return 100;
-	if(!m_pImgProc) return 100;
+	if(current_command == PROTH_NOTHING) {
+		TMTHR_printf(TMLOG_DEBUG, "nothing to process => return 100 %%")
+		return 100;
+	}
+	if(!m_pImgProc) {
+		TMTHR_printf(TMLOG_DEBUG, "no img process => return 0 %%")
+		return 0;
+	}
 
+	TMTHR_printf(TMLOG_DEBUG, "return img processing progress= %d %%",
+				 m_pImgProc->getProgress())
 	return m_pImgProc->getProgress();
 }
 
@@ -2982,9 +3066,11 @@ void TamanoirThread::run() {
 		case PROTH_LOAD_FILE:
 			fprintf(stderr, "TmThread::%s:%d : load file '%s'\n",
 				__func__, __LINE__, m_filename.ascii());
+
 			m_options.mode_auto = false;
 			ret = m_pImgProc->loadFile(m_filename);
 			no_more_dusts = false;
+
 			fprintf(stderr, "TmThread::%s:%d : file '%s' LOADED => search for first dust\n",
 				__func__, __LINE__, m_filename.ascii());
 			if(ret >= 0)
@@ -3014,8 +3100,8 @@ void TamanoirThread::run() {
 					dust_list.append(l_dust);
 				} else {
 
-					//fprintf(stderr, "TmThread::%s:%d : mode AUTO : apply correction\n",
-					//	__func__, __LINE__);
+					TMAPP_printf(TMLOG_TRACE, "mode AUTO : apply correction")
+
 					m_pImgProc->applyCorrection(l_dust);
 
 					// Fasten next search

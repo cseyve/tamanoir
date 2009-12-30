@@ -76,12 +76,48 @@
   @section otherlibs_sec External dependencies
 
   Tamanoir uses :
-  - Qt4 for GUI for Linux/MacOSX/Windows
+  - Qt4 for GUI portability under Linux/MacOSX/Windows
   - OpenCV for image processing basic functions
   - LibTIFF for 16bit importation (not supported in OpenCV)
 
   @ref imgproc.h
 
+
+  @section Dust detection algorithm
+
+  Dusts are detected using a difference between the original image (@see originalImage) and its
+	slightly blurred version (@see medianImage).
+	The difference (@see diffimage) is computed depending on the type of film :
+	since the dusts are opaque, they appear brighter than the background for negative films
+	and darker as the background for positive films (slides...).
+	Therefore in scans of negative, the diffImage is filled only if original-blurred > 0
+
+	There are 2 thresholds in diffImage :
+	- dust candidates are filled with @see DIFF_THRESHVAL
+	- contour of lower differences are filled with @see DIFF_CONTOUR
+
+	Then the algorithm scans the diffImage for points with pixel value = DIFF_THRESHVAL
+	When found, the point is used as a "seed" for constrained region growing.
+	The region must be big enough but not too much.
+	The min area is @see m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400) * coef[sensitivity];
+		- the value of DUST_MIN_SIZE has been tested fron an Epson 4990 scanner @ 2400 dpi
+		- the coefficient depending on sensitivity is >= 1 : 1 = highly sensitive ... 5 = low
+
+
+	If the region is big enough (or if the search is forced by clone mode) , we process many checks:
+	We work in cropped region to use smaller images (for memory saving)
+	- The function @see dilateDust dilate the grown region and checks:
+		- Corner test : maybe the dust is only a corner in a texture, and the blur operation only showed it
+				NOT FULLY IMPLEMENTED = NOT ACTIVE
+		- Check if the dust is a fiber : NOT FULLY IMPLEMENTED : no action when it's a fiber
+		- Contrast check : the dust must be visible, e.g. its value must be different from neighbour : |mean-neighbour|>10 && |contrast|>0.02
+	- search a source candidate for a clone operation : @see tmSearchBestCorrelation
+		If a candidate is found (by correlation), we check its ability to be a real dust :
+			- the source candidate must not be linked to the dust by a DIFF_CONTOUR area in diffImage : @see srcNotConnectedToDest
+			- the dust must be different from neighbourhood (like a pattern in textured area) : @see differentFromNeighbourhood
+			- the source and the dust must be different (to prevent for copying periodical patterns such as windows on a building, ...) : @see srcDifferentFromDest
+			- after the cloning, the difference between the corrected image and the median must be lower than the original compared to the median
+			- if the option "empty only" is active, check if the box bouding both dust and source (XXX) is an empty area of image
   */
 
 #ifndef IMGPROC_H
@@ -192,6 +228,7 @@ typedef struct {
 
 	int searchBestCorrelation;		/*! Result of search best correlation */
 
+	int copy_dx, copy_dy;			/*! Copy proposal vector=(dest-src) */
 	float correl_dust_src;			/*! Correlation between dust (seed growing) and source proposal */
 	u8 src_not_connected_to_dest;	/*! is source connected to dest ? e.g. same region, fiber, cable ... return of @see srcNotConnectedToDest(pcorrection); */
 
@@ -618,6 +655,14 @@ private:
 	int m_seed_x;
 	/** @brief Last seed position (used for searching next) */
 	int m_seed_y;
+
+	/** @brief Last grown connected comp to prevent from doing the same operations many times in findDust */
+	CvConnectedComp m_findDust_last_connect;
+	/** @brief Last seed to prevent from doing the same operations many times in findDust */
+	int m_findDust_last_seed_x;
+	/** @brief Last seed to prevent from doing the same operations many times in findDust */
+	int m_findDust_last_seed_y;
+
 
 	/** @brief Last seed position (used for searching next) */
 	int m_block_seed_x;
