@@ -633,7 +633,7 @@ IplImage * tmOpenTiffImage(const char * filename, int * dpi)
 	in = TIFFOpen(filename, "r");
 	if (in != NULL) {
 		do {
-			float resolution_x, resolution_y;
+			float resolution_x=0.f, resolution_y=0.f;
 			TIFFGetField(in, TIFFTAG_XRESOLUTION, &resolution_x);
 			TIFFGetField(in, TIFFTAG_YRESOLUTION, &resolution_y);
 			if(dpi) {
@@ -1063,43 +1063,43 @@ static int
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_RGB:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=             2       /* RGB color model */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      2       /* RGB color model */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_PALETTE:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=         3       /* color map indexed */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      3       /* color map indexed */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_MASK:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=            4       /* $holdout mask */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      4       /* $holdout mask */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_SEPARATED:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=       5       /* !color separations */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      5       /* !color separations */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_YCBCR:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=           6       /* !CCIR 601 */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      6       /* !CCIR 601 */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_CIELAB:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          8       /* !1976 CIE L*a*b* */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      8       /* !1976 CIE L*a*b* */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_ICCLAB:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          9       /* ICC L*a*b* [Adobe TIFF Technote 4] */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      9       /* ICC L*a*b* [Adobe TIFF Technote 4] */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_ITULAB:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          10      /* ITU L*a*b* */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      10      /* ITU L*a*b* */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_LOGL:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=            32844   /* CIE Log2(L) */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      32844   /* CIE Log2(L) */\n",
 				__func__, __LINE__, shortv);
 		break;
 	case PHOTOMETRIC_LOGLUV:
-		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=          32845   /* CIE Log2(L) (u',v') */\n",
+		fprintf(stderr, "cv2tiff %s:%d : photometric=%u=      32845   /* CIE Log2(L) (u',v') */\n",
 				__func__, __LINE__, shortv);
 		break;
 	}
@@ -1146,7 +1146,7 @@ static int
 
 	// Read resolution in header
 	// => used in Tamanoir for setting dust detection sizes
-	float resolution_x, resolution_y;
+	float resolution_x=0, resolution_y=0;
 	TIFFGetField(in, TIFFTAG_XRESOLUTION, &resolution_x);
 	TIFFGetField(in, TIFFTAG_YRESOLUTION, &resolution_y);
 	fprintf(stderr, "cv2tiff %s:%d : resolution: %gx%g\n",

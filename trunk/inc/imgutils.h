@@ -198,6 +198,9 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels);
 /** @brief Release an image and clear pointer */
 void tmReleaseImage(IplImage ** img);
 
+/** @brief print the list of allocated IplImage */
+void tmPrintIplImages();
+
 /** @brief Create/allocate a copy of an IplImage  */
 IplImage * tmClone(IplImage * img_src);
 
