@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = Tamanoir
-PROJECT_NUMBER         = svn20091215
+PROJECT_NUMBER         = svn20090104
 OUTPUT_DIRECTORY       = ./docs/
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English

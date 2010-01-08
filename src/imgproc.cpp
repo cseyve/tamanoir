@@ -939,8 +939,8 @@ void TamanoirImgProc::allocCropped() {
 		processingSize.height--;
 	}
 	*/
-	fprintf(stderr, "TamanoirImgProc::%s:%d : (re)alloc cropped images for processing : %d x %d\n",
-		__func__, __LINE__, processingSize.width, processingSize.height);
+	TMIMG_printf(TMLOG_INFO, "(re)alloc cropped images for processing : processingSize= %d x %d\n",
+		processingSize.width, processingSize.height)
 
 	if(!cropImage) cropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
 	if(!tmpCropImage) tmpCropImage = tmCreateImage(processingSize,IPL_DEPTH_8U, 1);
@@ -958,12 +958,12 @@ void TamanoirImgProc::allocCropped() {
 
 IplImage * TamanoirImgProc::getDustMask() {
 
-
 	// Difference must be allocated and filled
 	if(!diffImage) {
 		TMIMG_printf(TMLOG_INFO, "Cannot export dust mask layer : no diffImage")
 		return NULL;
 	}
+
 	// alloc and clear before filling mask
 	if(!dustMaskImage) {
 		dustMaskImage = tmCreateImage(cvSize(diffImage->width, diffImage->height),
@@ -1303,8 +1303,10 @@ int TamanoirImgProc::processResolution(int dpi) {
 
 int TamanoirImgProc::setBlockSize(int w, int h) {
 	if(w == blockSize.width && h == blockSize.height) {
+		TMIMG_printf(TMLOG_DEBUG, "same size (w=%d, h=%d) => return 0", w, h)
 		return 0;
 	}
+
 	TMIMG_printf(TMLOG_INFO, "(w=%d, h=%d) => recall firstDust()", w, h)
 	blockSize = cvSize(w,h);
 	firstDust();
@@ -1598,12 +1600,15 @@ int TamanoirImgProc::findDust(int x, int y,
 
 	// Check if we can continue
 	if( diffImageBuffer[y * diffpitch + x] < diff_threshold) {
+		TMIMG_printf(TMLOG_TRACE, "diff(%d,%d)<threshold=%d",
+					 x, y, diff_threshold)
 
 		MUTEX_UNLOCK(&mutex)
 		return 0;
 	}
+
 	if(m_findDust_last_seed_x == x && m_findDust_last_seed_y == y) {
-		TMIMG_printf(TMLOG_DEBUG, "same as last seed %d,%d",
+		TMIMG_printf((g_debug_dust_seek ? TMLOG_INFO : TMLOG_DEBUG), "same as last seed %d,%d",
 					 m_findDust_last_seed_x, m_findDust_last_seed_y)
 		MUTEX_UNLOCK(&mutex)
 		return 0;
@@ -1707,13 +1712,13 @@ int TamanoirImgProc::findDust(int x, int y,
 
 
 		if(crop_x < 0) { crop_x = 0; }
-		else if(crop_x + crop_width >= originalImage->width)
+		else if(crop_x + crop_width >= originalImage->width) {
 			crop_x = tmmax(0, originalImage->width - crop_width-1);
-
+		}
 		if(crop_y < 0) { crop_y = 0; }
-		else if(crop_y + crop_height >= originalImage->height)
+		else if(crop_y + crop_height >= originalImage->height) {
 			crop_y = tmmax(0, originalImage->height - crop_height-1);
-
+		}
 
 
 		// Real position of dust in cropped image
@@ -1756,9 +1761,11 @@ int TamanoirImgProc::findDust(int x, int y,
 		if(is_a_dust) {
 
 			// Use more strict search condition
-			if(force_search) {
+			m_dust_detection_props.best_correl_dilate = best_correl;
+			if(force_search && !g_debug_dust_seek) {
 				best_correl = (int)(2.f * fabsf(sum_dust - sum_neighbour));
 			}
+			m_dust_detection_props.best_correl_max = best_correl;
 
 			// Process search around the dust in original image
 			// Use center x,y - width,height
@@ -2831,11 +2838,12 @@ bool TamanoirImgProc::dilateDust(
 		bool is_a_fiber = (crop_connect.area < crop_connect.rect.width * crop_connect.rect.height / 3);
 		if(is_a_fiber && force_search)
 		{
-			fprintf(stderr, "[imgproc]::%s:%d : FIBER !! area=%g = %g %% of rect\n",
-					__func__, __LINE__, crop_connect.area,
-					100.f * crop_connect.area
-						/( crop_connect.rect.width * crop_connect.rect.height )
-					);
+			TMIMG_printf(TMLOG_DEBUG, "force_search => FIBER !! "
+						 "area=%g = %g %% of rect\n",
+						crop_connect.area,
+						100.f * crop_connect.area
+							/( crop_connect.rect.width * crop_connect.rect.height )
+						)
 		}
 
 
@@ -3284,7 +3292,7 @@ void TamanoirImgProc::cropCorrectionImages(
 		int correct_mode
 		)
 {
-	if(correction.copy_width <= 0) return;
+	if(correction.crop_width <= 0) return;
 
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : no originalImage processingSize %dx%d\n",
@@ -3354,12 +3362,14 @@ void TamanoirImgProc::cropCorrectionImages(
 	}
 
 	if(	undoImage && m_last_mode != correct_mode) {
+		TMIMG_printf(TMLOG_TRACE, "undoImage && m_last_mode != correct_mode => recropImages")
 		// we switched mode, so reupdate undoImage because we will use undoImage to perform inpainting
 		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
 	}
 
 	if(	undoImage && (undoImage_x != correction.crop_x
-		|| undoImage_y != correction.crop_y)) {
+					|| undoImage_y != correction.crop_y)) {
+		TMIMG_printf(TMLOG_TRACE, "undoImage && undoImage size does not fit => recropImages")
 		recropImages(cvSize(undoImage->width, undoImage->height), correction.crop_x, correction.crop_y);
 	}
 
@@ -3787,7 +3797,7 @@ int TamanoirImgProc::forceCorrection(t_correction correction, bool force)
 	return applyCorrection(correction, force);
 }
 
-int TamanoirImgProc::applyInpainting(t_correction correction, bool force)
+int TamanoirImgProc::applyInpainting(t_correction , bool )
 {
 	fprintf(stderr, "TamanoirImgProc::%s:%d : NOT IMPLEMENTED !!\n", __func__, __LINE__);
 	return 0;
@@ -4136,7 +4146,7 @@ tm_film_size getFilmType(int w, int h, int * dpi) {
 	float ratio_in = (float)w/(float)h;
 	float ratio_min = 0.5f;
 	for(int i=0; g_film_types[i].width_mm>0; i++) {
-		float ratio_wh =g_film_types[i].width_mm/g_film_types[i].height_mm;
+		float ratio_wh = g_film_types[i].width_mm / g_film_types[i].height_mm;
 		if(fabs(ratio_wh - ratio_in)< ratio_min) {
 			ratio_min = fabs(ratio_wh - ratio_in);
 			ifound = i;
@@ -4169,7 +4179,9 @@ tm_film_size getFilmType(int w, int h, int * dpi) {
 		// round to 50 dpi
 		*dpi = (int)roundf(tmmax(dpi_w, dpi_h)/50.f)*50;
 
-		TMIMG_printf(TMLOG_INFO, " => dpi guess = %d dpi x %d dpi => %d dpi", dpi_w, dpi_h, *dpi)
+		TMIMG_printf(TMLOG_INFO, "old=%d dpi => dpi guess = %d dpi x %d dpi => %d dpi",
+					 olddpi,
+					 dpi_w, dpi_h, *dpi)
 	}
 
 

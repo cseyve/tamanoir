@@ -1004,8 +1004,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				current_dust.rel_seed_y = e->pos().y();
 
 				if(m_draw_on == TMMODE_CLONE) {
-
-
 					/** No search when we click = click=apply clone **/
 					m_pImgProc->applyCorrection(current_dust, true);
 				} else {
@@ -1861,7 +1859,6 @@ void TamanoirApp::on_correctButton_clicked()
 		m_pImgProc->forceCorrection(current_dust, force_mode);
 	}
 
-
 	// Clear current dust
 	memset(&current_dust, 0, sizeof(t_correction));
 
@@ -2525,7 +2522,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 						"\n"
 					"mean{D=%g N=%g C=%.2g}\n"
 					"=>vis=%c "
-					"dilateDust=%c "
+					"dilateDust=%c best=%g=>%g"
 						"\n"
 					"bestCor=%d "
 						"\n"
@@ -2549,6 +2546,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 					props.mean_dust, props.mean_neighbour,
 						props.contrast, props.visible_enough ? 'T':'F',
 					props.dilateDust ? 'T':'F',
+						props.best_correl_dilate, props.best_correl_max,
 					props.searchBestCorrelation,
 					props.correl_dust_src,
 						props.src_not_connected_to_dest ? 'T':'F',
