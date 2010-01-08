@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>417</width>
     <height>259</height>
    </rect>
   </property>
@@ -80,7 +80,7 @@
           <bool>true</bool>
          </property>
          <property name="toolTip">
-          <string>Display the Auto button to process the whole picture without asking the suer</string>
+          <string>Display the Auto button to process the whole picture without asking the user</string>
          </property>
          <property name="text">
           <string>show Auto button</string>

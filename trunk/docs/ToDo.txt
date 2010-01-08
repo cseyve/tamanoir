@@ -1,0 +1,11 @@
+TODO 
+
+Roadmap & List of future evolutions
+
+Dust detection algorithm : 
+- Fix: I suppressed the checking for textured area because it prevented or correcting grainy B&W images
+- Still a difference between the force mode (clone tool) and the nominal algorithm search : forcemode is better, but can't see why (less checking, but not easy to explain)...
+
+Hot pixels removal: hidden in GUI because it does not support artefacts from JPEM compression
+
+
