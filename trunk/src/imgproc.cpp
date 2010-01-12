@@ -1441,6 +1441,8 @@ int TamanoirImgProc::nextDust() {
 			m_block_seed_x = 0;
 			m_block_seed_y += m_block_seed_height;
 		}
+		TMIMG_printf(TMLOG_DEBUG, "changed block => %d,%d",
+					 m_block_seed_x, m_block_seed_y)
 		/*
 		fprintf(stderr, "\t[imgproc]::%s:%d : nothing found => changed block : %d,%d + %dx%d\n",
 				__func__, __LINE__,
