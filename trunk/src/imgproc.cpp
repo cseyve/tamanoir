@@ -1403,10 +1403,10 @@ int TamanoirImgProc::nextDust() {
 
 	do {
 		int ymax = tmmin(height-1, m_block_seed_y+m_block_seed_height);
-		int xmin = m_seed_x;
+		int xmin = m_block_seed_x;
 		int xmax = tmmin(width-1, m_block_seed_x+m_block_seed_width);
-		for(y = m_seed_y; y<ymax; y++) {
-			pos = y * pitch + m_seed_x;
+		for(y = m_block_seed_y; y<ymax; y++) {
+			pos = y * pitch + m_block_seed_x;
 			for(x = xmin; x<xmax; x++, pos++) {
 				if(!growImageBuffer[pos]) {
 					if(diffImageBuffer[pos] == DIFF_THRESHVAL ) {
@@ -1437,17 +1437,19 @@ int TamanoirImgProc::nextDust() {
 		m_block_seed_x += m_block_seed_width;
 		m_seed_x = 0;
 		if(m_block_seed_x >= width) {
+			TMIMG_printf(TMLOG_INFO, "changed seed y => %d", m_block_seed_y)
 			// block moved to far on right => rewind to left, and go down one block
 			m_block_seed_x = 0;
 			m_block_seed_y += m_block_seed_height;
 		}
-		TMIMG_printf(TMLOG_DEBUG, "changed block => %d,%d",
-					 m_block_seed_x, m_block_seed_y)
-		/*
+		TMIMG_printf(TMLOG_INFO, "changed block => %d,%d / img size=%dx%d",
+					 m_block_seed_x, m_block_seed_y,
+					width, height)
+		
 		fprintf(stderr, "\t[imgproc]::%s:%d : nothing found => changed block : %d,%d + %dx%d\n",
 				__func__, __LINE__,
 				m_block_seed_x, m_block_seed_y, m_block_seed_width, m_block_seed_height);
-		*/
+		
 	} while(m_block_seed_x<width && m_block_seed_y<height);
 
 	m_lock = false;
@@ -3294,7 +3296,9 @@ void TamanoirImgProc::cropCorrectionImages(
 		int correct_mode
 		)
 {
-	if(correction.crop_width <= 0) return;
+	if(correction.copy_width <= 0) {
+		return;
+	}
 
 	if(!originalImage) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : no originalImage processingSize %dx%d\n",
