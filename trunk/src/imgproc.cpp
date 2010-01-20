@@ -58,6 +58,9 @@ u8 g_option_stopoguess = 0;
 u8 g_dataset_mode = 0;
 u8 g_evaluate_mode = 0;
 
+/** @brief Use dilate/erode morphology to separate dust from background */
+u8 g_mode_use_erodedilate = 1;
+
 /** @brief dataset file output */
 FILE * g_dataset_f = NULL;
 
@@ -74,7 +77,7 @@ u8 g_debug_TamanoirImgProc = TMLOG_INFO;
 			if( (a)<=g_debug_TamanoirImgProc ) { \
 					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
 					fprintf(stderr,"%d.%03d %s [TmImgProc]::%s:%d : ", \
-							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
+							(int)(l_nowtv.tv_sec % 1000), (int)(l_nowtv.tv_usec/1000), \
 							TMLOG_MSG((a)), __func__,__LINE__); \
 					fprintf(stderr,__VA_ARGS__); \
 					fprintf(stderr,"\n"); \
@@ -144,7 +147,7 @@ void TamanoirImgProc::init() {
 
 	// Working images : full size
 	grayImage = NULL;
-	medianImage = NULL;
+	medianImage = erodedImage = dilatedImage = NULL;
 	diffImage = dustMaskImage = NULL;
 	varianceImage = NULL;
 	growImage = NULL;
@@ -223,6 +226,8 @@ void TamanoirImgProc::purge() {
 	tmReleaseImage(&grayImage);
 	tmReleaseImage(&origBlurredImage);
 	tmReleaseImage(&medianImage);
+	tmReleaseImage(&erodedImage);
+	tmReleaseImage(&dilatedImage);
 	tmReleaseImage(&diffImage);
 	tmReleaseImage(&dustMaskImage);
 	tmReleaseImage(&varianceImage);
@@ -583,6 +588,66 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	return 0;
 }
 
+
+void TamanoirImgProc::processMedian() {
+	// Difference and median (allocated here because it may be used for Open filter
+	if(!medianImage) {
+		medianImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+									IPL_DEPTH_8U, 1);
+	}
+	if(!diffImage) {
+		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+								  IPL_DEPTH_8U, 1);
+	}
+	if(!varianceImage) {
+		varianceImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+									  IPL_DEPTH_32F, 1);
+	}
+
+
+	// ==========  ==========
+	fprintf(logfile, "TamanoirImgProc::%s:%d : use dilate/erode=%c "
+			"dpi=%d => blur grayscaled image "
+			"=> median image... size %d x %d\n",
+			__func__, __LINE__,
+			(g_mode_use_erodedilate?'T':'F'),
+			m_options.dpi,
+			m_smooth_size, m_smooth_size);
+	if(!g_mode_use_erodedilate) {
+		// Blurred grayscaled image (Gaussian blur)
+		cvSmooth(grayImage, medianImage,
+				 CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+				 m_smooth_size, m_smooth_size );
+		// For debug, save image in temporary directory
+		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
+	} else {
+		if(!erodedImage) {
+			erodedImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+										IPL_DEPTH_8U, 1);
+		}
+		if(!dilatedImage) {
+			dilatedImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
+										 IPL_DEPTH_8U, 1);
+		}
+
+		// void tmDilateImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
+		// Lighter dusts are shown in dilate
+		tmDilateImage(grayImage, dilatedImage, m_smooth_size, 1);
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "medianImage-dilated" IMG_EXTENSION,
+						dilatedImage);
+		}
+		// void tmErodeImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
+		// Darker dusts are shown in erode
+		tmErodeImage(grayImage, erodedImage, m_smooth_size, 1);
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "medianImage-eroded" IMG_EXTENSION,
+						erodedImage);
+		}
+	}
+
+}
+
 /*
  * IMAGE PRE-PROCESSING => DUST DETECTION MAP
  */
@@ -644,43 +709,30 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
 
-	// Blurred grayscaled image (Gaussian blur)
-	if(!medianImage) {
-		medianImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
-			IPL_DEPTH_8U, 1);
-	}
-
-	// Difference (allocated here because it may be used for Open filter
-	if(!diffImage) {
-		diffImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
-			IPL_DEPTH_8U, 1);
-	}
-	if(!varianceImage) {
-		varianceImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
-			IPL_DEPTH_32F, 1);
-	}
-
 	m_progress = 30;
 
 
+	if(!g_mode_use_erodedilate) {
+		// Smooth size depend on DPI - size of 9 is ok at 2400 dpi
+		//4 is for median smooth
+		m_smooth_size = 1 + 2*(int)roundf(4.f * m_options.dpi / 2400.f);
+	} else {
+		// 2 is for erode/dilate
+		m_smooth_size = 1 + 2*(int)roundf(2.f * m_options.dpi / 2400.f);
+	}
 
-	// Smooth size depend on DPI - size of 9 is ok at 2400 dpi
-	m_smooth_size = 1 + 2*(int)(4 * m_options.dpi / 2400);
-	if(m_smooth_size < 3)
+	if(m_smooth_size < 3) {
 		m_smooth_size = 3;
+	}
 
-	fprintf(logfile, "TamanoirImgProc::%s:%d : blur grayscaled image => median image... size %d x %d\n",
-		__func__, __LINE__, m_smooth_size, m_smooth_size);
 
-	cvSmooth(grayImage, medianImage,
-			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-			m_smooth_size, m_smooth_size );
-		// For debug, save image in temporary directory
-		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "medianImage" IMG_EXTENSION, medianImage);
 	m_progress = 35;
 
+	// Process median image
+	processMedian();
+
 	// FOR GRAINY IMAGES, SMOOTH ORIGINAL IMAGE TOO
-	if(0) {
+	if(0 && !g_mode_use_erodedilate) {
 		fprintf(logfile, "TamanoirImgProc::%s:%d : blur original color image...\n",
 			__func__, __LINE__);
 		int orig_smooth_size = 1 + 2*(int)(4 * m_options.dpi / 2400);
@@ -711,52 +763,66 @@ int TamanoirImgProc::preProcessImage() {
 	int var_size = 1 + 2*(4 * m_options.dpi/2400);
 	if(var_size < 3) var_size = 3;
 
-	tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto, var_size);
-
-	// Process difference histogram analysis :
-	unsigned long maxHisto = 0;
-	double cdgH = 0;
-	unsigned long cdgnb = 0;
-
-	int indexMaxHisto = 0;
-
-	for(int h=1; h<256; h++) {
-		cdgH += h * diffHisto[h];
-		cdgnb += diffHisto[h];
-		if(diffHisto[h]>maxHisto) {
-			indexMaxHisto = h;
-			maxHisto = diffHisto[h];
+	double cdgH = 0.;
+	if(!g_mode_use_erodedilate) {
+		tmProcessDiff(m_options.filmType,
+				  grayImage, medianImage,
+				  diffImage, varianceImage, diffHisto, var_size);
+		if(g_debug_savetmp) {
+			tmSaveImage(TMP_DIRECTORY "diffImage=gray-median" IMG_EXTENSION, medianImage);
 		}
-	}
-	if(cdgnb>0)
-		cdgH /= (double)cdgnb;
-	m_threshold = (u8)roundf(cdgH * 2.0);
+		// Process difference histogram analysis :
+		unsigned long maxHisto = 0;
+		unsigned long cdgnb = 0;
 
-	fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g threshold=%d\n",
-			__func__, __LINE__, cdgH, (int)m_threshold);
+		int indexMaxHisto = 0;
+
+		for(int h=1; h<256; h++) {
+			cdgH += h * diffHisto[h];
+			cdgnb += diffHisto[h];
+			if(diffHisto[h]>maxHisto) {
+				indexMaxHisto = h;
+				maxHisto = diffHisto[h];
+			}
+		}
+		if(cdgnb>0)
+			cdgH /= (double)cdgnb;
+		m_threshold = (u8)roundf(cdgH * 2.0);
+
+		fprintf(logfile, "TamanoirImgProc::%s:%d : Process histogram : cdgH = %g threshold=%d\n",
+				__func__, __LINE__, cdgH, (int)m_threshold);
+	}
+	else {
+		m_threshold = 40;
+	}
 
 	m_progress = 45;
 
 	// If image is really noisy, for example with B&W grain (or High sensitivity films), pre-process a 3x3 blur filter
-	if(cdgH >= /*3.0*/ 2.8 ) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
-			__func__, __LINE__);
-		cvSmooth(grayImage, diffImage,
-			CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
-			3, 3 );
-		m_progress = 50;
+	if( g_mode_use_erodedilate ||
+	   cdgH >= /*3.0*/ 2.8 ) {
+		if(!g_mode_use_erodedilate) {
+			fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : Process 3x3 blur filter on input image ...\n",
+				__func__, __LINE__);
+			cvSmooth(grayImage, diffImage,
+				CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+				3, 3 );
+			m_progress = 50;
 
-		memcpy(grayImage->imageData, diffImage->imageData,
-			diffImage->widthStep*diffImage->height);
+			cvCopy(diffImage, grayImage);
 
-		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayImage-smoothed" IMG_EXTENSION, medianImage);
+			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "grayImage-smoothed" IMG_EXTENSION, medianImage);
 
-		// Of smooth size was already 3, increase smooth
-		if(m_smooth_size == 3) {
-			m_smooth_size += 2;
-			cvSmooth(grayImage, medianImage,
-					CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
+
+			// Of smooth size was already 3, increase smooth
+			if(m_smooth_size == 3) {
+				m_smooth_size += 4;
+				cvSmooth(grayImage, medianImage,
+					CV_MEDIAN, //CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 					m_smooth_size, m_smooth_size );
+			}
+			processMedian();
+
 		}
 
 		// For debug, save image in temporary directory
@@ -764,19 +830,63 @@ int TamanoirImgProc::preProcessImage() {
 			tmSaveImage(TMP_DIRECTORY "medianImage-resmoothed" IMG_EXTENSION, medianImage);
 		}
 
+
+
 		unsigned long diffHisto2[256];
 		memset(diffHisto2, 0, sizeof(unsigned long)*256);
 		memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 
 		fprintf(logfile, "TamanoirImgProc::%s:%d : GRAIN ERASER : RE-process difference on blurred image ...\n",
 			__func__, __LINE__);
-		tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
+
+		if(!g_mode_use_erodedilate) {
+			tmProcessDiff(m_options.filmType,
+						  grayImage, medianImage,
+						  diffImage, varianceImage,
+						  diffHisto2, var_size);
+		} else {
+
+			/* TRY OUTS FOR DIFFERENCE : best is erode-dilate
+	//		tmProcessDiff(m_options.filmType, grayImage, medianImage, diffImage, varianceImage, diffHisto2, var_size);
+			tmProcessDiff(m_options.filmType,
+						  erodedImage,medianImage,
+	//					  dilatedImage, medianImage,
+	//					  erodedImage, dilatedImage,
+						  diffImage, varianceImage,
+						  diffHisto2, var_size);
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "diffImage=erode-median" IMG_EXTENSION,
+							diffImage);
+			}
+
+			tmProcessDiff(m_options.filmType,
+						  medianImage, dilatedImage,
+						  diffImage, varianceImage,
+						  diffHisto2, var_size);
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "diffImage=median-dilate" IMG_EXTENSION,
+							diffImage);
+			}
+			BEST = erode-dilate ; */
+			tmProcessDiff(m_options.filmType,
+	//					  erodedImage,medianImage,
+	//					  dilatedImage, medianImage,
+						  erodedImage, dilatedImage,
+						  diffImage, varianceImage,
+						  diffHisto2, var_size);
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "diffImage=erode-dilate" IMG_EXTENSION,
+							diffImage);
+			}
+			m_threshold = 40;
+		}
 	}
+
 	m_progress = 60;
 
-	if(m_threshold < 4)
+	if(m_threshold < 4) {
 		m_threshold = 4;
-
+	}
 
 	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
 //	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
@@ -785,7 +895,7 @@ int TamanoirImgProc::preProcessImage() {
 	int height = diffImage->height;
 	int pos;
 
-#if 0 // OLD VERSION WITH SEPAATE CRITERIONS => REPLACED WITH 1 CRITERION ONLY
+#if 0 // OLD VERSION WITH SEPARATED CRITERIONS => REPLACED WITH 1 CRITERION ONLY
 	// THRESHOLD DIFF IMAGE
 	switch(m_options.filmType) {
 	default:
@@ -853,7 +963,7 @@ int TamanoirImgProc::preProcessImage() {
 		}
 		break;
 	}
-#else // NEW CRITERION
+#else // NEW CRITERION : theshold only
 	for(int r=0;r<height; r++) {
 		pos = r * width;
 		int posmax = pos + diffImage->width;
@@ -879,17 +989,16 @@ int TamanoirImgProc::preProcessImage() {
 	// Do a close operation on diffImage
 	if(1) {
 		tmCloseImage(diffImage, medianImage, grayImage, 1);
+
 			// For debug, save image in temporary directory
-			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-Closed" IMG_EXTENSION, medianImage);
-		memcpy(diffImage->imageData, medianImage->imageData, medianImage->widthStep * medianImage->height);
+			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-closed" IMG_EXTENSION, medianImage);
+		cvCopy(medianImage, diffImage);
 	}
 
 	m_progress = 80;
 
 	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n",
 		__func__, __LINE__); fflush(stderr);
-
-
 
 
 	// Difference
@@ -915,6 +1024,7 @@ int TamanoirImgProc::preProcessImage() {
 			m_block_seed_width, m_block_seed_height);
 
 	allocCropped();
+
 	processResolution(m_options.dpi);
 
 	m_lock = false;
@@ -1269,12 +1379,16 @@ int TamanoirImgProc::processResolution(int dpi) {
 			__func__, __LINE__, dpi);
 //		return 0;
 	}
+
 	// Then re-process file
 	fprintf(logfile, "TamanoirImgProc::%s:%d : set scan resolution to %d dpi\n",
-		__func__, __LINE__, dpi);fflush(logfile);
+		__func__, __LINE__, dpi); fflush(logfile);
+	m_options.dpi = dpi;
 
 	if(originalImage) {
-		// No need to pre-process again the image
+		// need to pre-process again the image because the blur radius changed
+		preProcessImage();
+
 		// We just reset the dust seeker
 		// Allocate region growing structs
 		float coef_sensitivity[4] = { 1.f, 1.5f, 3.f, 5.f};
@@ -1437,11 +1551,12 @@ int TamanoirImgProc::nextDust() {
 		m_block_seed_x += m_block_seed_width;
 		m_seed_x = 0;
 		if(m_block_seed_x >= width) {
-			TMIMG_printf(TMLOG_INFO, "changed seed y => %d", m_block_seed_y)
+			TMIMG_printf(TMLOG_INFO, "changed seed block y => %d", m_block_seed_y)
 			// block moved to far on right => rewind to left, and go down one block
 			m_block_seed_x = 0;
 			m_block_seed_y += m_block_seed_height;
 		}
+
 		TMIMG_printf(TMLOG_INFO, "changed block => %d,%d / img size=%dx%d",
 					 m_block_seed_x, m_block_seed_y,
 					width, height)
@@ -1633,7 +1748,8 @@ int TamanoirImgProc::findDust(int x, int y,
 		x, y,
 		diff_threshold,
 		255,
-		&connect );
+		&connect
+		);
 	if(connect.rect.x == m_findDust_last_connect.rect.x
 	   && connect.rect.y == m_findDust_last_connect.rect.y
 	   && connect.rect.width == m_findDust_last_connect.rect.width
@@ -1747,11 +1863,12 @@ int TamanoirImgProc::findDust(int x, int y,
 
 		// Dilate dust around the seed
 		is_a_dust = dilateDust(crop_x, crop_y,
-								crop_center_x, crop_center_y,
-								&crop_connect,
-								is_a_dust, force_search,
-								dilateImage, &best_correl,
-								&sum_dust, &sum_neighbour);
+							   crop_center_x, crop_center_y,
+							   &crop_connect,
+							   is_a_dust, force_search,
+							   dilateImage, &best_correl,
+							   &sum_dust, &sum_neighbour
+							   );
 
 		m_dust_detection_props.rel_grown_conn = crop_connect;
 		m_dust_detection_props.dilateDust = is_a_dust;
@@ -2723,20 +2840,30 @@ bool TamanoirImgProc::srcDifferentFromDest(t_correction * pcorrection)
  * Dilate Dust to have a better segmentation
  */
 bool TamanoirImgProc::dilateDust(
-								int crop_x, int crop_y,
-								int crop_center_x, int crop_center_y,
-								CvConnectedComp *pcrop_connect,
-								bool is_a_dust, bool force_search,
-								IplImage * dilateImageOut,
-								int * pbest_correl,
-								float * pmean_dust, float * pmean_neighbour)
+	int crop_x, int crop_y,
+	int crop_center_x, int crop_center_y,
+	CvConnectedComp *pcrop_connect,
+	bool is_a_dust, bool force_search,
+	IplImage * dilateImageOut,
+	int * pbest_correl,
+	float * pmean_dust, float * pmean_neighbour)
 {
 	CvConnectedComp crop_connect = *pcrop_connect;
 	// ------- Cropped images are used to lower the memory needs
 
-
+/*	if(g_debug_savetmp) {
+		tmCropImage(medianImage, cropImage,
+					crop_x, crop_y);
+		tmSaveImage(TMP_DIRECTORY "crop1-medianImage" IMG_EXTENSION,
+					cropImage);
+	}
+*/
 	tmCropImage(grayImage, cropImage,
 				crop_x, crop_y);
+	if(g_debug_savetmp) {
+		tmSaveImage(TMP_DIRECTORY "crop1-grayImage" IMG_EXTENSION,
+					cropImage);
+	}
 	CvConnectedComp flood_connect;
 	memset(&flood_connect, 0, sizeof(CvConnectedComp));
 
@@ -2778,7 +2905,8 @@ bool TamanoirImgProc::dilateDust(
 		crop_center_x, crop_center_y,
 		(force_search ? DIFF_NOT_DUST : DIFF_THRESHVAL),
 		255,
-		&crop_connect);
+		&crop_connect
+		);
 
 	/* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
@@ -2839,7 +2967,9 @@ bool TamanoirImgProc::dilateDust(
 			tmSaveImage(TMP_DIRECTORY "cropImage" IMG_EXTENSION, cropImage);
 		}*/
 
-		bool is_a_fiber = (crop_connect.area < crop_connect.rect.width * crop_connect.rect.height / 3);
+		bool is_a_fiber =
+				(crop_connect.area < crop_connect.rect.width *
+									crop_connect.rect.height / 3);
 		if(is_a_fiber && force_search)
 		{
 			TMIMG_printf(TMLOG_DEBUG, "force_search => FIBER !! "
@@ -2877,26 +3007,32 @@ bool TamanoirImgProc::dilateDust(
 			tmSaveImage(TMP_DIRECTORY "crop4-grown" IMG_EXTENSION, correctImage);
 		}
 
+		if(!g_mode_use_erodedilate) {
+			// Do a dilatation around the grown region (grown in correctImage)
+			int kernel_size = 2 * (m_options.dpi / 2400);
+			//if(tmmax(crop_connect.width, crop_connect.height) > 3.f) {
+				// use proportional
+			//}
+			kernel_size = kernel_size*2 + 1;
+			if(kernel_size<3) { kernel_size = 3; }
+			if(g_debug_dust_seek) {
+				fprintf(stderr, "\t::%s:%d : dilate: kernel size=%d\n",
+						__func__, __LINE__, kernel_size);
+			}
 
-		// Do a dilatation around the grown region (grown in correctImage)
-		int kernel_size = 2 * (m_options.dpi / 2400);
-		//if(tmmax(crop_connect.width, crop_connect.height) > 3.f) {
-			// use proportional
-		//}
-		kernel_size = kernel_size*2 + 1;
-		if(kernel_size<3) { kernel_size = 3; }
-		if(g_debug_dust_seek) {
-			fprintf(stderr, "\t::%s:%d : dilate: kernel size=%d\n",
-					__func__, __LINE__, kernel_size);
+			tmDilateImage(correctImage, dilateImageOut,
+						  kernel_size,
+						  1 // iteration
+						  );
+
+			if(g_debug_savetmp) {
+				tmSaveImage(TMP_DIRECTORY "crop5-grown-dilated" IMG_EXTENSION, dilateImageOut);
+			}
+		} else {
+			// copy only
+			cvCopy(correctImage, dilateImageOut);
 		}
 
-		tmDilateImage(correctImage, dilateImageOut,
-					  kernel_size,
-					  1 // iteration
-					  );
-		if(g_debug_savetmp) {
-			tmSaveImage(TMP_DIRECTORY "crop5-grown-dilated" IMG_EXTENSION, dilateImageOut);
-		}
 /* CROPPED IMAGES :
 	- cropImage = crop(diffImage)
 	- correctImage = grown(cropImage/diffImage)
@@ -2949,13 +3085,60 @@ bool TamanoirImgProc::dilateDust(
 			sum_dust /= (double)nb_dust;
 		}
 		// Fill the center of the dust
-		//fprintf(stderr, "::%s:%d : min/max = %d / %d\n", __func__, __LINE__, min_dif, max_dif);
+		if(g_debug_dust_seek) {
+			fprintf(stderr, "::%s:%d : fill min/max = %d / %d\n",
+					__func__, __LINE__,
+					min_dust, max_dust);
+		}
+
 		for(r=dust_rmin;r<dust_rmax; r++) {
 			int crop_pos = r*tmpCropImage->widthStep + dust_cmin;
+			u8 active = 0;
 			for(c=dust_cmin; c<dust_cmax; c++,crop_pos++) {
-				if(cropGrayBuffer[crop_pos]>=min_dust
-					&& cropGrayBuffer[crop_pos]<=max_dust) {
-					dilateImageBuffer[crop_pos] = 255;
+				if(dilateImageBuffer[crop_pos]==255) { active = 1; }
+
+				if(active && !dilateImageBuffer[crop_pos]
+				   && cropGrayBuffer[crop_pos]>=min_dust
+				   && cropGrayBuffer[crop_pos]<=max_dust) {
+					dilateImageBuffer[crop_pos] = 10;
+				}
+			}
+
+			active = 0;
+			crop_pos = r*tmpCropImage->widthStep + dust_cmax-1;
+			for(c=dust_cmax-1; c>=dust_cmin; c--,crop_pos--) {
+				if(dilateImageBuffer[crop_pos]==255) { active = 1; }
+
+				if(active && dilateImageBuffer[crop_pos]==10
+				   && cropGrayBuffer[crop_pos]>=min_dust
+				   && cropGrayBuffer[crop_pos]<=max_dust) {
+					dilateImageBuffer[crop_pos] = 20;
+				}
+			}
+		}
+		int pitch = tmpCropImage->widthStep;
+		for(c=dust_cmin; c<dust_cmax; c++) {
+			int crop_pos = dust_rmin*pitch + c;
+			u8 active = 0;
+			for(r=dust_rmin; r<dust_rmax; r++, crop_pos+=pitch) {
+				if(dilateImageBuffer[crop_pos]==255) { active = 1; }
+
+				if(active && dilateImageBuffer[crop_pos]==20
+				   && cropGrayBuffer[crop_pos]>=min_dust
+				   && cropGrayBuffer[crop_pos]<=max_dust) {
+					dilateImageBuffer[crop_pos] = 30;
+				}
+			}
+
+			crop_pos = (dust_rmax-1)*pitch + c;
+			active = 0;
+			for(r=dust_rmin; r<dust_rmax; r++,crop_pos-=pitch) {
+				if(dilateImageBuffer[crop_pos]==255) { active = 1; }
+
+				if(active && dilateImageBuffer[crop_pos]==30
+				   && cropGrayBuffer[crop_pos]>=min_dust
+				   && cropGrayBuffer[crop_pos]<=max_dust) {
+					dilateImageBuffer[crop_pos] = 235;
 				}
 			}
 		}
@@ -3006,8 +3189,7 @@ bool TamanoirImgProc::dilateDust(
 						c++,crop_pos++) {
 					int gray = (int)cropGrayBuffer[crop_pos];
 
-
-					if(dilateImageBuffer[crop_pos]) {
+					if(dilateImageBuffer[crop_pos]>=235) {
 						// Difference between image and median
 						histoDustDil[ gray ]++;
 					} else {
