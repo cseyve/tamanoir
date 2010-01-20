@@ -545,7 +545,13 @@ private:
 	IplImage * origBlurredImage;
 
 	IplImage * grayImage;
+
+	void processMedian();
+
 	IplImage * medianImage;
+	IplImage * erodedImage;
+	IplImage * dilatedImage;
+
 	IplImage * diffImage;
 	IplImage * dustMaskImage;
 

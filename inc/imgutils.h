@@ -158,7 +158,7 @@ IMGUTILS_EXTERN u8 g_debug_importexport IMGUTILS_ZERO;
 // Difference image fill values
 
 /// Difference image value for contour areas (a little different)
-#define DIFF_CONTOUR    192
+#define DIFF_CONTOUR    152
 
 /// Difference image value for preventing from region growing (force copy)
 #define DIFF_NEUTRALIZE 64
@@ -213,6 +213,8 @@ IplImage * tmFastConvertToGrayscale(IplImage * img);
 
 /** @brief Process a dilatation */
 void tmDilateImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
+/** @brief Process an erosion */
+void tmErodeImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
 
 /** @brief Load a TIFF file in an OpenCV IplImage */
 IplImage * tmOpenTiffImage(const char * filename, int * dpi);

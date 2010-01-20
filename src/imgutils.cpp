@@ -326,6 +326,38 @@ void tmDilateImage(IplImage * src, IplImage * dst,
 	}
 }
 
+/** process a dilatation around the dust */
+void tmErodeImage(IplImage * src, IplImage * dst,
+				   int kernel_size, // default: 3
+				   int iterations // default: 1
+				   ) {
+	// Ref. : http://opencvlibrary.sourceforge.net/CvReference#cv_imgproc_morphology
+	if(kernel_size <= 3) {
+		cvDilate(src, dst,
+			NULL /* e.g. 3x3 kernel */,
+			iterations // # iterations
+			);
+	} else {
+		// Avoid multiple dynamic allocations
+		static IplConvKernel *elt = NULL;
+		static int last_elt_size = 0;
+		if(!elt || last_elt_size != kernel_size) {
+			if(elt) {
+				cvReleaseStructuringElement(&elt);
+			}
+			elt = tmCreateStructElt( kernel_size ); // with ellipse shape by default
+			last_elt_size = kernel_size;
+		}
+
+		cvErode(src, dst,
+			elt,
+			iterations // # iterations
+			);
+
+	}
+}
+
+
 
 // If image has a odd size, many functions will fail on OpenCV, so add a pixel
 IplImage * tmAddBorder4x(IplImage * originalImage) {
@@ -1656,7 +1688,7 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	int height = medianImage->height;
 	int w= medianImage->width;
 
-	if(0)
+#if (0)
 	for(int r=0; r<grayImage->height; r++) {
 		int pos = grayImage->widthStep * r;
 		int posmax = pos + grayImage->widthStep;
@@ -1685,6 +1717,7 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 
 		}
 	}
+#endif
 
 	switch(l_FilmType) {
 	default:
