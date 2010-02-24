@@ -333,7 +333,7 @@ void tmErodeImage(IplImage * src, IplImage * dst,
 				   ) {
 	// Ref. : http://opencvlibrary.sourceforge.net/CvReference#cv_imgproc_morphology
 	if(kernel_size <= 3) {
-		cvDilate(src, dst,
+		cvErode(src, dst,
 			NULL /* e.g. 3x3 kernel */,
 			iterations // # iterations
 			);
@@ -434,6 +434,140 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 
 	cvReleaseStructuringElement(&elt);
 }
+
+
+void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
+	if(displayDiffImage) {
+		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage=%p %dx%d => %p %dx%d\n",
+				__func__, __LINE__,
+				diffImage, diffImage->width, diffImage->height,
+				displayDiffImage, displayDiffImage->width, displayDiffImage->height
+				);
+		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
+		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
+		int r_disp = 0;
+		for(float f_r=0;f_r<diffImage->height
+					&& r_disp<displayDiffImage->height; f_r+=scale_y, r_disp++) {
+			int rmin = (int)f_r;
+			if(rmin>=diffImage->height)
+				continue;
+			int rmax = (int)roundf(f_r + scale_y);
+			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
+			// scale r
+			u8 * displayline = (u8 *)(displayDiffImage->imageData + r_disp*displayDiffImage->widthStep);
+			int c_disp = 0;
+			for(float f_c=0; f_c<diffImage->width
+								&& c_disp<displayDiffImage->width;
+				f_c+=scale_x, c_disp++)
+			{
+				// Scale c
+				int cmin = (int)f_c;
+				int cmax = (int)roundf(f_c + scale_x);
+				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
+				u8 diffmax = 0;
+				for(int r = rmin; r<=rmax; r++) {
+					u8 * diffline = (u8 *)(diffImage->imageData + r*diffImage->widthStep);
+
+					for(int c = cmin; c<=cmax; c++) {
+						if(diffline[c]>diffmax) {
+							diffmax = diffline[c];
+						}
+					}
+				}
+				displayline[c_disp] = diffmax;
+			}
+		}
+
+	}
+}
+
+void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage) {
+	if(displayDiffImage) {
+		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
+		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
+		int r_disp = 0;
+		for(float f_r=0;f_r<diffImage->height
+					&& r_disp<displayDiffImage->height; f_r+=scale_y, r_disp++) {
+			int rmin = (int)f_r;
+			if(rmin>=diffImage->height)
+				continue;
+			int rmax = (int)roundf(f_r + scale_y);
+			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
+			// scale r
+			u8 * displayline = (u8 *)(displayDiffImage->imageData + r_disp*displayDiffImage->widthStep);
+			int c_disp = 0;
+			for(float f_c=0; f_c<diffImage->width
+								&& c_disp<displayDiffImage->width;
+				f_c+=scale_x, c_disp++)
+			{
+				// Scale c
+				int cmin = (int)f_c;
+				int cmax = (int)roundf(f_c + scale_x);
+				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
+				u8 diffmin = 255;
+				for(int r = rmin; r<=rmax; r++) {
+					u8 * diffline = (u8 *)(diffImage->imageData + r*diffImage->widthStep);
+
+					for(int c = cmin; c<=cmax; c++) {
+						if(diffline[c]<diffmin) {
+							diffmin = diffline[c];
+						}
+					}
+				}
+				displayline[c_disp] = diffmin;
+			}
+		}
+	}
+}
+
+void tmScaleMean(IplImage * diffImage, IplImage * displayDiffImage) {
+	if(displayDiffImage) {
+		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
+		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
+		int r_disp = 0;
+		for(float f_r=0;f_r<diffImage->height
+					&& r_disp<displayDiffImage->height; f_r+=scale_y, r_disp++) {
+			int rmin = (int)f_r;
+			if(rmin>=diffImage->height)
+				continue;
+			int rmax = (int)roundf(f_r + scale_y);
+			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
+			// scale r
+			u8 * displayline = (u8 *)(displayDiffImage->imageData
+									  + r_disp*displayDiffImage->widthStep);
+			int c_disp = 0;
+			for(float f_c=0; f_c<diffImage->width
+								&& c_disp<displayDiffImage->width;
+				f_c+=scale_x, c_disp++)
+			{
+				// Scale c
+				int cmin = (int)f_c;
+				int cmax = (int)roundf(f_c + scale_x);
+				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
+				float diffmean = 0;
+				for(int r = rmin; r<=rmax; r++) {
+					u8 * diffline = (u8 *)(diffImage->imageData +
+										   r*diffImage->widthStep);
+
+					for(int c = cmin; c<=cmax; c++) {
+						diffmean += diffline[c];
+					}
+				}
+				int sq = (cmax-cmin+1)*(rmax - rmin+1);
+				diffmean /= sq;
+				if(diffmean >= 254.5f)
+					displayline[c_disp] = (u8)255;
+				else
+					displayline[c_disp] = (u8)roundf(diffmean);
+			}
+		}
+	}
+}
+
+
+
 
 CvScalar getFakeColor(int nChannels, unsigned char color)
 {
@@ -665,7 +799,7 @@ void tmCloneRegionTopLeft(IplImage * origImage,
 		// Raw in center, proportional copy in border
 		for(y=0; y<coeftab_h; y++) {
 			int dy = (y - coefheight_2);
-			float dy2 = dy*dy;
+//unused			float dy2 = dy*dy;
 			float dynorm = (float)-dy/(float)coefheight_2;
 			int postab = y * coeftab_w;
 			for(x = 0; x<coeftab_w; x++, postab++) {
@@ -1135,8 +1269,8 @@ void tmMarkCloneRegion(IplImage * origImage,
 	bool mark
 	) {
 
-	int orig_width = origImage->width;
-	int orig_height = origImage->height;
+//unused	int orig_width = origImage->width;
+//unused	int orig_height = origImage->height;
 /*
 	// Clip copy
 	if( orig_y > copy_y) {
@@ -1673,7 +1807,9 @@ int tmSearchBestCorrelation(
  */
 int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 				IplImage * diffImage, IplImage * varianceImage,
-				unsigned long * diffHisto, int size)
+				unsigned long * diffHisto,
+				int //unused size
+				)
 {
 	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	unsigned char * blurImageBuffer = (unsigned char *)medianImage->imageData;
@@ -1683,10 +1819,11 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 		diffHisto = l_diffHisto;
 	}
 	memset(diffHisto, 0, sizeof(unsigned long)*256);
+	memset(diffImage->imageData, 0, diffImage->widthStep*diffImage->height);
 
 	int width = medianImage->widthStep;
 	int height = medianImage->height;
-	int w= medianImage->width;
+//unused	int w= medianImage->width;
 
 #if (0)
 	for(int r=0; r<grayImage->height; r++) {
@@ -1762,6 +1899,75 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 }
 
 
+/*
+ * Difference between 2 images, knowning film type (positive or negative or undefined)
+ */
+int tmProcessDilate_Erode(int l_FilmType,
+						  IplImage * dilateImage, IplImage * erodeImage,
+						  IplImage * diffImage,
+						  unsigned long * diffHisto, int size)
+{
+	static unsigned long l_diffHisto[256];
+	if(!diffHisto) {
+		diffHisto = l_diffHisto;
+	}
+	memset(diffHisto, 0, sizeof(unsigned long)*256);
+
+	int width = dilateImage->width;
+	int height = dilateImage->height;
+
+	cvZero(diffImage);
+
+	switch(l_FilmType)
+	{
+	default:
+	case FILM_UNDEFINED:  /* dust can be darker or brighter => absolute value */
+		 //fprintf(logfile, "[imgutils] %s:%d : Undefined film type : looking for diffImage = |Blurred - Grayscaled| ...\n",
+		 //	__func__, __LINE__);
+		 for(int r=0; r<height; r++) {
+			 u8 * diffed = (u8 *)diffImage->imageData + r * diffImage->widthStep;
+			 u8 * dilated = (u8 *)dilateImage->imageData + r * dilateImage->widthStep;
+			 u8 * eroded = (u8 *)erodeImage->imageData + r * erodeImage->widthStep;
+			 for(int c=0; c<width; c++) {
+				 u8 diff = diffed[c] = abs((int)dilated[c] - (int)eroded[c]);
+				 diffHisto[ diff ]++;
+			 }
+		}
+		break;
+	case FILM_NEGATIVE: /* dust must be brighter => gray - median */
+		//fprintf(logfile, "[imgutils] %s:%d : NEGATIVE film type : looking for diffImage = Dilated-Eroded ...\n",
+		//	__func__, __LINE__);
+		for(int r=0; r<height; r++) {
+			u8 * diffed = (u8 *)diffImage->imageData + r * diffImage->widthStep;
+			u8 * dilated = (u8 *)dilateImage->imageData + r * dilateImage->widthStep;
+			u8 * eroded = (u8 *)erodeImage->imageData + r * erodeImage->widthStep;
+			for(int c=0; c<width; c++) {
+				if(dilated[c] > eroded[c]) {
+					u8 diff = diffed[c] = (dilated[c] - eroded[c]);
+					diffHisto[diff]++;
+				}
+			}
+		}
+		break;
+	case FILM_POSITIVE: /* dust must be darker => median - gray */
+		//fprintf(logfile, "[imgutils] %s:%d : POSITIVE film type : looking for diffImage = Blurred-Grayscaled ...\n",
+		//	__func__, __LINE__);
+		for(int r=0; r<height; r++) {
+			u8 * diffed = (u8 *)diffImage->imageData + r * diffImage->widthStep;
+			u8 * dilated = (u8 *)dilateImage->imageData + r * dilateImage->widthStep;
+			u8 * eroded = (u8 *)erodeImage->imageData + r * erodeImage->widthStep;
+			for(int c=0; c<width; c++) {
+				if(1 || dilated[c] > eroded[c]) {
+					u8 diff = diffed[c] = (dilated[c] - eroded[c]);
+					diffHisto[diff]++;
+				}
+			}
+		}
+		break;
+	}
+	return 0;
+}
+
 
 
 
@@ -1772,15 +1978,26 @@ int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 
 #define spmax 576*2
 
-void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
-	int swidth, int sheight,
-	int c, int r,
-	unsigned char threshold,
-	unsigned char fillValue,
-	CvConnectedComp * areaOut)
+void tmGrowRegion(IplImage * growInImage,
+				  IplImage * growOutImage,
+				  int c, int r,
+				  unsigned char threshold,
+				  unsigned char fillValue,
+				  CvConnectedComp * areaOut)
 {
+	memset(areaOut, 0, sizeof(CvConnectedComp));
+	if(growInImage->depth != IPL_DEPTH_8U
+	   || growInImage->nChannels !=1 ) {
+		return;
+	}
+
 	int pile_x[spmax];
 	int pile_y[spmax];
+
+	unsigned char * growIn = (u8 *)growInImage->imageData;
+	unsigned char * growOut = (u8 *)growOutImage->imageData;
+	int swidth = growInImage->widthStep;
+	int sheight = growInImage->height;
 
 	int x,y,xi,xf;
 
@@ -1789,7 +2006,6 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	pile_x[0] = c;
 	pile_y[0] = r;
 
-	memset(areaOut, 0, sizeof(CvConnectedComp));
 	areaOut->area = 0.f; // for current pix
 
 	if(c<0 || c>=swidth) return;
@@ -1800,6 +2016,23 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 	int rmax = sheight-1;
 	int cmin = 0;
 	int cmax = swidth-1;
+	// If image has ROI, use this ROI
+	if(growInImage->roi) {
+		cmin = growInImage->roi->xOffset;
+		if(cmin < 0) cmin=0;
+		rmin = growInImage->roi->yOffset;
+		if(rmin < 0) rmin=0;
+		cmax = growInImage->roi->xOffset + growInImage->roi->width-1;
+		if(cmax >= swidth) cmax = swidth-1;
+		rmax = growInImage->roi->yOffset + growInImage->roi->height-1;
+		if(rmax >= sheight) rmax = sheight-1;
+
+//		fprintf(stderr, "[imgutils] %s:%d : img ROI=%d,%d+%dx%d => use ROI:%d,%d - %d,%d\n",
+//				__func__, __LINE__,
+//				growInImage->roi->xOffset, growInImage->roi->yOffset,
+//				growInImage->roi->width, growInImage->roi->height,
+//				cmin, rmin, cmax, rmax);
+	}
 
 	if(fillValue==0)
 		fillValue=1;
@@ -1823,9 +2056,10 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 		//looking for right extremity
 		x = pile_x[pile_sp]+1;
 
+
 		if(x<=cmax) {
 			while( growOut[x+row]==0 &&
-				growIn[x+row]>=threshold && x<cmax) {
+				   growIn[x+row]>=threshold && x<cmax) {
 				x++;
 			}
 			xf = x-1;
@@ -1835,10 +2069,12 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 		// idem for left
 		x = pile_x[pile_sp]-1;
+		// we look for new seed
+		pile_sp --;
 
 		if(x>cmin) {
 			while( growOut[x+row]==0 &&
-				growIn[x+row]>=threshold && x>cmin) {
+				   growIn[x+row]>=threshold && x>cmin) {
 				x--;
 			}
 			xi = x+1;
@@ -1848,68 +2084,68 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 		// reset the line
 		int w = xf - xi + 1;
-		memset(growOut + row+xi, fillValue, w);
-		surf += w;
+		if(w>0) {
+			memset(growOut + row+xi, fillValue, w);
+			surf += w;
 
-		if(xi<growXMin) growXMin = xi;
-		if(xf>growXMax) growXMax = xf;
-		if(y<growYMin) growYMin = y;
-		if(y>growYMax) growYMax = y;
+			if(xi<growXMin) growXMin = xi;
+			if(xf>growXMax) growXMax = xf;
+			if(y<growYMin) growYMin = y;
+			if(y>growYMax) growYMax = y;
 
 
-		// we look for new seed
-		pile_sp --;
 
-//#define CON_8
-		// line under current seed
-		if( y < rmax -1) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row2 = row + swidth;
+			//#define CON_8
+			// line under current seed
+			if( y < rmax -1) {
+				if(xf < cmax - 1)
+					x = xf + 1; // 8con
+				else
+					x = xf;
+				if(xi <= 0) xi = 1;
+				int row2 = row + swidth;
 
-			while(x>=xi-1) {
-				while( (growOut[x+row2]>0 || growIn[x+row2]<threshold)
+				while(x>=xi-1) {
+					while( (growOut[x+row2]>0 || growIn[x+row2]<threshold)
 						&& (x>=xi-1)) 	x--; // 8-connexity
-				if( (x>=xi-1) && growOut[x+row2]==0 && growIn[x+row2]>=threshold) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y+1;
+					if( (x>=xi-1) && growOut[x+row2]==0 && growIn[x+row2]>=threshold) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y+1;
+						}
 					}
+					while( growOut[x+row2]==0 && growIn[x+row2]>=threshold && (x>=xi-1)) // 8-con
+						x--;
 				}
-				while( growOut[x+row2]==0 && growIn[x+row2]>=threshold && (x>=xi-1)) // 8-con
-					x--;
 			}
-		}
 
-		// line above current line
-		if( y > rmin) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row3 = row - swidth;
+			// line above current line
+			if( y > rmin) {
+				if(xf < cmax - 1)
+					x = xf + 1; // 8con
+				else
+					x = xf;
+				if(xi <= 0) xi = 1;
+				int row3 = row - swidth;
 
-			while(x>=xi-1) { // 8-con
-				while( (growOut[x+row3]>0 || growIn[x+row3]<threshold)
+				while(x>=xi-1) { // 8-con
+					while( (growOut[x+row3]>0 || growIn[x+row3]<threshold)
 						&& (x>=xi-1)) x--;
-				if( (x>=xi-1) && growOut[x+row3]==0 && (growIn[x+row3]>=threshold)) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y-1;
+					if( (x>=xi-1) && growOut[x+row3]==0 && (growIn[x+row3]>=threshold)) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y-1;
+						}
 					}
-				}
 
-				while( growOut[x+row3]==0 && (growIn[x+row3]>=threshold)
+					while( growOut[x+row3]==0 && (growIn[x+row3]>=threshold)
 						&& (x>=xi-1)) // 8-con
-					x--;
+						x--;
+				}
 			}
 		}
 	}
@@ -1925,17 +2161,26 @@ void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
 
 
 
-void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
-	int swidth, int sheight,
-	int c, int r,
-	unsigned char seedValue,
-	unsigned char threshold,
-	unsigned char fillValue,
-	CvConnectedComp * areaOut)
+void tmFloodRegion(IplImage * growInImage,
+				   IplImage * growOutImage,
+				   int c, int r,
+				   unsigned char seedValue,
+				   unsigned char threshold,
+				   unsigned char fillValue,
+				   CvConnectedComp * areaOut)
 {
+	memset(areaOut, 0, sizeof(CvConnectedComp));
+	if(growInImage->depth != IPL_DEPTH_8U
+	   || growInImage->nChannels !=1 ) {
+		return;
+	}
 	int pile_x[spmax];
 	int pile_y[spmax];
 
+	unsigned char * growIn = (u8 *)growInImage->imageData;
+	unsigned char * growOut = (u8 *)growOutImage->imageData;
+	int swidth = growInImage->widthStep;
+	int sheight = growInImage->height;
 	int x,y,xi,xf;
 
 	// init stack
@@ -1955,9 +2200,28 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 	int cmin = 0;
 	int cmax = swidth-1;
 
-	if(fillValue==0)
-		fillValue=1;
+	// If image has ROI, use this ROI
+	if(growInImage->roi) {
+		cmin = growInImage->roi->xOffset;
+		if(cmin < 0) cmin=0;
+		rmin = growInImage->roi->yOffset;
+		if(rmin < 0) rmin=0;
+		cmax = growInImage->roi->xOffset + growInImage->roi->width-1;
+		if(cmax >= swidth) cmax = swidth - 1;
+		rmax = growInImage->roi->yOffset + growInImage->roi->height-1;
+		if(rmax >= sheight) rmax = sheight-1;
 
+//		fprintf(stderr, "[imgutils] %s:%d : img ROI=%d,%d+%dx%d "
+//				"=> use ROI:%d,%d - %d,%d\n",
+//				__func__, __LINE__,
+//				growInImage->roi->xOffset, growInImage->roi->yOffset,
+//				growInImage->roi->width, growInImage->roi->height,
+//				cmin, rmin, cmax, rmax);
+	}
+
+	if(fillValue==0) {
+		fillValue=1;
+	}
 
 	// reinit growXMin, ...
 	int growXMin = c;
@@ -1986,6 +2250,8 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 
 		// idem for left
 		x = pile_x[pile_sp]-1;
+		// we look for new seed
+		pile_sp --;
 
 		if(x>cmin) {
 			while( growOut[x+row]==0 &&
@@ -1993,85 +2259,87 @@ void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
 				x--;
 			}
 			xi = x+1;
-		}
-		else
+		} else {
 			xi = cmin;
+		}
 
 		// reset the line
 		int w = xf - xi + 1;
-		memset(growOut + row+xi, fillValue, w);
-		surf += w;
+		if(w > 0) {
+			memset(growOut + row+xi, fillValue, w);
+			surf += w;
 
-		if(xi<growXMin) growXMin = xi;
-		if(xf>growXMax) growXMax = xf;
-		if(y<growYMin) growYMin = y;
-		if(y>growYMax) growYMax = y;
+			if(xi<growXMin) growXMin = xi;
+			if(xf>growXMax) growXMax = xf;
+			if(y<growYMin) growYMin = y;
+			if(y>growYMax) growYMax = y;
 
 
-		// we look for new seed
-		pile_sp --;
 
-//#define CON_8
-		// line under current seed
-		if( y < rmax -1) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row2 = row + swidth;
-
-			while(x>=xi-1) {
-				while( (growOut[x+row2]>0
-							|| abs((int)growIn[x+row2]-seedValue)>threshold)
-						&& (x>=xi-1)) {	// 8-connexity
-						x--;
+	//#define CON_8
+			// line under current seed
+			if( y < rmax -1) {
+				if(xf < cmax - 1) {
+					x = xf + 1; // 8con
+				} else {
+					x = xf;
 				}
 
-				if( (x>=xi-1) && growOut[x+row2]==0 && abs((int)growIn[x+row2]-seedValue)<=threshold) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y+1;
+				if(xi <= 0) { xi = 1; }
+				int row2 = row + swidth;
+
+				while(x>=xi-1) {
+					while( (growOut[x+row2]>0
+								|| abs((int)growIn[x+row2]-seedValue)>threshold)
+							&& (x>=xi-1)) {	// 8-connexity
+							x--;
 					}
-				}
 
-				while( growOut[x+row2]==0
-					   && abs((int)growIn[x+row2]-seedValue) <= threshold
-					   && (x>=xi-1))
-				{	// 8-con
-					x--;
+					if( (x>=xi-1) && growOut[x+row2]==0 && abs((int)growIn[x+row2]-seedValue)<=threshold) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y+1;
+						}
+					}
+
+					while( growOut[x+row2]==0
+						   && abs((int)growIn[x+row2]-seedValue) <= threshold
+						   && (x>=xi-1))
+					{	// 8-con
+						x--;
+					}
 				}
 			}
-		}
 
-		// line above current line
-		if( y > rmin) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row3 = row - swidth;
+			// line above current line
+			if( y > rmin) {
+				if(xf < cmax - 1)
+					x = xf + 1; // 8con
+				else
+					x = xf;
+				if(xi <= 0) xi = 1;
+				int row3 = row - swidth;
 
-			while(x>=xi-1) { // 8-con
-				while( (growOut[x+row3]>0
-							|| abs((int)growIn[x+row3]-seedValue)>threshold)
-						&& (x>=xi-1)) { x--;
-				}
-				if( (x>=xi-1) && growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y-1;
+				while(x>=xi-1) { // 8-con
+					while( (growOut[x+row3]>0
+								|| abs((int)growIn[x+row3]-seedValue)>threshold)
+							&& (x>=xi-1)) { x--;
 					}
-				}
+					if( (x>=xi-1) && growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y-1;
+						}
+					}
 
-				while( growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)
-						&& (x>=xi-1) ) { // 8-con
-					x--;
+					while( growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)
+							&& (x>=xi-1) ) { // 8-con
+						x--;
+					}
 				}
 			}
 		}
@@ -2095,7 +2363,8 @@ void tmEraseRegion(
 	IplImage * grownImage,
 	IplImage * diffImage,
 	int c, int r,
-	unsigned char fillValue)
+	unsigned char fillValue_grown,
+	unsigned char fillValue_diff)
 {
 	int pile_x[spmax];
 	int pile_y[spmax];
@@ -2118,16 +2387,34 @@ void tmEraseRegion(
 	int rmax = sheight-1;
 	int cmin = 0;
 	int cmax = grownImage->width-1;
+	// If image has ROI, use this ROI
+	if(grownImage->roi) {
+		cmin = grownImage->roi->xOffset;
+		if(cmin < 0) cmin=0;
+		rmin = grownImage->roi->yOffset;
+		if(rmin < 0) rmin=0;
+		cmax = grownImage->roi->xOffset + grownImage->roi->width-1;
+		if(cmax >= swidth) cmax = swidth - 1;
+		rmax = grownImage->roi->yOffset + grownImage->roi->height-1;
+		if(rmax >= sheight) rmax = sheight-1;
 
-	if(fillValue==0)
-		fillValue=1;
+//		fprintf(stderr, "[imgutils] %s:%d : img ROI=%d,%d+%dx%d "
+//				"=> use ROI:%d,%d - %d,%d\n",
+//				__func__, __LINE__,
+//				growInImage->roi->xOffset, growInImage->roi->yOffset,
+//				growInImage->roi->width, growInImage->roi->height,
+//				cmin, rmin, cmax, rmax);
+	}
+
+//	if(fillValue_grown==0)
+//		fillValue_grown=1;
 
 
 	// reinit growXMin, ...
 	u8 * growIn = (u8 *)grownImage->imageData;
-	u8 * diffOut = (u8 *)diffImage->imageData;
+	u8 * diffOut = (diffImage ? (u8 *)diffImage->imageData : NULL);
 
-	if(growIn[c+r * swidth] != fillValue) {
+	if(growIn[c+r * swidth] != fillValue_grown) {
 		/*
 		fprintf(stderr, "[imgutils] %s:%d : not a seed @ %d,%d\n", __func__, __LINE__,
 				c, r);
@@ -2145,8 +2432,7 @@ void tmEraseRegion(
 		x = pile_x[pile_sp]+1;
 
 		if(x<=cmax) {
-			while(
-				growIn[x+row]== fillValue && x<cmax) {
+			while(growIn[x+row]== fillValue_grown && x<cmax) {
 				x++;
 			}
 			xf = x-1;
@@ -2156,9 +2442,11 @@ void tmEraseRegion(
 
 		// idem for left
 		x = pile_x[pile_sp]-1;
+		// we look for new seed
+		pile_sp --;
 
 		if(x>cmin) {
-			while( growIn[x+row]== fillValue && x>cmin) {
+			while( growIn[x+row]== fillValue_grown && x>cmin) {
 				x--;
 			}
 			xi = x+1;
@@ -2166,73 +2454,372 @@ void tmEraseRegion(
 		else
 			xi = cmin;
 
+
 		// reset the line
 		int w = xf - xi + 1;
-		memset(growIn + row+xi, 0, w);
-		// And neutralize diffImage
-		memset(diffOut + row+xi, DIFF_NOT_DUST, w);
-		surf += w;
-		/*fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
-				__func__, __LINE__,
-				xi, y, w);
-		*/
+		if(w>0) {
+			memset(growIn + row+xi, 0, w);
+			// And neutralize diffImage
+			if(diffOut) {
+				memset(diffOut + row+xi, fillValue_diff, w); }
 
-		// we look for new seed
-		pile_sp --;
+			surf += w;
+			/*fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
+					__func__, __LINE__,
+					xi, y, w);
+			*/
 
-		// line under current seed
-		if( y < rmax -1) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row2 = row + swidth;
 
-			while(x>=xi-1) {
-				while( (growIn[x+row2] != fillValue)
-						&& (x>=xi-1)) 	x--; // 8-connexity
-				if( (x>=xi-1) && growIn[x+row2]== fillValue) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y+1;
+			// line under current seed
+			if( y < rmax -1) {
+				if(xf < cmax - 1)
+					x = xf + 1; // 8con
+				else
+					x = xf;
+				if(xi <= 0) xi = 1;
+				int row2 = row + swidth;
+
+				while(x>=xi-1) {
+					while( (growIn[x+row2] != fillValue_grown)
+							&& (x>=xi-1)) 	x--; // 8-connexity
+					if( (x>=xi-1) && growIn[x+row2]== fillValue_grown) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y+1;
+						}
 					}
+					while( growIn[x+row2]== fillValue_grown && (x>=xi-1)) // 8-con
+						x--;
 				}
-				while( growIn[x+row2]== fillValue && (x>=xi-1)) // 8-con
-					x--;
 			}
-		}
 
-		// line above current line
-		if( y > rmin) {
-			if(xf < cmax - 1)
-				x = xf + 1; // 8con
-			else
-				x = xf;
-			if(xi <= 0) xi = 1;
-			int row3 = row - swidth;
+			// line above current line
+			if( y > rmin) {
+				if(xf < cmax - 1)
+					x = xf + 1; // 8con
+				else
+					x = xf;
+				if(xi <= 0) xi = 1;
+				int row3 = row - swidth;
 
-			while(x>xi) { // 8-con
-				while( (growIn[x+row3]!= fillValue)
-						&& (x>=xi-1)) x--;
-				if( (x>=xi-1) &&  (growIn[x+row3]== fillValue)) {
-					if(pile_sp < spmax-1)
-					{
-						pile_sp++;
-						pile_x[pile_sp] = x;
-						pile_y[pile_sp] = y-1;
+				while(x>xi) { // 8-con
+					while( (growIn[x+row3]!= fillValue_grown)
+							&& (x>=xi-1)) x--;
+					if( (x>=xi-1) &&  (growIn[x+row3]== fillValue_grown)) {
+						if(pile_sp < spmax-1)
+						{
+							pile_sp++;
+							pile_x[pile_sp] = x;
+							pile_y[pile_sp] = y-1;
+						}
 					}
-				}
 
-				while( growIn[x+row3]== fillValue
-						&& (x>=xi-1)) // 8-con
-					x--;
+					while( growIn[x+row3]== fillValue_grown
+							&& (x>=xi-1)) // 8-con
+						x--;
+				}
 			}
 		}
 	}
 }
+
+
+
+
+// u16 May be too short for large images
+typedef u32 etiquette;
+static u8 growAllRegions_init = 0;
+static u8 * s_ConditionBuf = NULL, * s_RegionLabel = NULL;
+static etiquette * s_eqTab = NULL;
+static int s_ConditionBufSize = 0;
+static CvConnectedComp * s_GrownRegions = NULL;
+static int s_GrownRegions_nb = 0;
+static int s_GrownRegions_max = 0;
+
+// insert equivalence between 2 labels in the table of equivalences
+void tmInsertGrowEq(etiquette * eqTab, etiquette minLabel, etiquette maxLabel) {
+	if(eqTab[minLabel]==0) {
+		eqTab[minLabel]=maxLabel;
+		return;
+	}
+
+	if(eqTab[minLabel]<maxLabel) {
+		tmInsertGrowEq(eqTab, eqTab[minLabel], maxLabel);
+		eqTab[minLabel] = maxLabel;
+		return;
+	}
+
+	if(eqTab[minLabel]>maxLabel) {
+		tmInsertGrowEq(eqTab, maxLabel, eqTab[minLabel]);
+	}
+}
+
+
+/*
+ * Append a region in "grow all" regions list
+ */
+int tmAddRegion(CvConnectedComp connect) {
+	if(s_GrownRegions_nb >= s_GrownRegions_max) {
+		// We need to increase the size of buffer
+		s_GrownRegions_max += 100;
+		CvConnectedComp * oldRegions = s_GrownRegions;
+		CvConnectedComp * newRegions = new CvConnectedComp [ s_GrownRegions_max ];
+		if(!newRegions) {
+			fprintf(stderr, "[imgutils] %s:%d : cannot allocate more regions : keep %d regions max\n",
+					__func__, __LINE__, s_GrownRegions_nb);
+			return -1;
+		}
+
+		if(s_GrownRegions_nb > 0 && s_GrownRegions) {
+			memcpy(newRegions, s_GrownRegions, s_GrownRegions_nb*sizeof(CvConnectedComp));
+		}
+		memset(newRegions + s_GrownRegions_nb, 0, (s_GrownRegions_max-s_GrownRegions_nb)*sizeof(CvConnectedComp));
+
+		s_GrownRegions = newRegions;
+		if(oldRegions) {
+			delete [] oldRegions;
+		}
+	}
+
+	// Append new region
+	memcpy(s_GrownRegions+s_GrownRegions_nb, &connect, sizeof(CvConnectedComp));
+	s_GrownRegions_nb++;
+
+	return 0;
+}
+
+/*
+ * Grow all regions in an image using a 3-N algorithm
+ */
+int tmGrowAllRegions(IplImage * inputImage, IplImage * growImage,
+				   u8 threshold,
+				   u8 fillvalue
+				   )
+{
+	int swidth = inputImage->width, sheight = inputImage->height;
+	int rmin = (int)0;
+	int rmax = (int)sheight;
+	int cmin = (int)0;
+	int cmax = (int)swidth;
+	if(inputImage->roi) {
+		rmin = (int)inputImage->roi->yOffset;
+		rmax = (int)(inputImage->roi->yOffset+inputImage->roi->height);
+		cmin = (int)inputImage->roi->xOffset;
+		cmax = (int)(inputImage->roi->xOffset+inputImage->roi->width);
+	}
+
+	u8 growImage_local = 0;
+	if(!growImage) {
+		growImage_local = 1;
+		growImage = tmCreateImage(cvSize(inputImage->width, inputImage->height),
+								  IPL_DEPTH_8U, 1);
+	} else { // clear buffer
+		cvZero(growImage);
+	}
+
+	// Allocate region growing if not allocated
+	if(!s_ConditionBuf || swidth*sheight>s_ConditionBufSize) {
+		if(s_ConditionBuf) delete [] s_ConditionBuf;
+		if(s_RegionLabel) delete [] s_RegionLabel;
+
+		s_ConditionBufSize = swidth*sheight;
+
+		fprintf(stderr, "[imgutils]::%s:%d \tALLOCATING BUFFERS [%d]!\n", __func__, __LINE__, s_ConditionBufSize);
+		s_ConditionBuf = new u8 [s_ConditionBufSize];
+		memset(s_ConditionBuf, 0, sizeof(u8)*s_ConditionBufSize);
+		s_RegionLabel = new u8 [s_ConditionBufSize];
+		memset(s_RegionLabel, 0, sizeof(u8)*s_ConditionBufSize);
+		fprintf(stderr, "[imgutils]::%s:%d \tALLOCATING BUFFERS DONE [%d]!\n", __func__, __LINE__,
+				s_ConditionBufSize); fflush(stderr);
+	}
+#define EQTAB_LENGTH	4000
+	// Clear table of equivalence
+	if(!s_eqTab) {
+		s_eqTab = new etiquette [EQTAB_LENGTH];
+	}
+	memset(s_eqTab, 0, sizeof(etiquette) * EQTAB_LENGTH);
+	u16 currentEtq = 1;
+	u16 topLabel = 1;
+
+	int pos=0, r, c;
+	// Create grow condition buffer and first pass
+	for(r=rmin;r<rmax; r++) {
+		pos = cmin + r*swidth; //position in arrays
+		u8 * inputline = IPLLINE_8U(inputImage, r);
+		for(c=cmin; c<cmax; c++, pos++)
+		{
+			unsigned char curCond = s_ConditionBuf[pos] =
+					(inputline[c] >= threshold ? 255 : 0);
+
+			int nbsame=0; // nb of pixels with same value
+			// check past pixels
+			unsigned char rminus = 2;
+			unsigned short etqrminus = 0, etqcminus = 0;
+			if(r>rmin) {
+				rminus = s_ConditionBuf[pos-swidth];
+				etqrminus = s_RegionLabel[pos-swidth];
+				if(curCond == rminus) { // Same label on the pixel above
+					nbsame++;
+				}
+			}
+
+			unsigned char cminus = 2;
+			if(c>cmin) {
+				cminus = s_ConditionBuf[pos-1];
+				etqcminus = s_RegionLabel[pos-1];
+				if(curCond == cminus) { // Same label on pixel on left
+					nbsame++;
+				}
+			}
+
+			// labelling
+			if(nbsame == 0) { // We changed condition => change label
+				s_RegionLabel[pos] = currentEtq;
+				currentEtq++;
+			} else {
+				if(nbsame == 1) { // Top and left aren't equal but both are the same condititon => use minimum label
+					if(curCond == cminus) {
+						s_RegionLabel[pos] = etqcminus;
+					} else {
+						s_RegionLabel[pos] = etqrminus;
+					}
+				} else { // nbsame==2
+					if(etqcminus == etqrminus) {
+						s_RegionLabel[pos] = etqrminus;
+					} else {
+						unsigned short minLabel, maxLabel;
+						if(etqcminus < etqrminus) {
+							minLabel = etqcminus;
+							maxLabel = etqrminus;
+						} else {
+							maxLabel = etqcminus;
+							minLabel = etqrminus;
+						}
+						s_RegionLabel[pos] = maxLabel;
+
+						if(s_eqTab[minLabel]!=maxLabel) {
+							tmInsertGrowEq(s_eqTab, minLabel, maxLabel);
+						}// TO BE CONTINUED
+
+						s_RegionLabel[pos] = s_eqTab[minLabel];
+						if(maxLabel>topLabel) {
+							topLabel = maxLabel;
+							if(topLabel>65000)
+							{
+								fprintf(stderr,"[imgutils] %s:%d TopLabel overflow !!\n",
+										__func__, __LINE__);
+							}
+						}
+					}
+				}
+			}
+
+			if(s_RegionLabel[pos] == 0) {
+				fprintf(stderr,"[imgutils] %s:%d : (%d,%d) : 0 ! (nbsame=%d, etqcminus=%u etqrminus=%u currentEtq=%u)\n",
+					__func__, __LINE__,
+					c, r, nbsame, etqcminus, etqrminus, currentEtq
+					);
+				return -1;
+			}
+		}
+	}
+
+	for(etiquette t=topLabel; t>0; t--) {
+		if(s_eqTab[t]) {
+			etiquette eq0 = t, eq1 = s_eqTab[t];
+			while(s_eqTab[eq1] > eq1) {
+				s_eqTab[eq0] = s_eqTab[eq1];
+				eq1 = s_eqTab[eq1];
+			}
+		} else {
+			s_eqTab[t] = t;
+		}
+	}
+
+	// Labelling
+	pos = 0;
+	unsigned short xMin[EQTAB_LENGTH];
+	unsigned short yMin[EQTAB_LENGTH];
+	unsigned short xMax[EQTAB_LENGTH];
+	unsigned short yMax[EQTAB_LENGTH];
+	unsigned short growAll_surf[EQTAB_LENGTH];
+	memset(xMin, 0xff, sizeof(unsigned short)*EQTAB_LENGTH);
+	memset(yMin, 0xff, sizeof(unsigned short)*EQTAB_LENGTH);
+	memset(xMax, 0, sizeof(unsigned short)*EQTAB_LENGTH);
+	memset(yMax, 0, sizeof(unsigned short)*EQTAB_LENGTH);
+	memset(growAll_surf, 0, sizeof(unsigned short)*EQTAB_LENGTH);
+	for(r=rmin;r<rmax; r++) {
+		pos = r*swidth + cmin;
+
+		u8 * growline = IPLLINE_8U(growImage, r);
+		// FIXME : utiliser leftLimit et rightLimit
+		for(c=cmin; c<cmax; c++, pos++)
+		{
+			unsigned short num =
+				s_eqTab[ s_RegionLabel[pos] ];
+			if(num != s_eqTab[1])
+			{
+				growline[c] = fillvalue;
+
+				if(c < xMin[num])
+					xMin[num] = c;
+				else if(c > xMax[num])
+					xMax[num] = c;
+				if(r < yMin[num])
+					yMin[num] = r;
+				else if(r > yMax[num])
+					yMax[num] = r;
+			}
+		}
+	}
+
+
+	CvConnectedComp connect;
+	memset(&connect, 0, sizeof(CvConnectedComp));
+	for(r=1; r<EQTAB_LENGTH; r++) {
+		if(xMin[r]!=0xffff) {
+			int i=(int)s_eqTab[r];
+
+			//if(surf[i]>40)
+			if(xMax[i]>xMin[i] && yMax[i]>yMin[i]) {
+				/*
+				fprintf(stderr,"[imgutils] %p: Motion Region : %d : %u,%u - %u,%u\n",
+					this, i,
+					xMin[eqTab[r]], yMin[eqTab[r]],
+					xMax[eqTab[r]], yMax[eqTab[r]]);
+				*/
+				connect.rect.x = xMin[i];
+				connect.rect.y = yMin[i];
+				connect.rect.width = xMax[i]-xMin[i];
+				connect.rect.height = yMax[i]-yMin[i];
+				connect.area = growAll_surf[i];
+
+				int retadd = tmAddRegion(connect);
+				if(retadd < 0) {
+					// There's a problem: it cannot allocate more memory
+					// => return here, no need to process anymore
+					return -1;
+				}
+			}
+		}
+	}
+
+	return 0;
+
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);

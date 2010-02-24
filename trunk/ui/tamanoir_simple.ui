@@ -360,7 +360,7 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string>Options</string>
+            <string>Parameters</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="0">
@@ -436,39 +436,45 @@
               </item>
              </widget>
             </item>
-            <item row="2" column="0">
-             <widget class="QCheckBox" name="emptyCheckBox">
+            <item row="0" column="3">
+             <widget class="QLabel" name="label">
               <property name="toolTip">
-               <string>Detect dusts only in empty areas (sky, ...)</string>
+               <string>Sensitivity = difference of color / backgound</string>
+              </property>
+              <property name="statusTip">
+               <string>Sensitivity = difference of color / backgound</string>
               </property>
               <property name="text">
-               <string>Empty only</string>
+               <string>Sensitivity :</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QComboBox" name="sensitivityComboBox">
+            <item row="0" column="4">
+             <widget class="QSlider" name="sensitivityHorizontalSlider">
               <property name="toolTip">
-               <string>Sensitivity of dust detection : from highly sensitive (smallest dusts) to low (bigger dusts)</string>
+               <string>Sensitiviyty</string>
               </property>
-              <item>
-               <property name="text">
-                <string>Sensitive</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Medium</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Rough</string>
-               </property>
-              </item>
+              <property name="statusTip">
+               <string>Dusts are shown in red on global display</string>
+              </property>
+              <property name="minimum">
+               <number>12</number>
+              </property>
+              <property name="maximum">
+               <number>80</number>
+              </property>
+              <property name="singleStep">
+               <number>0</number>
+              </property>
+              <property name="value">
+               <number>40</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
              </widget>
             </item>
-            <item row="0" column="3">
+            <item row="1" column="1">
              <widget class="QCheckBox" name="trustCheckBox">
               <property name="toolTip">
                <string>Trust small dusts with very good correction proposal</string>
@@ -484,7 +490,17 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="3">
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="emptyCheckBox">
+              <property name="toolTip">
+               <string>Detect dusts only in empty areas (sky, ...)</string>
+              </property>
+              <property name="text">
+               <string>Empty only</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="4">
              <widget class="QPushButton" name="autoButton">
               <property name="enabled">
                <bool>true</bool>
@@ -492,8 +508,15 @@
               <property name="toolTip">
                <string>Automatically correct the whole image</string>
               </property>
+              <property name="statusTip">
+               <string>Process automatic dust detection and replacement with proposal (may be long)</string>
+              </property>
               <property name="text">
                <string>Auto</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/system-run.png</normaloff>:/icon/system-run.png</iconset>
               </property>
              </widget>
             </item>
