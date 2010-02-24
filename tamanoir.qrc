@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/" >
+    <qresource prefix="/">
         <file>icon/tamanoir32.png</file>
         <file>icon/tamanoir_splash.png</file>
         <file>icon/tamanoir_about.png</file>
@@ -7,5 +7,6 @@
         <file>icon/tamanoir.ico</file>
         <file>icon/stock-tool-clone-22.png</file>
         <file>icon/stock-tool-heal-22.png</file>
+        <file>icon/system-run.png</file>
     </qresource>
 </RCC>

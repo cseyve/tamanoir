@@ -79,8 +79,10 @@ typedef HANDLE Mutex_t;
 #endif
 
 /** @brief Get a pixel value in a 8bit IPL image */
-#define IPLPIX_8U(_img, _x, _y) *((u8 *)((_img)->imageData+(_y)*(_img)->widthStep \
+#define IPLPIX_8U(_img,_x,_y) *((u8 *)((_img)->imageData+(_y)*(_img)->widthStep \
 											+ (_x)*(_img)->nChannels))
+/** @brief Get a pixel line pointer in a 8bit IPL image */
+#define IPLLINE_8U(_img,_y) (u8 *)((_img)->imageData+(_y)*(_img)->widthStep)
 
 
 // DEBUG IMAGES DIRECTORY AND EXTENSION
@@ -216,6 +218,14 @@ void tmDilateImage(IplImage * src, IplImage * dst, int kernelsize = 1, int itera
 /** @brief Process an erosion */
 void tmErodeImage(IplImage * src, IplImage * dst, int kernelsize = 1, int iterations = 1);
 
+/** @brief Scale image by keeping the max */
+void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage);
+/** @brief Scale image by computing the mean */
+void tmScaleMean(IplImage * diffImage, IplImage * displayDiffImage);
+/** @brief Scale image by keeping the min */
+void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage);
+
+
 /** @brief Load a TIFF file in an OpenCV IplImage */
 IplImage * tmOpenTiffImage(const char * filename, int * dpi);
 
@@ -226,28 +236,30 @@ IplImage * tmLoadImage(const char * filename, int * dpi = NULL);
 void tmSaveImage(const char * filename, IplImage * src);
 
 /** @brief Do a contrained region growing around a seed with thresholding */
-void tmGrowRegion(unsigned char * growIn, unsigned char * growOut,
-	int swidth, int sheight,
-	int c, int r,
-	unsigned char threshold,
-	unsigned char fillValue,
-	CvConnectedComp * areaOut);
+void tmGrowRegion(IplImage * growInImage,
+				  IplImage * growOutImage,
+				  int c, int r,
+				  unsigned char threshold,
+				  unsigned char fillValue,
+				  CvConnectedComp * areaOut);
 
 /** @brief Do a contrained region growing around a seed with similar value */
-void tmFloodRegion(unsigned char * growIn, unsigned char * growOut,
-	int swidth, int sheight,
-	int c, int r,
-	unsigned char seedValue,
-	unsigned char threshold,
-	unsigned char fillValue,
-	CvConnectedComp * areaOut);
+void tmFloodRegion(IplImage * growInImage,
+				   IplImage * growOutImage,
+				   int c, int r,
+				   unsigned char seedValue,
+				   unsigned char threshold,
+				   unsigned char fillValue,
+				   CvConnectedComp * areaOut);
 
 /** @brief Erase a previoulsy grown region starting from a seed */
 void tmEraseRegion(
 	IplImage * grownImage,
 	IplImage * diffImage,
 	int c, int r,
-	unsigned char fillValue);
+	unsigned char fillValue_grown,
+	unsigned char fillValue_diff = DIFF_NOT_DUST
+	);
 
 /** @brief Crop an IplImage around a point in another IplImage
 	@param[in] origImage input image, to be cropped
@@ -417,5 +429,19 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 int tmProcessDiff(int l_FilmType, IplImage * grayImage,  IplImage * medianImage,
 	IplImage * diffImage, IplImage * varianceImage = NULL,
 	unsigned long * diffHisto = NULL, int var_size = 3);
+
+/** @brief Process difference between dilated image and eroded image, depending on film type
+	@param[in] l_FilmType film type (0=FILM_UNDEFINED, 1=FILM_NEGATIVE, 2=FILM_POSITIVE)
+	@param[in] dilated image
+	@param[in] eroded image
+	@param[out] difference image = output
+	@param[out] diffHisto difference histogram (may be NULL)
+	@param[out] variance neighbour size
+*/
+int tmProcessDilate_Erode(int l_FilmType,
+					  IplImage * dilateImage,  IplImage * erodeImage,
+					IplImage * diffImage,
+	unsigned long * diffHisto = NULL, int var_size = 3);
+
 
 #endif

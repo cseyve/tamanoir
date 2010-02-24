@@ -378,6 +378,8 @@ public:
 
 	/** @brief Get progress in %age */
 	int getProgress();
+	/** @brief Pre-processed done flag */
+	bool getPreProcessedDone() { return m_preproc_done; };
 
 	/** @brief Get performance statistics */
 	t_perf_stats getPerfs() { return m_perf_stats; };
@@ -396,8 +398,11 @@ public:
 	void setDisplaySize(int w, int h);
 	/** @brief return small image for global view display */
 	IplImage * getDisplayImage() { return displayBlockImage; };
+
 	/** @brief return the resident version of small image for global view display */
 	IplImage * getStillDisplayImage() { return displayImage; };
+	/** @brief return the resident version of small image for global view display */
+	IplImage * getDiffDisplayImage() { return displayDiffImage; };
 
 	// Cropped images
 	IplImage * getCorrectedCrop() { return disp_correctColorImage; };
@@ -463,6 +468,9 @@ private:
 	/** Lock flag for long tasks (such as load and save) */
 	bool m_lock;
 
+	/// Pre-processed done flag
+	bool m_preproc_done;
+
 	/** Mutex to prevent clone search to perturbate normal background search */
 	Mutex_t mutex;
 
@@ -516,12 +524,57 @@ private:
 	/** @brief block size */
 	CvSize displayCropSize;
 
-	// Image buffers
+	// Image buffers ==============================================================
+
+	// FULL SIZE BUFFERS : same size as input ============
+
+	/// Original image
 	IplImage * originalImage;
+
+	/// Original image, blurred for grain removal
+	IplImage * origBlurredImage;
+
+	/// Grayscale version of input image
+	IplImage * grayImage;
+
+	// DISPLAY SIZE BUFFERS : size for display in global view ============
+	/// Downscaled version of originalImage for display in GUI
 	IplImage * originalSmallImage;
+
+	// DOWNSCALED BUFFERS : used for faster processing
+	/// Scale factor of the downscaled buffers
+	int m_downscale_factor;
+	/// Downscaled size
+	CvSize	m_dwscSize;
+
+	/** @brief Smooth reference image (without the dusts appearing)
+		This image contains the smoothed version of image, as a reduced version of either eroded or dilated images :
+		- when the film is negative, dusts appear on dilated image, so the smooth reference is the eroded, scaled with mean computation on all the pixels of the block
+		- when the film is positive, dusts appear on eroded images, so the smooth reference is the dilated, scaled with mean computation on all the pixels of the block
+	  */
+	IplImage * m_dwsc_smoothImage;
+	/** @brief Dust highlighted image (with the dusts appearing)
+		This image contains the exagerated version of dust appearance in image, as a reduced version of either eroded or dilated images :
+		- when the film is negative, dusts appear on dilated image, so the smooth reference is the eroded, scaled with mean computation on all the pixels of the block
+		- when the film is positive, dusts appear on eroded images, so the smooth reference is the dilated, scaled with mean computation on all the pixels of the block
+	  */
+	IplImage * m_dwsc_dustImage;
+
+	/** @brief Diff image for dust detection */
+	IplImage * m_dwsc_diffImage;
+	/** @brief Temporary grow image for dust detection */
+	IplImage * m_dwsc_growImage;
+
+	/** @brief Process downscaled image detection of dusts */
+	void processDownscaledAnalysis();
+
+
+	// CROPPED BUFFERS : size of cropped displays ============
 
 	/// Undo image
 	IplImage * undoImage;
+	/// Undo difference image
+	IplImage * undoDiffImage;
 
 	/// Undo image crop position (top-left)
 	int undoImage_x, undoImage_y;
@@ -539,26 +592,34 @@ private:
 
 	/// Lock inpainting search : true when the user is drawing, and goes ot false when the mouse is released
 	bool m_inpainting_lock;
+	/// Rendered flag for inpainting
 	bool m_inpainting_rendered;
 
-	/// Original image, blurred for grain removal
-	IplImage * origBlurredImage;
 
-	IplImage * grayImage;
-
+	/// Process median filter
 	void processMedian();
+
 
 	IplImage * medianImage;
 	IplImage * erodedImage;
 	IplImage * dilatedImage;
 
+	/// Image of difference, thresholded with different values
 	IplImage * diffImage;
+
+	/// Downscaled version of diffImage, used to show dusts when changing the sensitivity
+	IplImage * displayDiffImage;
+
+	/// Mask of corrected dusts
 	IplImage * dustMaskImage;
 
+	/// Variance of difference
 	IplImage * varianceImage;
+
+	/// Region growing output image
 	IplImage * growImage;
 
-	/// image buffer for display
+	/// image buffer for display in cropped displays
 	IplImage * displayBlockImage;
 	/// image buffer for display (without the crop mark)
 	IplImage * displayImage;

@@ -41,11 +41,12 @@
 
 // Tamanoir processing thread commands
 
-#define PROTH_NOTHING	0
-#define PROTH_LOAD_FILE	1
-#define PROTH_SAVE_FILE	2
-#define PROTH_SEARCH	3
-#define PROTH_OPTIONS	4
+#define PROTH_NOTHING		0
+#define PROTH_LOAD_FILE		1
+#define PROTH_PREPROC		2
+#define PROTH_SEARCH		3
+#define PROTH_OPTIONS		4
+#define PROTH_SAVE_FILE		5
 
 
 
@@ -90,6 +91,9 @@ public:
 	/** @brief Returns processing progress value (0 to 100), 100 if done */
 	int getProgress();
 
+	/** @brief Launch preprocessing */
+	int runPreProcessing();
+
 	/** @brief Search for next dust */
 	int firstDust();
 
@@ -115,14 +119,18 @@ public:
 private:
 
 	/** @brief Current running command */
-	int current_command;
-	/** @brief Next running command */
-	int req_command;
+	int m_current_command;
+	/** @brief Next running/requested command */
+	int m_req_command;
 
+	/// Current file
 	QString m_filename;
 
+	/// Run flag (command)
 	bool m_run;
+	/// Run flag (status)
 	bool m_running;
+
 	QMutex mutex;
 	QWaitCondition waitCond;
 
@@ -133,9 +141,9 @@ private:
 	TamanoirImgProc * m_pImgProc;
 
 	/** List of proposed corrections */
-	QList<t_correction> dust_list;
+	QList<t_correction> m_dust_list;
 
-	bool no_more_dusts;
+	bool m_no_more_dusts;
 };
 
 
@@ -196,7 +204,6 @@ private:
 
 	QTimer refreshTimer;
 	int m_curCommand;
-	t_correction current_dust;
 
 	/** Dust src/dest deplacement tool button state */
 	bool is_src_selected;
@@ -257,6 +264,11 @@ private slots:
 	void on_dpiComboBox_currentIndexChanged(QString );
 	void on_sensitivityComboBox_currentIndexChanged(int);
 
+	/// Display sensitivity in main display when moving the slider
+	void on_sensitivityHorizontalSlider_valueChanged(int);
+	/// Display sensitivity in main display when moving the slider
+	void on_sensitivityHorizontalSlider_sliderReleased();
+
 	void on_hotPixelsCheckBox_toggled(bool);
 	void on_trustCheckBox_toggled(bool);
 	void on_emptyCheckBox_toggled(bool);
@@ -285,6 +297,10 @@ private:
 	bool m_resize_rect;
 	float m_resize_rect_xscale;
 	float m_resize_rect_yscale;
+
+	/// Currently used dust
+	t_correction m_current_dust;
+
 	QSize m_main_display_rect;
 	QString m_currentFile;
 

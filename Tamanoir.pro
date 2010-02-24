@@ -53,7 +53,8 @@ SOURCES = src/imgproc.cpp \
 	src/tamanoir.cpp \
 	src/qimagedisplay.cpp \
 	src/prefsdialog.cpp
-linux-g++:TMAKE_CXXFLAGS += -Wall \
+
+linux-g++:TMAKE_CXXFLAGS += -W -Wall \
 	-g \
 	-O2 \
 	-fexceptions \
@@ -64,7 +65,8 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
 	-Wcomment \
 	-Wuninitialized \
 	-Wparentheses \
-	-Wpointer-arith
+	-Wpointer-arith \
+	-Wshadow
 
 linux-g++::DEFINES += LINUX
 LIBS_EXT = so
