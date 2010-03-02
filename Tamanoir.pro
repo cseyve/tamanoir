@@ -244,7 +244,8 @@ OTHER_FILES += build_mac_bundle.sh \
 
 macx: {
 	message("MacOS X specific options =================================================")
-
+    # for Qt4.6, we need to add ApplicationServices for the "Open With" with finder
+    LIBS += -framework ApplicationServices
 #TARGET = $$join(TARGET,,,_debug)
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 }
