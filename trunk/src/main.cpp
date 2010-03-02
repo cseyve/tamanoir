@@ -121,7 +121,7 @@ MacApp::MacApp(int & argc, char ** argv)
 
 #ifdef Q_WS_MACX
 OSErr MacApp::handleOpenDocuments(const AppleEvent* inEvent,
-								  AppleEvent* /*reply*/, long /*refCon*/) {
+                                  AppleEvent* /*reply*/, long /*refCon*/) {
 
 	QString s_arg;
 	AEDescList documentList;

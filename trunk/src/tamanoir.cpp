@@ -60,8 +60,8 @@ u8 g_debug_TamanoirApp = TMLOG_INFO;
 #define TMAPP_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirApp ) { \
 					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
-					fprintf(stderr,"%d.%03d %s [TmApp]::%s:%d : ", \
-							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
+                                        fprintf(stderr,"%03d.%03d %s [TmApp]::%s:%d : ", \
+                                                        (int)(l_nowtv.tv_sec%1000), (int)(l_nowtv.tv_usec/1000), \
 							TMLOG_MSG((a)), __func__,__LINE__); \
 					fprintf(stderr,__VA_ARGS__); \
 					fprintf(stderr,"\n"); \
@@ -2030,16 +2030,37 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 	fprintf(stderr, "TamanoirApp::%s:%d : sensitivity changed to type %d ...\n",
 		__func__, __LINE__, threshold);
 	if(!m_pImgProc) return;
+
 	// Get image
 	IplImage * diffImage = m_pImgProc->getDiffDisplayImage();
 	if(!diffImage) {
 		return;
 	}
-	QImage greyDiff(diffImage->widthStep, diffImage->height, 8);
-	memcpy(greyDiff.bits(), diffImage->imageData, diffImage->widthStep * diffImage->height);
+
+        IplImage * colorImg = tmCreateImage(cvGetSize(diffImage), IPL_DEPTH_8U, 4);
+        cvCvtColor(diffImage, colorImg, CV_GRAY2BGR);
+        TMAPP_printf(TMLOG_INFO, "Change level to %d for diffImage=%dx%d",
+                     threshold, colorImg->width, colorImg->height)
+        QImage greyDiff(colorImg->width, colorImg->height, 32);
+        TMAPP_printf(TMLOG_INFO, "copy colorImg= pitch:%d x height:%d",
+                     colorImg->widthStep, colorImg->height)
+
+        // Threshold value
+        u8 thresh_u8 = threshold;
+        for(int r = 0; r<diffImage->height; r++) {
+            u32 * colorline = IPLLINE_32U(colorImg, r);
+            u8 * diffline = IPLLINE_8U(diffImage, r);
+            for(int c = 0; c<diffImage->width; c++) {
+                if(diffline[c]>thresh_u8) {
+                    colorline[c] = 0xFF0000; // Red
+                }
+            }
+        }
+        memcpy(greyDiff.bits(), colorImg->imageData, colorImg->widthStep * colorImg->height);
 
 	// Use fake colors to show the level
-	if(greyDiff.depth() == 8) {
+        // FIXME : CRASH on macOSX (with Qt4.6.0)
+        /*if(greyDiff.depth() == 8) {
 		greyDiff.setNumColors(256);
 
 		for(int col = 0; col<threshold; col++ ) {
@@ -2049,7 +2070,17 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 			greyDiff.setColor(col, qRgb(255,0,0));
 		}
 	}
-	ui.mainPixmapLabel->setPixmap(QPixmap(greyDiff));
+*/
+        TMAPP_printf(TMLOG_INFO, "Convert to Pixmap=%dx%d x %dbit",
+                      greyDiff.width(), greyDiff.height(), greyDiff.depth())
+        QPixmap greyPixmap; greyPixmap.convertFromImage(greyDiff);
+        TMAPP_printf(TMLOG_INFO, "Display colorImg=%dx%d",
+                      colorImg->width, colorImg->height)
+        ui.mainPixmapLabel->setPixmap(greyPixmap);
+
+        TMAPP_printf(TMLOG_INFO, "Release colorImg=%dx%d",
+                      colorImg->width, colorImg->height)
+        tmReleaseImage(&colorImg);
 }
 
 /// Display sensitivity in main display when moving the slider

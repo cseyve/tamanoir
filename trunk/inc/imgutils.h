@@ -83,6 +83,8 @@ typedef HANDLE Mutex_t;
 											+ (_x)*(_img)->nChannels))
 /** @brief Get a pixel line pointer in a 8bit IPL image */
 #define IPLLINE_8U(_img,_y) (u8 *)((_img)->imageData+(_y)*(_img)->widthStep)
+/** @brief Get a pixel line pointer in a 32bit IPL image */
+#define IPLLINE_32U(_img,_y) (u32 *)((_img)->imageData+(_y)*(_img)->widthStep)
 
 
 // DEBUG IMAGES DIRECTORY AND EXTENSION
