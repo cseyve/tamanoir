@@ -41,13 +41,23 @@
 
 // Tamanoir processing thread commands
 
-#define PROTH_NOTHING		0
-#define PROTH_LOAD_FILE		1
-#define PROTH_PREPROC		2
-#define PROTH_SEARCH		3
-#define PROTH_OPTIONS		4
-#define PROTH_SAVE_FILE		5
+#define PROTH_NOTHING		0	/*! Nothing to do */
+#define PROTH_LOAD_FILE		1	/*! Loading file in memory */
+#define PROTH_PREPROC		2	/*! Pre-processing */
+#define PROTH_SEARCH		3	/*! Search for next dust */
+#define PROTH_OPTIONS		4	/*! Options changes */
+#define PROTH_SAVE_FILE		5	/*! Save file */
 
+const char g_command_names[][10] = {
+								"NOTHING",
+								"LOAD_FILE",
+								"PREPROC",
+								"SEARCH",
+								"OPTIONS",
+								"SAVE_FILE"
+							};
+/** @brief Get command name by its int value */
+const char * getCommandName(int cmd);
 
 
 /** @brief Tamanoir image processing settings/options */
@@ -273,8 +283,8 @@ private slots:
 	void on_trustCheckBox_toggled(bool);
 	void on_emptyCheckBox_toggled(bool);
 
+	/// Periodic refresh when background thread is processing
 	void on_refreshTimer_timeout();
-	void on_m_pProgressDialog_canceled();
 
 private:
 	/** @brief lock tools while doing big tasks : loading/saving/settings */
