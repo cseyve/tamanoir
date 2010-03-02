@@ -8,5 +8,8 @@
         <file>icon/stock-tool-clone-22.png</file>
         <file>icon/stock-tool-heal-22.png</file>
         <file>icon/system-run.png</file>
+        <file>icon/go-next-view.png</file>
+        <file>icon/go-first-view.png</file>
+        <file>icon/go-previous-view.png</file>
     </qresource>
 </RCC>

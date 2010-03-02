@@ -307,6 +307,10 @@ typedef struct {
 /** @brief Print processing options to a text file or std output/error */
 void fprintfOptions(FILE * f, tm_options * p_options);
 
+#define TMIMG_ERR_LOCKED	-2	/*! Loading or pre-procesing escaped because locked */
+#define TMIMG_ERR_ABORT		-9	/*! Loading or pre-procesing aborted on request */
+
+
 /** @brief main image processing class
 
 	This class is used to load image, detect dust then search for correction proposal
@@ -335,6 +339,8 @@ public:
 
 	/** @brief Load input image file */
 	int loadFile(const char * filename);
+	/** @brief Abort preprocessing or loading */
+	int abortLoading(bool abort = true);
 
 	/** @brief Save corrected image file */
 	int saveFile(const char * filename);
@@ -465,8 +471,12 @@ private:
 	/** @brief Initialize buffers */
 	void init();
 
-	/** Lock flag for long tasks (such as load and save) */
+	/** @brief Lock flag for long tasks (such as load and save) */
 	bool m_lock;
+
+	/// Abort request during preprocessing or loading
+	bool m_abortLoading;
+
 
 	/// Pre-processed done flag
 	bool m_preproc_done;
@@ -485,6 +495,11 @@ private:
 	void purgeCropped();
 	/** @brief Allocate cropped processing buffers */
 	void allocCropped();
+	/** @brief Approximate a correction using params from last crop
+
+		Check if last crop is still ok for new crop
+		*/
+	t_correction approxCorrection(t_correction correct_in);
 
 	/** @brief Options : Film type, resolution, ... */
 	tm_options m_options;

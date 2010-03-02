@@ -1,5 +1,5 @@
 /***************************************************************************
- *           tamanoirapp.cpp - Main application
+ *           tamanoirapp.cpp - Main application GUI+Main thread
  *
  *  Tue Oct 23 22:10:56 2007
  *  Copyright  2007  Christophe Seyve
@@ -300,9 +300,10 @@ void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	// Then force update of crops
 	updateDisplay();
 }
-void TamanoirApp::on_m_pProgressDialog_canceled()
-{
 
+
+const char * getCommandName(int cmd) {
+	return g_command_names[cmd];
 }
 
 void TamanoirApp::on_refreshTimer_timeout() {
@@ -326,9 +327,9 @@ void TamanoirApp::on_refreshTimer_timeout() {
 		}
 
 		//if(g_debug_TmThread)
-			fprintf(stderr, "TamanoirApp::%s:%d : m_curCommand=%d m_pProcThread=%d progress=%d\n", __func__, __LINE__,
-				m_curCommand, m_pProcThread->getCommand(),
-				m_pImgProc->getProgress());
+		TMAPP_printf(TMLOG_DEBUG, "m_curCommand=%s m_pProcThread.cmd=%s progress=%d\n",
+				getCommandName(m_curCommand), getCommandName(m_pProcThread->getCommand()),
+				m_pImgProc->getProgress())
 
 		// If nothing changed, just update GUI
 		if( m_curCommand == m_pProcThread->getCommand()
@@ -351,6 +352,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					TMAPP_printf(TMLOG_DEBUG, "auto mode => refresh global image : %d %%",
 								 m_pImgProc->getProgress() )
 
+					// Refresh progression of marks on main display
 					updateMainDisplay();
 				}
 				break;
@@ -399,7 +401,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				imginfo_str.sprintf("%d x %d x %d", curImage->width, curImage->height, 8*tmByteDepth(curImage));
 				imginfo_str+= tr(" bit");
 
-				statusBar()->showMessage( tr("Loaded and pre-processed. Image: ")
+				statusBar()->showMessage( tr("Loaded file. Image: ")
 					+ fi.fileName() + tr(". Size:") + imginfo_str);
 				ui.loadingTextLabel->setText( fi.fileName() );
 
@@ -407,6 +409,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				static bool do_guess_dpi = true;
 				// Change resolution after reading in file
 				tm_options l_options = m_pImgProc->getOptions();
+
 				if(!do_guess_dpi) { // guess only once
 					fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
 							"resolution=%d dpi (current=%d dpi)\n", __func__, __LINE__,
@@ -418,16 +421,20 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					int guess_dpi = 0;
 					tm_film_size film_guess = getFilmType(curImage->width, curImage->height, &guess_dpi);
 
-					fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
-							"resolution=%d dpi (current=%d guess=%d dpi)\n", __func__, __LINE__,
-							l_options.dpi, g_options.dpi, guess_dpi);
+					float diff_dpi = fabsf( (float)(guess_dpi - l_options.dpi)*2.f
+										   / (float)(guess_dpi + l_options.dpi));
+					TMAPP_printf(TMLOG_INFO, "LOADING FINISHED => "
+							"resolution in file=%d dpi (current=%d guess=%d dpi) => diff=%g %%\n",
+							l_options.dpi, g_options.dpi, guess_dpi,
+							100.f * diff_dpi)
+
 
 					// lower than 300 dpi is the resolution of print, not of scan
 					if( (l_options.dpi >0 && l_options.dpi<300
 						&& g_options.dpi != l_options.dpi)
 
 						|| (guess_dpi !=  0 &&
-							abs(guess_dpi - l_options.dpi) > 300
+							diff_dpi > 0.4f // 40 % difference
 							)
 						) {
 						QString dpistr, guess_str;
@@ -439,14 +446,14 @@ void TamanoirApp::on_refreshTimer_timeout() {
 													   + tr(" dpi, read in file, may be too low for the scanner resolution. "
 															"It may be the print resolution. \n"
 														  "Do you want to apply this resolution of ")
-													   + dpistr + tr(" dpi read in file ? Else the resolution would be ")
+													   + dpistr + tr(" dpi read in file ? If ignore, the resolution would be ")
 													   + guess_str + tr(" dpi for ")
 													   + QString(film_guess.format),
 													   QMessageBox::Apply,
 													   QMessageBox::Ignore);
 
 						if(ret == QMessageBox::Ignore) {
-							g_options.dpi = guess_dpi;
+							l_options.dpi = guess_dpi;
 
 							TMAPP_printf(TMLOG_INFO, "ignore resolution of file => FORCE FORMER RESOLUTION => "
 								"resolution=%d dpi => current=g_options.dpi=%d\n",
@@ -1397,7 +1404,8 @@ int TamanoirApp::loadFile(QString s) {
 	ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
 	show();
 
-	statusBar()->showMessage( tr("Loading and pre-processing ") + m_currentFile + QString("..."));
+	statusBar()->showMessage( tr("Loading and pre-processing ")
+							  + m_currentFile + QString("..."));
 	statusBar()->update();
 
 	m_currentFile = s;
@@ -1813,14 +1821,20 @@ void TamanoirApp::on_skipButton_clicked()
 		// First check if a new dust if available
 		m_current_dust = m_pProcThread->getCorrection();
 
-		if(m_current_dust.copy_width <= 0) // No dust available, wait for a new one
-		{
+		if(m_current_dust.copy_width > 0) {
+			// Update display with this correction proposal
+			updateDisplay();
+		} else { // No dust available, wait for a new one
 			int state = m_pProcThread->getCommand();
 
-			int ret = m_curCommand = m_pProcThread->nextDust();
+			int next = m_curCommand = m_pProcThread->nextDust();
 
-			if(ret == 0) // Finished
+			TMAPP_printf(TMLOG_DEBUG, "m_current_dust.copy_width <= 0 cmd=%d next=%d",
+						 state, next)
+
+			if(next == 0) // Finished
 			{
+				TMAPP_printf(TMLOG_DEBUG, "=> search is finished")
 				ui.overAllProgressBar->setValue(100);
 
 				statusBar()->showMessage( tr("Finished") );
@@ -1878,8 +1892,6 @@ void TamanoirApp::on_skipButton_clicked()
 				refreshTimer.start(TMAPP_TIMEOUT);
 				lockTools(true);
 			}
-		} else {
-			updateDisplay();
 		}
 	}
 
@@ -2013,7 +2025,8 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	saveOptions();
 }
 
-void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int threshold) {
+void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
+	int threshold = val;
 	fprintf(stderr, "TamanoirApp::%s:%d : sensitivity changed to type %d ...\n",
 		__func__, __LINE__, threshold);
 	if(!m_pImgProc) return;
@@ -2041,20 +2054,22 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int threshold) {
 
 /// Display sensitivity in main display when moving the slider
 void TamanoirApp::on_sensitivityHorizontalSlider_sliderReleased() {
-	//
-	int i = ui.sensitivityHorizontalSlider->value();
+	// Released => apply this sensitivity level
+	int val = ui.sensitivityHorizontalSlider->value();
+	int threshold = val;
+
 	fprintf(stderr, "TamanoirApp::%s:%d : sensitivity changed to type %d ...\n",
-		__func__, __LINE__, i);
+		__func__, __LINE__, threshold);
 
 	statusBar()->showMessage( tr("Changed sensitivity: please wait...") );
 	statusBar()->update();
 
-	if(g_options.sensitivity != i) {
-		skipped_list.clear();
+	if(g_options.sensitivity != threshold) {
+		skipped_list.clear(); // We changed sensitivity, clear the dust list
 		memset(&m_current_dust, 0, sizeof(t_correction));
 	}
 
-	g_options.sensitivity = i;
+	g_options.sensitivity = threshold;
 
 	if(m_pProcThread) {
 		m_curCommand = m_pProcThread->setOptions(g_options);
@@ -2547,11 +2562,10 @@ void TamanoirApp::updateMainDisplay() {
 
 			QPixmap pixmap;
 			pixmap.convertFromImage( mainImage );
-			/*
-			fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
+			/* fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
 									__func__, __LINE__,
 									m_main_display_rect.width(),m_main_display_rect.height() );
-			fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__,
+				fprintf(stderr, "TamanoirApp::%s:%d : pixmap=%dx%d => Scaled=%dx%d\n", __func__, __LINE__,
 									pixmap.width(), pixmap.height(),
 									scaled_width, scaled_height);
 			*/
@@ -2978,6 +2992,9 @@ int TamanoirThread::setOptions(tm_options options) {
 	m_options = options;
 	int ret = m_req_command = PROTH_OPTIONS;
 
+	// The user may have changed the options while loading
+	m_pImgProc->abortLoading(true);
+
 	// Unlock thread
 	mutex.lock();
 	waitCond.wakeAll();
@@ -3161,6 +3178,8 @@ void TamanoirThread::run() {
 
 		if(m_req_command != PROTH_NOTHING && g_debug_TmThread) {
 			TMTHR_printf(TMLOG_TRACE, "run command = %d",m_req_command)
+			// clear abort flag because we're back to processing thread
+			m_pImgProc->abortLoading(false);
 		}
 
 		// Copy requested action in current action

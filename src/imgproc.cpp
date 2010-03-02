@@ -455,18 +455,28 @@ void TamanoirImgProc::setDisplaySize(int w, int h) {
 
 
 
+int TamanoirImgProc::abortLoading(bool abort) {
+	if(m_preproc_done && abort) {
+		TMIMG_printf(TMLOG_INFO, "Cannot abort because image is not pre-processing...")
+		//return 0;
+	}
 
+	m_abortLoading = abort;
+	return 0;
+}
 
 int TamanoirImgProc::loadFile(const char * filename) {
 	m_preproc_done = false;
+	m_abortLoading = false;
 	int retry = 0;
 	while(retry < 10 && m_lock) {
-				tmsleep(1); retry++;
-		fprintf(stderr, "[imgproc]::%s:%d : locked !!\n", __func__, __LINE__);
+		tmsleep(1); retry++;
+		TMIMG_printf(TMLOG_DEBUG, "locked !! wait 1 s")
 	}
 
 	if(m_lock) {
-		return -1;
+		TMIMG_printf(TMLOG_DEBUG, "locked !! return err=%d", TMIMG_ERR_LOCKED)
+		return TMIMG_ERR_LOCKED;
 	}
 	m_lock = true;
 
@@ -474,6 +484,11 @@ int TamanoirImgProc::loadFile(const char * filename) {
 
 	// Clear display and processing images
 	purge();
+
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	/* Load with OpenCV cvLoadImage
 	IplImage* cvLoadImage( const char* filename, int iscolor CV_DEFAULT(1));
@@ -507,10 +522,12 @@ int TamanoirImgProc::loadFile(const char * filename) {
 				 + (tvLoad2.tv_usec - tvLoad1.tv_usec)/1000;
 
 	tmPrintProperties (originalImage);
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
-	// Save image in /dev/shm
-	//tmSaveImage ("/dev/shm/originalImage.ppm", originalImage );
-
+	// store current filename for later saving
 	strcpy(m_filename, filename);
 
 	// Reset evaluation
@@ -602,6 +619,10 @@ int TamanoirImgProc::loadFile(const char * filename) {
 		__func__, __LINE__, filename,
 		originalImage->width, originalImage->height, originalImage->nChannels,
 		tmByteDepth(originalImage), dt_ms);
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 
 	originalImage = tmAddBorder4x(originalImage);
@@ -613,6 +634,8 @@ int TamanoirImgProc::loadFile(const char * filename) {
 			tmByteDepth(originalImage),
 			dt_ms);
 	m_lock = false;
+
+	m_abortLoading = false;
 
 	return 0;
 }
@@ -743,7 +766,6 @@ int TamanoirImgProc::preProcessImage() {
 	m_progress = 25;
 	originalSize = cvSize(originalImage->width, originalImage->height);
 
-	m_progress = 30;
 
 
 	if(!g_mode_use_erodedilate) {
@@ -760,10 +782,16 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 
-	m_progress = 35;
 
 	// Process median image
 	processMedian();
+
+	m_progress = 45;
+
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	// FOR GRAINY IMAGES, SMOOTH ORIGINAL IMAGE TOO
 	if(0 && !g_mode_use_erodedilate) {
@@ -857,10 +885,18 @@ int TamanoirImgProc::preProcessImage() {
 				CV_MEDIAN, //CV_GAUSSIAN, //int smoothtype=CV_GAUSSIAN,
 				m_smooth_size, m_smooth_size );
 		}
+		if(m_abortLoading) { // check if we need to abort this processing
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
 
 		m_progress = 52;
 		processMedian();
 		m_progress = 56;
+		if(m_abortLoading) { // check if we need to abort this processing
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
 
 		// For debug, save image in temporary directory
 		if(g_debug_savetmp) {
@@ -875,11 +911,19 @@ int TamanoirImgProc::preProcessImage() {
 						  grayImage, medianImage,
 						  diffImage, varianceImage,
 						  diffHisto2, var_size);
+		if(m_abortLoading) { // check if we need to abort this processing
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
 	} else if(g_mode_use_erodedilate ) {
 
 
 		processMedian();
 		m_progress = 50;
+		if(m_abortLoading) { // check if we need to abort this processing
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
 		m_threshold = m_options.sensitivity;
 
 		m_progress = 55;
@@ -892,6 +936,11 @@ int TamanoirImgProc::preProcessImage() {
 			tmSaveImage(TMP_DIRECTORY "diffImage=erode-dilate" IMG_EXTENSION,
 						diffImage);
 		}
+		if(m_abortLoading) { // check if we need to abort this processing
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
+
 		// Normalize diffImage
 		IplImage * erodedDiff = tmCreateImage(cvSize(diffImage->width, diffImage->height),
 											  IPL_DEPTH_8U, 1);
@@ -901,6 +950,11 @@ int TamanoirImgProc::preProcessImage() {
 			tmSaveImage(TMP_DIRECTORY "diffImage-eroded" IMG_EXTENSION,
 						erodedDiff);
 		}
+		if(m_abortLoading) { // check if we need to abort this processing
+			tmReleaseImage(&erodedDiff);
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
+		}
 		// then store difference in diffImage
 		for(int r=0; r<diffImage->height; r++) {
 			u8 * diff = IPLLINE_8U(diffImage, r);
@@ -908,6 +962,11 @@ int TamanoirImgProc::preProcessImage() {
 			for(int c = 0; c<diffImage->width; c++) {
 				diff[c] -= erod[c];
 			}
+		}
+		if(m_abortLoading) { // check if we need to abort this processing
+			tmReleaseImage(&erodedDiff);
+			TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+			return TMIMG_ERR_ABORT;
 		}
 
 		if(g_debug_savetmp) {
@@ -1009,11 +1068,20 @@ int TamanoirImgProc::preProcessImage() {
 
 	// Process downscaled image detection of dusts
 	processDownscaledAnalysis();
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	// scale image with max
-	tmScaleMax(diffImage, displayDiffImage);
+	//tmScaleMax(diffImage, displayDiffImage);
+	tmScaleMax(m_dwsc_diffImage, displayDiffImage);
 	if(g_debug_savetmp) {
 		tmSaveImage(TMP_DIRECTORY "diffDisplayImage" IMG_EXTENSION, displayDiffImage);
+	}
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
 	}
 
 	m_threshold = m_options.sensitivity;
@@ -1035,6 +1103,10 @@ int TamanoirImgProc::preProcessImage() {
 			}
 		}
 	}
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 #endif
 		// For debug, save image in temporary directory
 		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage" IMG_EXTENSION, diffImage);
@@ -1050,6 +1122,10 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 	m_progress = 80;
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	fprintf(logfile, "TamanoirImgProc::%s:%d : init dust detector...\n",
 		__func__, __LINE__); fflush(stderr);
@@ -1058,10 +1134,10 @@ int TamanoirImgProc::preProcessImage() {
 	// Difference
 	fprintf(logfile, "TamanoirImgProc::%s:%d : create grow image...\n",
 		__func__, __LINE__); fflush(stderr);
-	if(!growImage)
+	if(!growImage) {
 		growImage = tmCreateImage(cvSize(originalImage->width, originalImage->height),
 			IPL_DEPTH_8U, 1);
-
+	}
 
 
 	fprintf(logfile, "TamanoirImgProc::%s:%d : create crop images blockSize=%dx%d....\n",
@@ -1078,11 +1154,18 @@ int TamanoirImgProc::preProcessImage() {
 			m_block_seed_width, m_block_seed_height);
 
 	allocCropped();
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	processResolution(m_options.dpi);
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_DEBUG, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		return TMIMG_ERR_ABORT;
+	}
 
 	m_lock = false;
-
 
 	// Then process
 	m_progress = 100;
@@ -1093,9 +1176,6 @@ int TamanoirImgProc::preProcessImage() {
 
 
 void TamanoirImgProc::processDownscaledAnalysis() {
-	// Only in debug for the moment
-	if(!g_debug_dwsc) { return; }
-
 
 	// Downscale eroded and dilates images to have the "summary" of image and dusts positions
 	m_downscale_factor = 4 * m_smooth_size;
@@ -1174,7 +1254,6 @@ void TamanoirImgProc::processDownscaledAnalysis() {
 	RESIZE_SIZECHANGED_8U(diffNormImage, m_dwscSize);
 	tmErodeImage(m_dwsc_diffImage, smoothDiffImage, 3, 1);
 
-
 //	tmScaleMean(diffImage, smoothDiffImage);
 	RESIZE_SIZECHANGED_8U(floodImage, m_dwscSize);
 
@@ -1195,9 +1274,17 @@ void TamanoirImgProc::processDownscaledAnalysis() {
 			normline[c] = diffline[c]-diffsmooth[c];
 		}
 	}
+
 	if(g_debug_savetmp || g_debug_dwsc) {
 		tmSaveImage(TMP_DIRECTORY "dwsc-diffNormImage" IMG_EXTENSION, diffNormImage);
 	}
+
+	// Only in debug for the moment
+	if(!g_debug_dwsc) {
+		cvCopy(diffNormImage, m_dwsc_diffImage); // use downscaled min image as mask
+
+		return; }
+
 
 	for(int r = 0; r<m_dwscSize.height; r++) {
 //unused		u8 * diffline = IPLLINE_8U(m_dwsc_diffImage, r);
@@ -1594,6 +1681,12 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to START "
 				"corrected dust : %d,%d, => call preProcessImage\n",
 				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
+		while(m_lock) {
+			m_abortLoading = true;
+			// Wait for unlock
+			sleep(1); TMIMG_printf(TMLOG_DEBUG, "Wait for unlock...")
+		}
+
 		preProcessImage();
 		firstDust();
 
@@ -1626,17 +1719,23 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		 */
 		if(opt.mode_auto) {
 			// We need to reprocess al image
+			// Reset search position
 			m_seed_x = m_seed_y = 0;
-			fprintf(stderr, "[TamanoiImgProc]::%s:%d : MODE AUTO => rewind to START "
-				" : %d,%d\n",
-				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
-			if(growImage) {
+			// Reset current block position
+			m_block_seed_x = m_block_seed_y = 0;
+
+			TMIMG_printf(TMLOG_INFO, "MODE AUTO => rewind to START "
+				" : %d,%d",
+				m_seed_x, m_seed_y)
+
+			if(growImage) { // Clear grown image to precess again the whole image
 				cvZero(growImage);
 			}
+
 			// Re-process diffImage, because it may change the diffImage
 			preProcessImage();
 
-			//
+			// Look for first dust
 			nextDust();
 		}
 	}
@@ -1654,40 +1753,44 @@ int TamanoirImgProc::processResolution(int dpi) {
 
 	// Then re-process file
 	TMIMG_printf(TMLOG_DEBUG, "set scan resolution to %d dpi", dpi)
-	m_options.dpi = dpi;
 
-	if(originalImage) {
+	if(originalImage && m_preproc_done) {
 		// need to pre-process again the image because the blur radius changed
-		TMIMG_printf(TMLOG_DEBUG, "need to pre-process again the image because the blur radius changed / %d dpi", dpi)
-		preProcessImage();
-
-		// We just reset the dust seeker
-		// Allocate region growing structs
-		float coef_sensitivity[4] = { 1.f, 1.5f, 3.f, 5.f};
-		int l_sensitivity = m_options.sensitivity; // FIXME : not adapted here
-		l_sensitivity = 1; // FIXME : force to be sensitive
-		if(l_sensitivity < 0 ) {
-			l_sensitivity = 0; }
-		else if(l_sensitivity > 3 ) {
-			l_sensitivity = 1; }
-
-		m_dust_area_min = DUST_MIN_SIZE * (dpi * dpi)/ (2400*2400)
-						  * coef_sensitivity[ l_sensitivity ] ;
-		if(m_options.hotPixels
-		   || m_dust_area_min<HOTPIXEL_MIN_SIZE) {
-			m_dust_area_min = HOTPIXEL_MIN_SIZE;
+		if(m_options.dpi != dpi && m_preproc_done) {
+			TMIMG_printf(TMLOG_DEBUG, "need to pre-process again the image because the blur radius changed / %d dpi", dpi)
+			preProcessImage();
 		}
-
-		TMIMG_printf(TMLOG_DEBUG, "=> dust min area %d pixels^2\n",
-			m_dust_area_min)
-
-		m_dust_area_max = 800 * dpi / 2400;
 	}
 
-	TMIMG_printf(TMLOG_DEBUG, " scan resolution = %d dpi. done", dpi)
+	// We just reset the dust seeker
+	// Allocate region growing structs
+	float coef_sensitivity[4] = { 1.f, 1.5f, 3.f, 5.f};
+	int l_sensitivity = m_options.sensitivity; // FIXME : not adapted here
+	l_sensitivity = 1; // FIXME : force to be sensitive
+	if(l_sensitivity < 0 ) {
+		l_sensitivity = 0; }
+	else if(l_sensitivity > 3 ) {
+		l_sensitivity = 1; }
+
+	m_dust_area_min = DUST_MIN_SIZE * (dpi * dpi)/ (2400*2400)
+					  * coef_sensitivity[ l_sensitivity ] ;
+	if(m_options.hotPixels
+	   || m_dust_area_min<HOTPIXEL_MIN_SIZE) {
+		m_dust_area_min = HOTPIXEL_MIN_SIZE;
+	}
+
+	TMIMG_printf(TMLOG_DEBUG, "=> dust min area %d pixels^2\n",
+		m_dust_area_min)
+
+	m_dust_area_max = 800 * dpi / 2400;
+
+
+	TMIMG_printf(TMLOG_DEBUG, " scan resolution = %d dpi. Done.", dpi)
+	m_options.dpi = dpi;
 
 	return 0;
 }
+
 
 int TamanoirImgProc::setBlockSize(int w, int h) {
 	if(w == blockSize.width && h == blockSize.height) {
@@ -1791,7 +1894,8 @@ int TamanoirImgProc::nextDust() {
 		int ymax = tmmin(height-1, m_block_seed_y+m_block_seed_height);
 		int xmin = m_block_seed_x;
 		int xmax = tmmin(width-1, m_block_seed_x+m_block_seed_width);
-		for(y = m_block_seed_y; y<ymax; y++) {
+		for(y = m_block_seed_y; //search only from last dust
+			y<ymax; y++) {
 			u8 * growline = IPLLINE_8U(growImage, y);
 			u8 * diffline = IPLLINE_8U(diffImage, y);
 			for(x = xmin; x<xmax; x++) {
@@ -1829,19 +1933,14 @@ int TamanoirImgProc::nextDust() {
 			m_block_seed_y += m_block_seed_height;
 		}
 
-		TMIMG_printf(TMLOG_INFO, "changed block => %d,%d +%dx%d / img size=%dx%d",
+		TMIMG_printf(TMLOG_DEBUG, "changed block => %d,%d +%dx%d / img size=%dx%d",
 					 m_block_seed_x, m_block_seed_y,
 					 m_block_seed_width, m_block_seed_height,
-					 width, height)
-		
-		fprintf(stderr, "\t[imgproc]::%s:%d : nothing found => changed block : %d,%d + %dx%d\n",
-				__func__, __LINE__,
-				m_block_seed_x, m_block_seed_y,
-				m_block_seed_width, m_block_seed_height);
-		
+					 width, height)		
 	} while(m_block_seed_x<width && m_block_seed_y<height);
 
 	m_lock = false;
+
 	return 0;
 }
 
@@ -3737,7 +3836,7 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 		disp_dilateImage = tmCreateImage(cropSize,IPL_DEPTH_8U, 1);
 	}
 
-	TMIMG_printf(TMLOG_DEBUG, "(x,y+wxh=%d,%d + %dx%d",
+	TMIMG_printf(TMLOG_DEBUG, "x,y+wxh=%d,%d + %dx%d",
 				  crop_x, crop_y, cropSize.width, cropSize.height)
 
 	// Crop undo images
@@ -3748,6 +3847,7 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 		undoImage = tmCreateImage(cvSize(cropSize.width, cropSize.height),
 							  originalImage->depth, originalImage->nChannels);
 	}
+
 	if(!undoDiffImage) {
 		TMIMG_printf(TMLOG_TRACE, "realloc undoDiffImage %dx%d", cropSize.width, cropSize.height)
 		undoDiffImage = tmCreateImage(cvSize(cropSize.width, cropSize.height),
@@ -3773,6 +3873,46 @@ void TamanoirImgProc::recropImages(CvSize cropSize, int crop_x, int crop_y) {
 										   IPL_DEPTH_8U,
 										   originalImage->nChannels);
 	}
+}
+
+/** @brief Approximate a correction using params from last crop
+
+Check if last crop is still ok for new crop*/
+t_correction TamanoirImgProc::approxCorrection(t_correction correct_in) {
+	if(	!undoImage ) return correct_in;
+
+	int crop_max_x = undoImage_x + undoImage->width;
+	if(correct_in.crop_x > crop_max_x) { return correct_in; }
+	int crop_max_y = undoImage_y + undoImage->height;
+	if(correct_in.crop_y > crop_max_y) { return correct_in; }
+
+
+	// Check if last crop is still ok for new crop
+	// we need to have bove dest and src in range
+	int src_x = correct_in.crop_x + correct_in.rel_src_x ;
+	int src_min_x = src_x - correct_in.copy_width;
+	if(src_min_x < undoImage_x) { return correct_in; }
+	int src_max_x = src_x + correct_in.copy_width;
+	if(src_x > crop_max_x) { return correct_in; }
+
+	int src_y = correct_in.crop_y + correct_in.rel_src_y ;
+	int src_min_y = src_y - correct_in.copy_height;
+	if(src_min_y < undoImage_y) { return correct_in; }
+	int src_max_y = src_y + correct_in.copy_height;
+	if(src_y > crop_max_y) { return correct_in; }
+
+	// same check with dest
+	int dest_x = correct_in.crop_x + correct_in.rel_dest_x ;
+	int dest_min_x = dest_x - correct_in.copy_width;
+	if(dest_min_x < undoImage_x) { return correct_in; }
+	int dest_max_x = dest_x + correct_in.copy_width;
+	if(dest_x > crop_max_x) { return correct_in; }
+
+	int dest_y = correct_in.crop_y + correct_in.rel_dest_y ;
+	int dest_min_y = dest_y - correct_in.copy_height;
+	if(dest_min_y < undoImage_y) { return correct_in; }
+	int dest_max_y = dest_y + correct_in.copy_height;
+	if(dest_y > crop_max_y) { return correct_in; }
 }
 
 void TamanoirImgProc::cropCorrectionImages(

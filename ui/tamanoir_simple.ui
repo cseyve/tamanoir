@@ -274,7 +274,11 @@
                <string>Rewind to top-left of image for dust searching</string>
               </property>
               <property name="text">
-               <string>|&lt;</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/go-first-view.png</normaloff>:/icon/go-first-view.png</iconset>
               </property>
              </widget>
             </item>
@@ -303,7 +307,11 @@
                <string>Go back to previous correction. Shortcut: left arrow</string>
               </property>
               <property name="text">
-               <string>&lt;</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/go-previous-view.png</normaloff>:/icon/go-previous-view.png</iconset>
               </property>
               <property name="shortcut">
                <string>Left</string>
@@ -322,7 +330,11 @@
                <string>Skip the correction and go to next proposal. Shortcut: right arrow</string>
               </property>
               <property name="text">
-               <string>&gt;</string>
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/go-next-view.png</normaloff>:/icon/go-next-view.png</iconset>
               </property>
               <property name="shortcut">
                <string>Right</string>
@@ -458,19 +470,22 @@
                <string>Dusts are shown in red on global display</string>
               </property>
               <property name="minimum">
-               <number>12</number>
+               <number>8</number>
               </property>
               <property name="maximum">
-               <number>80</number>
+               <number>100</number>
               </property>
               <property name="singleStep">
                <number>0</number>
               </property>
               <property name="value">
-               <number>40</number>
+               <number>15</number>
               </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="invertedAppearance">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -985,7 +1000,7 @@
      <x>0</x>
      <y>0</y>
      <width>805</width>
-     <height>25</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">
