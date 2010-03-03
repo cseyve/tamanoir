@@ -11,5 +11,12 @@
         <file>icon/go-next-view.png</file>
         <file>icon/go-first-view.png</file>
         <file>icon/go-previous-view.png</file>
+        <file>icon/drive-harddisk.png</file>
+        <file>icon/document-open.png</file>
+        <file>icon/dialog-ok-apply.png</file>
+        <file>icon/preferences-system.png</file>
+        <file>icon/help-about.png</file>
+        <file>icon/input-keyboard.png</file>
+        <file>icon/view-fullscreen.png</file>
     </qresource>
 </RCC>

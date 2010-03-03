@@ -188,6 +188,9 @@ void TamanoirApp::purge() {
 void TamanoirApp::on_actionAbout_activated() {
 	on_aboutButton_clicked();
 }
+void TamanoirApp::on_actionFull_screen_activated() {
+	on_fullScreenButton_clicked();
+}
 
 QSplashScreen * g_splash = NULL;
 
@@ -1350,7 +1353,8 @@ void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 void TamanoirApp::setArgs(int argc, char **argv) {
 	ui.loadingTextLabel->setText(QString(""));
 	statusBar()->showMessage( QString("") );
-	bool open_load_dialog = true;
+	bool open_load_dialog = false;
+
 	QString argsStr = tr("Args=");
 	if(argc > 1) {
 		for(int arg=1; arg<argc; arg++) {

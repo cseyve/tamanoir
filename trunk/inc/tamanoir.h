@@ -231,6 +231,7 @@ private slots:
 
 	void on_aboutButton_clicked();
 
+	void on_actionFull_screen_activated();
 	void on_actionAbout_activated();
 	void on_actionShortcuts_activated();
 	void on_actionPreferences_activated();

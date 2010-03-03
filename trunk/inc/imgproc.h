@@ -493,6 +493,8 @@ private:
 	void purgeDisplay();
 	/** @brief Purge cropped processing buffers */
 	void purgeCropped();
+	/** @brief Purge downscaled processing buffers */
+	void purgeDownscaled();
 	/** @brief Allocate cropped processing buffers */
 	void allocCropped();
 	/** @brief Approximate a correction using params from last crop
@@ -577,6 +579,7 @@ private:
 
 	/** @brief Diff image for dust detection */
 	IplImage * m_dwsc_diffImage;
+
 	/** @brief Temporary grow image for dust detection */
 	IplImage * m_dwsc_growImage;
 
