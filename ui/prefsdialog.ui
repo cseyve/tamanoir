@@ -50,7 +50,7 @@
        <item row="1" column="1">
         <widget class="QCheckBox" name="exportLayerCheckBox">
          <property name="text">
-          <string>Propose the exportation of dust mask</string>
+          <string>propose the exportation of dust mask</string>
          </property>
         </widget>
        </item>

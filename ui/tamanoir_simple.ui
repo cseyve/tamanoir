@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Tamanoir</string>
+   <string>Tamanoir - Dust removal tool for scans</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../tamanoir.qrc">
@@ -70,8 +70,15 @@
              <property name="toolTip">
               <string>Open an image file</string>
              </property>
+             <property name="statusTip">
+              <string>Open an image file for processing</string>
+             </property>
              <property name="text">
-              <string>Load</string>
+              <string>Open</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../tamanoir.qrc">
+               <normaloff>:/icon/document-open.png</normaloff>:/icon/document-open.png</iconset>
              </property>
              <property name="shortcut">
               <string>Ctrl+O</string>
@@ -89,8 +96,15 @@
              <property name="toolTip">
               <string>Save image</string>
              </property>
+             <property name="statusTip">
+              <string>Save current corrected image with same file name and save a backup of original</string>
+             </property>
              <property name="text">
               <string>Save</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../tamanoir.qrc">
+               <normaloff>:/icon/drive-harddisk.png</normaloff>:/icon/drive-harddisk.png</iconset>
              </property>
              <property name="shortcut">
               <string>Ctrl+S</string>
@@ -110,6 +124,9 @@
              </property>
              <property name="toolTip">
               <string>Display progress of loading or processing</string>
+             </property>
+             <property name="statusTip">
+              <string>Processing progress</string>
              </property>
              <property name="value">
               <number>0</number>
@@ -166,6 +183,12 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Global view of image</string>
+           </property>
+           <property name="statusTip">
+            <string>Global view of the whole image with corrections marked</string>
            </property>
            <property name="title">
             <string>Global view</string>
@@ -273,6 +296,9 @@
               <property name="toolTip">
                <string>Rewind to top-left of image for dust searching</string>
               </property>
+              <property name="statusTip">
+               <string>Rewind to first dust from top-left</string>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -306,6 +332,9 @@
               <property name="toolTip">
                <string>Go back to previous correction. Shortcut: left arrow</string>
               </property>
+              <property name="statusTip">
+               <string>Go back to previous correction proposal</string>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -328,6 +357,9 @@
               </property>
               <property name="toolTip">
                <string>Skip the correction and go to next proposal. Shortcut: right arrow</string>
+              </property>
+              <property name="statusTip">
+               <string>Skip current correction and go to next correction</string>
               </property>
               <property name="text">
                <string/>
@@ -352,8 +384,15 @@
               <property name="toolTip">
                <string>Apply this correction then go to next</string>
               </property>
+              <property name="statusTip">
+               <string>Apply this correction then go to next proposal</string>
+              </property>
               <property name="text">
                <string>Apply</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../tamanoir.qrc">
+                <normaloff>:/icon/dialog-ok-apply.png</normaloff>:/icon/dialog-ok-apply.png</iconset>
               </property>
               <property name="shortcut">
                <string>A</string>
@@ -364,12 +403,15 @@
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="groupBox_4">
+          <widget class="QGroupBox" name="params_groupBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Parameters for detection</string>
            </property>
            <property name="title">
             <string>Parameters</string>
@@ -407,6 +449,9 @@
               </property>
               <property name="toolTip">
                <string>Scan resolution, used to guess the size on minimal dust</string>
+              </property>
+              <property name="statusTip">
+               <string>Scan resolution: defines the minimal size of dust. The smaller the resolution, the smaller the dust will be found.</string>
               </property>
               <property name="currentIndex">
                <number>0</number>
@@ -457,12 +502,18 @@
                <string>Sensitivity = difference of color / backgound</string>
               </property>
               <property name="text">
-               <string>Sensitivity :</string>
+               <string>Sensitivity:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="4">
              <widget class="QSlider" name="sensitivityHorizontalSlider">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="toolTip">
                <string>Sensitiviyty</string>
               </property>
@@ -519,6 +570,12 @@
              <widget class="QPushButton" name="autoButton">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
               <property name="toolTip">
                <string>Automatically correct the whole image</string>
@@ -863,6 +920,9 @@
               <property name="toolTip">
                <string>Linear correction: draw the trajectory of correction in &quot;Original&quot; display. Mouse left button set the destination point, right button set the source position.</string>
               </property>
+              <property name="statusTip">
+               <string>Clone region from source to destination</string>
+              </property>
               <property name="text">
                <string>&amp;Clone</string>
               </property>
@@ -884,7 +944,10 @@
                </size>
               </property>
               <property name="toolTip">
-               <string>Search for clone source (Alt+S)</string>
+               <string>Search for clone source (S)</string>
+              </property>
+              <property name="statusTip">
+               <string>Search for a source near the region </string>
               </property>
               <property name="text">
                <string>&amp;Search</string>
@@ -921,6 +984,9 @@
              <widget class="QPushButton" name="inpaintButton">
               <property name="toolTip">
                <string>Use inpainting to fill the dust or fiber</string>
+              </property>
+              <property name="statusTip">
+               <string>Use inpainting (extrapolation) to fill the dust or fiber</string>
               </property>
               <property name="text">
                <string>&amp;Inpaint</string>
@@ -1008,6 +1074,7 @@
      <string>Options</string>
     </property>
     <addaction name="actionPreferences"/>
+    <addaction name="actionFull_screen"/>
     <addaction name="separator"/>
     <addaction name="actionAbout"/>
     <addaction name="actionShortcuts"/>
@@ -1020,21 +1087,53 @@
    </property>
   </action>
   <action name="actionPreferences">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/preferences-system.png</normaloff>:/icon/preferences-system.png</iconset>
+   </property>
    <property name="text">
     <string>Preferences</string>
    </property>
   </action>
   <action name="actionAbout">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/help-about.png</normaloff>:/icon/help-about.png</iconset>
+   </property>
    <property name="text">
     <string>About</string>
    </property>
    <property name="toolTip">
     <string>Display version information about Tamanoir</string>
    </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
   </action>
   <action name="actionShortcuts">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/input-keyboard.png</normaloff>:/icon/input-keyboard.png</iconset>
+   </property>
    <property name="text">
     <string>Shortcuts</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="actionFull_screen">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/view-fullscreen.png</normaloff>:/icon/view-fullscreen.png</iconset>
+   </property>
+   <property name="text">
+    <string>Full screen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
    </property>
   </action>
  </widget>

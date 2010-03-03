@@ -264,17 +264,31 @@ void TamanoirImgProc::purge() {
 	tmReleaseImage(&varianceImage);
 	tmReleaseImage(&growImage);
 
-	tmReleaseImage(&m_dwsc_smoothImage);
-	tmReleaseImage(&m_dwsc_dustImage);
-	tmReleaseImage(&m_dwsc_diffImage);
-	tmReleaseImage(&m_dwsc_growImage);
+	purgeDownscaled();
 
 	// purge display and processing buffers
 	purgeDisplay();
 	purgeCropped();
 }
 
+void TamanoirImgProc::purgeDownscaled() {
+	TMIMG_printf(TMLOG_DEBUG, "Purge downscaled buffers (size:%dx%d)",
+				 m_dwsc_smoothImage?m_dwsc_smoothImage->width : -1,
+				 m_dwsc_smoothImage?m_dwsc_smoothImage->height : -1
+				 )
+	tmReleaseImage(&m_dwsc_smoothImage);
+	tmReleaseImage(&m_dwsc_dustImage);
+	tmReleaseImage(&m_dwsc_diffImage);
+	tmReleaseImage(&m_dwsc_growImage);
+
+}
+
+
 void TamanoirImgProc::purgeCropped() {
+	TMIMG_printf(TMLOG_DEBUG, "Purge cropped buffers (size:%dx%d)",
+				 cropImage?cropImage->width : -1,
+				 cropImage?cropImage->height : -1
+				 )
 	// Cropped images
 	tmReleaseImage(&cropImage);
 	tmReleaseImage(&cropColorImage);
@@ -1076,12 +1090,15 @@ int TamanoirImgProc::preProcessImage() {
 	}
 
 	// Process downscaled image detection of dusts
-	processDownscaledAnalysis();
-        if(m_abortLoading) { // check if we need to abort this processing
-                TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
-                m_lock = false;
-                return TMIMG_ERR_ABORT;
-        }
+	if(!m_dwsc_diffImage) {
+		processDownscaledAnalysis();
+	}
+
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		m_lock = false;
+		return TMIMG_ERR_ABORT;
+	}
 
 	// scale image with max
 	//tmScaleMax(diffImage, displayDiffImage);
@@ -1089,28 +1106,40 @@ int TamanoirImgProc::preProcessImage() {
 	if(g_debug_savetmp) {
 		tmSaveImage(TMP_DIRECTORY "diffDisplayImage" IMG_EXTENSION, displayDiffImage);
 	}
-        if(m_abortLoading) { // check if we need to abort this processing
-                TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
-                m_lock = false;
-                return TMIMG_ERR_ABORT;
-        }
+
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		m_lock = false;
+		return TMIMG_ERR_ABORT;
+	}
 
 	m_threshold = m_options.sensitivity;
 
+	float dwsc_x = (float)m_dwsc_diffImage->width / (float)diffImage->width;
+	float dwsc_y = (float)m_dwsc_diffImage->height / (float)diffImage->height;
+
+	// Threshold diff image
 	for(int r=0;r<height; r++) {
-		pos = r * width;
-		int posmax = pos + diffImage->width;
-		//float * variance = (float *)(varianceImage->imageData + r*varianceImage->widthStep);
-		for( ; pos < posmax; pos++ ) {
 
-			u8 diff = (u8)diffImageBuffer[pos];
+		u8 * diffline = IPLLINE_8U(diffImage, r);
 
-			if(diff > m_threshold) {
-				diffImageBuffer[pos] = DIFF_THRESHVAL;
+		int dwsc_r = (int)roundf((float)r * dwsc_y);
+		u8 * diffdwsc = IPLLINE_8U(m_dwsc_diffImage, dwsc_r);
+		for( int c = 0; c< diffImage->width; c++ ) {
+			u8 diff = diffline[c];
+
+			int dwsc_c = (int)roundf((float)c * dwsc_x);
+			u8 ref = diffdwsc[dwsc_c];
+
+			if(ref > m_threshold
+			   && diff > m_threshold // and level is visible on ref imagei
+			   ) {
+				diffline[c] = DIFF_THRESHVAL;
 			} else {
-				if(diff >= tmmax(3, m_threshold-2)) {
-					diffImageBuffer[pos] = DIFF_CONTOUR;
-				}
+				// to many differences to have good results
+//				if(diff >= tmmax(3, m_threshold-2)) {
+//					diffImageBuffer[pos] = DIFF_CONTOUR;
+//				}
 			}
 		}
 	}
@@ -1295,10 +1324,12 @@ void TamanoirImgProc::processDownscaledAnalysis() {
 	}
 
 	// Only in debug for the moment
-	if(!g_debug_dwsc) {
-		cvCopy(diffNormImage, m_dwsc_diffImage); // use downscaled min image as mask
+	cvCopy(diffNormImage, m_dwsc_diffImage); // use downscaled min image as mask
 
-		return; }
+	if(!g_debug_dwsc) {
+
+		return;
+	}
 
 
 	for(int r = 0; r<m_dwscSize.height; r++) {
@@ -1627,6 +1658,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	 */
 	if(m_options.filmType != opt.filmType) {
 		rewind_to_start = true;
+		purgeDownscaled();
 	}
 
 	/*
@@ -1643,11 +1675,16 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	 * Activate/desactivate hot pixels filtering
 	 */
 	m_dust_area_min = DUST_MIN_SIZE * (m_options.dpi * m_options.dpi)/ (2400*2400);
+	bool force_update_dpi = false;
 	if(opt.hotPixels != m_options.hotPixels) {
-		fprintf(logfile, "TamanoirImgProc::%s:%d : %s hot pixels filtering\n", __func__, __LINE__,
-			(opt.hotPixels ? "ACTIVATE" : "DESACTIVATE" ) );
+		TMIMG_printf(TMLOG_INFO, "%s hot pixels filtering "
+					 "=> change min size of dust : %d pix^2 => later call processResolution(dpi=%d)",
+			(opt.hotPixels ? "ACTIVATE" : "DESACTIVATE" ),
+			m_dust_area_min,
+			opt.dpi)
 
-		processResolution(opt.dpi);
+		force_update_dpi = true;
+
 		if(opt.hotPixels) {
 			// we're looking for smaller dust (in pixel size)
 			// so we have to go back to start
@@ -1677,7 +1714,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	}
 
 	// Then set resolution, because we process the min size here
-	if(m_options.dpi != opt.dpi) {
+	if(force_update_dpi || m_options.dpi != opt.dpi) {
 		if(opt.dpi < m_options.dpi ) {
 			// we're looking for smaller dust (in pixel size)
 			// so we have to go back to start
@@ -1686,6 +1723,11 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 			rewind_to_previous = true;
 		}
 
+		if(m_options.dpi != opt.dpi) {
+			TMIMG_printf(TMLOG_DEBUG, "Resolution changed: process dwsc again")
+			purgeDownscaled();
+		}
+		// Then process resolution change
 		processResolution(opt.dpi);
 	}
 
@@ -1693,15 +1735,16 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 	m_options = opt;
 
 	if(rewind_to_start && originalImage) {
-		fprintf(stderr, "[TamanoiImgProc]::%s:%d : rewind to START "
-				"corrected dust : %d,%d, => call preProcessImage\n",
-				__func__, __LINE__, m_seed_x, m_seed_y);fflush(stderr);
+		TMIMG_printf(TMLOG_INFO, "rewind to START "
+				"last found dust : %d,%d, => call preProcessImage\n",
+				m_seed_x, m_seed_y)
+
 		while(m_lock) {
 			m_abortLoading = true;
 			// Wait for unlock
 			sleep(1); TMIMG_printf(TMLOG_DEBUG, "Wait for unlock...")
 		}
-                m_abortLoading = false;
+		m_abortLoading = false;
 		preProcessImage();
 		firstDust();
 
@@ -1763,7 +1806,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 int TamanoirImgProc::processResolution(int dpi) {
 	if(m_options.dpi == dpi) {
 		TMIMG_printf(TMLOG_DEBUG, "ALREADY SET scan resolution = %d dpi", dpi)
-//		return 0;
+		return 0;
 	}
 
 	// Then re-process file
@@ -1792,6 +1835,8 @@ int TamanoirImgProc::processResolution(int dpi) {
 	if(m_options.hotPixels
 	   || m_dust_area_min<HOTPIXEL_MIN_SIZE) {
 		m_dust_area_min = HOTPIXEL_MIN_SIZE;
+		TMIMG_printf(TMLOG_DEBUG, "hot pixels => FORCE dust min area %d pixels^2\n",
+			m_dust_area_min)
 	}
 
 	TMIMG_printf(TMLOG_DEBUG, "=> dust min area %d pixels^2\n",

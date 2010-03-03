@@ -65,8 +65,9 @@ linux-g++:TMAKE_CXXFLAGS += -W -Wall \
 	-Wcomment \
 	-Wuninitialized \
 	-Wparentheses \
-	-Wpointer-arith \
-	-Wshadow
+	-Wpointer-arith
+
+#	-Wshadow
 
 linux-g++::DEFINES += LINUX
 LIBS_EXT = so
