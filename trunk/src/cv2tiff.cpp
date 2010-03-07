@@ -306,9 +306,9 @@ int saveIplImageAsTIFF(IplImage* img, const char * outfilename, char * compressi
 	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip );
 	
 	
-fprintf(stderr, "[%s] %s:%d :rowsperstrip=%d, bufsize=%d, linebytes=%d, nbands=%d, bufsize=%d, width=%d, length=%d\n",
-	__FILE__, __func__, __LINE__, 
-	rowsperstrip, bufsize, linebytes, nbands, bufsize, width, length);
+	fprintf(stderr, "[%s] %s:%d :rowsperstrip=%d, bufsize=%d, linebytes=%d, nbands=%d, bufsize=%d, width=%d, length=%d\n",
+			__FILE__, __func__, __LINE__,
+			rowsperstrip, bufsize, linebytes, nbands, bufsize, width, length);
 
 	//lseek(fd, hdr_size, SEEK_SET);		/* Skip the file header */
 	for (row = 0; row < length; row++) {
@@ -900,14 +900,15 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 	TIFFGetField(in, TIFFTAG_BITSPERSAMPLE, &bitpersample);
 	int32 channels=1;		/* image width & height */
 	TIFFGetField(in, TIFFTAG_SAMPLESPERPIXEL, &channels);
-	if( tile_height <= 0 )
+	if( tile_height <= 0 ) {
 		tile_height = 1; //height;
+	}
 
 	int bufsize = tile_height * tile_width * channels * bitpersample / 8;
+
 	uchar * buffer = new uchar[bufsize];
 	tdata_t buf = (tdata_t)0;
 	int byte_depth = bitpersample/8;
-
 
 	uchar * data = (uchar *)(out->imageData);
 	int pitch = out->widthStep;
@@ -921,13 +922,15 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 	for( y = 0; y < height; y += tile_height,
 		 data += pitch*tile_height )
 	{
-		if( y + tile_height > height )
+		if( y + tile_height > height ) {
 			tile_height = height - y;
+		}
 
 		for( x = 0; x < width; x += tile_width )
 		{
-			if( x + tile_width > width )
+			if( x + tile_width > width ) {
 				tile_width = width - x;
+			}
 
 			/*if(bitpersample != 8)*/
 			{
@@ -947,15 +950,16 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 					//      __func__, __LINE__, y, y); fflush(stderr);
 
 					if(TIFFReadScanline(in, buf, y) /*row*/ == 1) {
-/*
-fprintf(stderr, "\r%s:%d : line y=%d x=%d : copy buf=%p into "
-		"data=%p @offset=%d=>%p nbytes=%d",
+
+fprintf(stderr, "\r\t\t%s:%d : line y=%d x=%d : copy buf=%p into "
+		"data=%p nbytes=%d=%dx%dx%d",
 		__func__, __LINE__, y, x,
 		buf,
-		data, x + step*y, data + x + step*y,
-		tile_width*byte_depth*channels
+		data,
+		tile_width*byte_depth*channels,
+		tile_width, byte_depth, channels
 		); fflush(stderr);
-*/
+
 						memcpy(data,
 							   buf,
 							   tile_width*byte_depth*channels
@@ -979,6 +983,7 @@ fprintf(stderr, "\r%s:%d : line y=%d x=%d : copy buf=%p into "
 
 	if(buf) {
 		_TIFFfree(buf);
+		buf = NULL;
 	}
 
 	delete [] buffer;
