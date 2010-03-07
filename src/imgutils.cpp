@@ -454,7 +454,7 @@ void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
 			int rmax = (int)roundf(f_r + scale_y);
 			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
 			// scale r
-			u8 * displayline = (u8 *)(displayDiffImage->imageData + r_disp*displayDiffImage->widthStep);
+			u8 * displayline = IPLLINE_8U(displayDiffImage, r_disp);
 			int c_disp = 0;
 			for(float f_c=0; f_c<diffImage->width
 								&& c_disp<displayDiffImage->width;
@@ -466,7 +466,7 @@ void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
 				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
 				u8 diffmax = 0;
 				for(int r = rmin; r<=rmax; r++) {
-					u8 * diffline = (u8 *)(diffImage->imageData + r*diffImage->widthStep);
+					u8 * diffline = IPLLINE_8U(diffImage, r);
 
 					for(int c = cmin; c<=cmax; c++) {
 						if(diffline[c]>diffmax) {
@@ -474,6 +474,7 @@ void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
 						}
 					}
 				}
+
 				displayline[c_disp] = diffmax;
 			}
 		}
@@ -495,7 +496,7 @@ void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage) {
 			int rmax = (int)roundf(f_r + scale_y);
 			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
 			// scale r
-			u8 * displayline = (u8 *)(displayDiffImage->imageData + r_disp*displayDiffImage->widthStep);
+			u8 * displayline = IPLLINE_8U(displayDiffImage, r_disp);
 			int c_disp = 0;
 			for(float f_c=0; f_c<diffImage->width
 								&& c_disp<displayDiffImage->width;
@@ -507,7 +508,7 @@ void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage) {
 				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
 				u8 diffmin = 255;
 				for(int r = rmin; r<=rmax; r++) {
-					u8 * diffline = (u8 *)(diffImage->imageData + r*diffImage->widthStep);
+					u8 * diffline = IPLLINE_8U(diffImage, r);
 
 					for(int c = cmin; c<=cmax; c++) {
 						if(diffline[c]<diffmin) {
@@ -535,8 +536,7 @@ void tmScaleMean(IplImage * diffImage, IplImage * displayDiffImage) {
 			int rmax = (int)roundf(f_r + scale_y);
 			if(rmax >= diffImage->height) { rmax = diffImage->height-1; }
 			// scale r
-			u8 * displayline = (u8 *)(displayDiffImage->imageData
-									  + r_disp*displayDiffImage->widthStep);
+			u8 * displayline = IPLLINE_8U(displayDiffImage, r_disp);
 			int c_disp = 0;
 			for(float f_c=0; f_c<diffImage->width
 								&& c_disp<displayDiffImage->width;
@@ -548,8 +548,7 @@ void tmScaleMean(IplImage * diffImage, IplImage * displayDiffImage) {
 				if(cmax >= diffImage->width) { cmax = diffImage->width-1; }
 				float diffmean = 0;
 				for(int r = rmin; r<=rmax; r++) {
-					u8 * diffline = (u8 *)(diffImage->imageData +
-										   r*diffImage->widthStep);
+					u8 * diffline = IPLLINE_8U(diffImage, r);
 
 					for(int c = cmin; c<=cmax; c++) {
 						diffmean += diffline[c];
@@ -632,15 +631,14 @@ float tmNonZeroRatio(IplImage * origImage,
 	if(orig_y+h >= orig_height) { h=orig_height - orig_y; }
 
 	// Count pixels
-	u8 * origBuffer = (u8 *)(origImage->imageData);
 	int nbpixnon0 = 0;
 	int nbpix = 0;
 	for(int y=orig_y; y<orig_y+h; y++) {
-		int pos = y * origImage->widthStep + orig_x;
-		for(int x=orig_x; x<orig_x+w; x++, pos++) {
+		u8 * origline = IPLLINE_8U(origImage, y);
+		for(int x=orig_x; x<orig_x+w; x++) {
 			if( (x<exclu_x || x >exclu_x+exclu_w)
 				&& (y<exclu_y || y >exclu_y+exclu_h)) {
-				if( origBuffer[pos] >= threshval) {
+				if( origline[x] >= threshval) {
 					nbpixnon0++;
 				}
 				nbpix++;
@@ -700,6 +698,7 @@ void tmFillRegion(IplImage * origImage,
 
 	// Raw clear
 	for(int y=0; y<fill_height; y++, center_y++) {
+
 		memset(origImageBuffer + center_y * pitch + center_x*byte_depth,
 			fillValue,
 			fill_length);
@@ -949,7 +948,7 @@ IplImage * tmClone(IplImage * img_src) {
 	if(!img_src) return NULL;
 
 	IplImage * img_dest = tmCreateImage(
-			cvSize(img_src->width, img_src->height),
+			cvGetSize(img_src),
 			img_src->depth,
 			img_src->nChannels);
 	tmCopyImage(img_src, img_dest);
@@ -1005,8 +1004,8 @@ IplImage * tmFastConvertToGrayscale(IplImage * img) {
 			int offset = 1; // green
 			int bytedepth = tmByteDepth(img);
 			for(int r=0; r< img->height; r++) {
-				unsigned char * buf_in = (unsigned char *)(img->imageData + r*img->widthStep);
-				unsigned char * buf_out = (unsigned char *)(grayImage->imageData + r*grayImage->widthStep);
+				u8 * buf_in = IPLLINE_8U(img, r);
+				u8 * buf_out = IPLLINE_8U(grayImage, r);
 				int pos = offset;
 				for(int c = 0; c<grayImage->width; c++, pos+=bytedepth) {
 					buf_out[c] = buf_in[pos];

@@ -1519,7 +1519,7 @@ void TamanoirApp::on_saveButton_clicked()
 	{
 		// FIXME : ask to save layer as PNG ?
 		QString strname = base + tr("-mask") + ".png";
-		int ret = QMessageBox::warning(this,
+		int ret = QMessageBox::question(this,
 					   tr("Tamanoir - Save dust layer as image ?"),
 					   tr("Do you want to save the dust layer mask as ") + strname
 					   + tr(" ?"),
@@ -2041,30 +2041,30 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 		return;
 	}
 
-        IplImage * colorImg = tmCreateImage(cvGetSize(diffImage), IPL_DEPTH_8U, 4);
-        cvCvtColor(diffImage, colorImg, CV_GRAY2BGR);
-        TMAPP_printf(TMLOG_INFO, "Change level to %d for diffImage=%dx%d",
-                     threshold, colorImg->width, colorImg->height)
-        QImage greyDiff(colorImg->width, colorImg->height, 32);
-        TMAPP_printf(TMLOG_INFO, "copy colorImg= pitch:%d x height:%d",
-                     colorImg->widthStep, colorImg->height)
+	IplImage * colorImg = tmCreateImage(cvGetSize(diffImage), IPL_DEPTH_8U, 4);
+	cvCvtColor(diffImage, colorImg, CV_GRAY2BGR);
+	TMAPP_printf(TMLOG_INFO, "Change level to %d for diffImage=%dx%d",
+				 threshold, colorImg->width, colorImg->height)
+	QImage greyDiff(colorImg->width, colorImg->height, 32);
+	TMAPP_printf(TMLOG_INFO, "copy colorImg= pitch:%d x height:%d",
+				 colorImg->widthStep, colorImg->height)
 
-        // Threshold value
-        u8 thresh_u8 = threshold;
-        for(int r = 0; r<diffImage->height; r++) {
-            u32 * colorline = IPLLINE_32U(colorImg, r);
-            u8 * diffline = IPLLINE_8U(diffImage, r);
-            for(int c = 0; c<diffImage->width; c++) {
-                if(diffline[c]>thresh_u8) {
-                    colorline[c] = 0xFF0000; // Red
-                }
-            }
-        }
-        memcpy(greyDiff.bits(), colorImg->imageData, colorImg->widthStep * colorImg->height);
+	// Threshold value
+	u8 thresh_u8 = threshold;
+	for(int r = 0; r<diffImage->height; r++) {
+		u32 * colorline = IPLLINE_32U(colorImg, r);
+		u8 * diffline = IPLLINE_8U(diffImage, r);
+		for(int c = 0; c<diffImage->width; c++) {
+			if(diffline[c]>thresh_u8) {
+				colorline[c] = 0xFF0000; // Red
+			}
+		}
+	}
+	memcpy(greyDiff.bits(), colorImg->imageData, colorImg->widthStep * colorImg->height);
 
 	// Use fake colors to show the level
-        // FIXME : CRASH on macOSX (with Qt4.6.0)
-        /*if(greyDiff.depth() == 8) {
+	// FIXME : CRASH on macOSX (with Qt4.6.0)
+	/*if(greyDiff.depth() == 8) {
 		greyDiff.setNumColors(256);
 
 		for(int col = 0; col<threshold; col++ ) {
@@ -2075,23 +2075,22 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 		}
 	}
 */
-        TMAPP_printf(TMLOG_INFO, "Convert to Pixmap=%dx%d x %dbit",
-                      greyDiff.width(), greyDiff.height(), greyDiff.depth())
-        QPixmap greyPixmap; greyPixmap.convertFromImage(greyDiff);
-        TMAPP_printf(TMLOG_INFO, "Display colorImg=%dx%d",
-                      colorImg->width, colorImg->height)
-        ui.mainPixmapLabel->setPixmap(greyPixmap);
+	TMAPP_printf(TMLOG_INFO, "Convert to Pixmap=%dx%d x %dbit",
+				 greyDiff.width(), greyDiff.height(), greyDiff.depth())
+	QPixmap greyPixmap; greyPixmap.convertFromImage(greyDiff);
+	TMAPP_printf(TMLOG_INFO, "Display colorImg=%dx%d",
+				 colorImg->width, colorImg->height)
+	ui.mainPixmapLabel->setPixmap(greyPixmap);
 
-        TMAPP_printf(TMLOG_INFO, "Release colorImg=%dx%d",
-                      colorImg->width, colorImg->height)
-        tmReleaseImage(&colorImg);
+	TMAPP_printf(TMLOG_INFO, "Release colorImg=%dx%d",
+				 colorImg->width, colorImg->height)
+	tmReleaseImage(&colorImg);
 }
 
 /// Display sensitivity in main display when moving the slider
 void TamanoirApp::on_sensitivityHorizontalSlider_sliderReleased() {
 	// Released => apply this sensitivity level
-	int val = ui.sensitivityHorizontalSlider->value();
-	int threshold = val;
+	int threshold = ui.sensitivityHorizontalSlider->value();
 
 	fprintf(stderr, "TamanoirApp::%s:%d : sensitivity changed to type %d ...\n",
 		__func__, __LINE__, threshold);
@@ -2099,7 +2098,7 @@ void TamanoirApp::on_sensitivityHorizontalSlider_sliderReleased() {
 	statusBar()->showMessage( tr("Changed sensitivity: please wait...") );
 	statusBar()->update();
 
-	if(g_options.sensitivity != threshold) {
+	if(g_options.sensitivity < threshold) {
 		skipped_list.clear(); // We changed sensitivity, clear the dust list
 		memset(&m_current_dust, 0, sizeof(t_correction));
 	}
@@ -2114,6 +2113,7 @@ void TamanoirApp::on_sensitivityHorizontalSlider_sliderReleased() {
 	}
 
 	updateMainDisplay();
+
 	saveOptions();
 }
 
