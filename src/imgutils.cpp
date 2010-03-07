@@ -170,12 +170,13 @@ void tmPrintProperties(IplImage * img) {
 			img->widthStep,
 			img->imageSize,
 			img->align,
-			img->colorModel[0],img->colorModel[1],img->colorModel[2],img->colorModel[3]
-
+			img->colorModel[0],img->colorModel[1],
+				img->colorModel[2],img->colorModel[3]
 			);
 
 }
 
+/** @brief Tracking of RAM usage */
 typedef struct {
 	IplImage * img_ptr;
 	int ram_size;
@@ -353,7 +354,6 @@ void tmErodeImage(IplImage * src, IplImage * dst,
 			elt,
 			iterations // # iterations
 			);
-
 	}
 }
 

@@ -443,20 +443,45 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						QString dpistr, guess_str;
 						dpistr.sprintf("%d", l_options.dpi);
 						guess_str.sprintf("%d", guess_dpi);
-						int ret = QMessageBox::warning(this,
-													   tr("Tamanoir - Resolution mismatch"),
-													   tr("The resolution of ") + dpistr
-													   + tr(" dpi, read in file, may be too low for the scanner resolution. "
-															"It may be the print resolution. \n"
-														  "Do you want to apply this resolution of ")
-													   + dpistr + tr(" dpi read in file ? If ignore, the resolution would be ")
-													   + guess_str + tr(" dpi for ")
-													   + QString(film_guess.format),
-													   QMessageBox::Apply,
-													   QMessageBox::Ignore);
 
-						if(ret == QMessageBox::Ignore) {
-							l_options.dpi = guess_dpi;
+						QMessageBox msgBox(
+								QMessageBox::Question,
+								tr("Tamanoir - Resolution mismatch"),
+								tr("The resolution of ") + dpistr
+										   + tr(" dpi, read in file, may be too low for the scanner resolution. "
+												"It may be the print resolution. \n"
+											  "Do you want to apply this resolution of ")
+										   + dpistr + tr(" dpi read in file ? If ignore, the resolution would be ")
+										   + guess_str + tr(" dpi for ")
+										   + QString(film_guess.format),
+										   0
+										   );
+						QString fileDpiStr;
+						fileDpiStr.sprintf("%d dpi", l_options.dpi);
+						QPushButton *fileDpiButton = msgBox.addButton(fileDpiStr, QMessageBox::ActionRole);
+						if(g_options.dpi != l_options.dpi) {
+							QString optDpiStr;
+							optDpiStr.sprintf("%d dpi", g_options.dpi);
+							QPushButton *optDpiButton = msgBox.addButton(optDpiStr, QMessageBox::ActionRole);
+						}
+						if(guess_dpi != l_options.dpi
+						   || guess_dpi != g_options.dpi ) {
+							QString guessDpiStr;
+							guessDpiStr.sprintf("%d dpi", guess_dpi);
+							QPushButton *guessDpiButton = msgBox.addButton(guessDpiStr, QMessageBox::ActionRole);
+						}
+
+						msgBox.exec();
+
+						// Read
+						QString answerStr = msgBox.clickedButton()->text();
+						TMAPP_printf(TMLOG_INFO, "answer='%s'",
+									 answerStr.ascii())
+
+						int dpi = 2400;
+						if(sscanf(answerStr.ascii(), "%d", &dpi) == 1)
+						{
+							l_options.dpi = dpi;
 
 							TMAPP_printf(TMLOG_INFO, "ignore resolution of file => FORCE FORMER RESOLUTION => "
 								"resolution=%d dpi => current=g_options.dpi=%d\n",
@@ -1742,8 +1767,10 @@ void TamanoirApp::saveOptions() {
 }
 
 void TamanoirApp::on_prevButton_clicked() {
-	if(skipped_list.isEmpty())
+	if(skipped_list.isEmpty()) {
+
 		return;
+	}
 	if(!force_mode && m_pProcThread) {
 		if(g_debug_list) {
 			fprintf(stderr, "TamanoirApp::%s:%d : !force_mode => insertCorrection(%d,%d)\n",
@@ -1770,6 +1797,8 @@ void TamanoirApp::on_prevButton_clicked() {
 	}
 	updateDisplay();
 }
+
+
 void TamanoirApp::on_rewindButton_clicked() {
 
 	int ret = QMessageBox::warning(this, tr("Tamanoir"),
@@ -1806,7 +1835,8 @@ void TamanoirApp::on_skipButton_clicked()
 			}
 		}
 
-		if(!force_mode && m_current_dust.crop_width>0) {
+		if(!force_mode  // don't store forced dust correction into skip list
+		   && m_current_dust.crop_width>0) {
 			if(skipped_list.isEmpty()) {
 				// enable previous button because we'll add one dust
 				ui.prevButton->setEnabled(TRUE);
@@ -1819,13 +1849,18 @@ void TamanoirApp::on_skipButton_clicked()
 						m_current_dust.crop_x + m_current_dust.rel_seed_x,
 						m_current_dust.crop_y + m_current_dust.rel_seed_y);
 			}
+
 			skipped_list.append(m_current_dust);
 		}
 
 		// First check if a new dust if available
 		m_current_dust = m_pProcThread->getCorrection();
 
+
 		if(m_current_dust.copy_width > 0) {
+			// Try to keep the same crop x,y to show to user
+			// that we did not change the block
+			m_current_dust = m_pImgProc->approxCorrection(m_current_dust);
 			// Update display with this correction proposal
 			updateDisplay();
 		} else { // No dust available, wait for a new one
@@ -1836,8 +1871,7 @@ void TamanoirApp::on_skipButton_clicked()
 			TMAPP_printf(TMLOG_DEBUG, "m_current_dust.copy_width <= 0 cmd=%d next=%d",
 						 state, next)
 
-			if(next == 0) // Finished
-			{
+			if(next == 0) { // Finished
 				TMAPP_printf(TMLOG_DEBUG, "=> search is finished")
 				ui.overAllProgressBar->setValue(100);
 
@@ -2250,10 +2284,11 @@ static void init_grayToBGR32()
 				//mainImage.setColor(COLORMARK_CURRENT, qRgb(0,0,255));
 }
 
-QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) {
-	if(!iplImage)
+QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only )
+{
+	if(!iplImage) {
 		return QImage();
-
+	}
 
 	int depth = iplImage->nChannels;
 
@@ -2285,7 +2320,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 	QImage qImage(orig_width, iplImage->height, 8*depth);
 	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 
-	/*
+/*
 	if(iplImage->nChannels == 4)
 	{
 		fprintf(stderr, "[TamanoirApp]::%s:%d : ORIGINAL DEPT IS RGBA depth = %d\n"
@@ -2294,8 +2329,8 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only ) 
 				rgb24_to_bgr32? 'T':'F',
 				gray_to_bgr32 ? 'T':'F'
 				);
-	}*/
-
+	}
+*/
 	switch(iplImage->depth) {
 	default:
 		fprintf(stderr, "[TamanoirApp]::%s:%d : Unsupported depth = %d\n", __func__, __LINE__, iplImage->depth);
@@ -2617,7 +2652,6 @@ void TamanoirApp::updateCroppedDisplay()
 		if(m_pProcThread) {
 			m_current_dust.crop_width = ui.cropPixmapLabel->size().width();
 			m_current_dust.crop_height = ui.cropPixmapLabel->size().height();
-
 
 			m_pImgProc->cropCorrectionImages(m_current_dust, m_draw_on);
 		}

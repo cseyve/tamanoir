@@ -414,6 +414,12 @@ public:
 	/** 8@brief bit grayscale version of input image scaled for display */
 	IplImage * getGrayscaleForDisplay() { return grayImage; };
 
+	/** @brief Approximate a correction using params from last crop
+
+		Check if last crop is still ok for new crop
+		*/
+	t_correction approxCorrection(t_correction correct_in);
+
 	/** @brief Set available size for display : it will scale the 8bit grayscale version
 	 * of input image for this rectangle */
 	void setDisplaySize(int w, int h);
@@ -511,11 +517,6 @@ private:
 	void purgeDownscaled();
 	/** @brief Allocate cropped processing buffers */
 	void allocCropped();
-	/** @brief Approximate a correction using params from last crop
-
-		Check if last crop is still ok for new crop
-		*/
-	t_correction approxCorrection(t_correction correct_in);
 
 	/** @brief Options : Film type, resolution, ... */
 	tm_options m_options;
