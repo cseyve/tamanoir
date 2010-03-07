@@ -255,6 +255,20 @@ typedef struct _known_dust {
 } t_known_dust;
 
 
+/** @brief Pre-processing status
+  used to do faster option changes
+  */
+typedef struct {
+	u8 grayscaled_blurred;	/*! grayscaled image has been blurred during preprocessing,
+								so it's reconverted from color in preProcessing() */
+	u8 median_done;		/*!	Median processing ( processMedian() )is fully done */
+	u8 diff_done;		/*!	Difference is done */
+	u8 preproc_done;	/*!	Pre-processing is fully done */
+
+} tm_preproc_status;
+
+
+
 /** @brief Detection performance stats */
 typedef struct _perf_stats {
 	int true_positive;
@@ -351,6 +365,7 @@ public:
 	/** @brief Perform image pre-processing (difference, conversion to grayscale, ...) */
 	int preProcessImage();
 
+
 	/** @brief Go to first dust
 		@return -1 if error, 0 if no more dust, and 1 if still */
 	int firstDust();
@@ -385,7 +400,7 @@ public:
 	/** @brief Get progress in %age */
 	int getProgress();
 	/** @brief Pre-processed done flag */
-	bool getPreProcessedDone() { return m_preproc_done; };
+	bool getPreProcessedDone() { return m_preproc_status.preproc_done; };
 
 	/** @brief Get performance statistics */
 	t_perf_stats getPerfs() { return m_perf_stats; };
@@ -477,9 +492,8 @@ private:
 	/// Abort request during preprocessing or loading
 	bool m_abortLoading;
 
-
-	/// Pre-processed done flag
-	bool m_preproc_done;
+	/// Pre-processing progression and status
+	tm_preproc_status m_preproc_status;
 
 	/** Mutex to prevent clone search to perturbate normal background search */
 	Mutex_t mutex;
