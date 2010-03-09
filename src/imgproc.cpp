@@ -74,7 +74,7 @@ int nb_known_dusts_forced = 0;
 int max_known_dusts = 0;
 double orig_width=0, orig_height=0;
 
-u8 g_debug_TamanoirImgProc = TMLOG_DEBUG;
+u8 g_debug_TamanoirImgProc = TMLOG_INFO;
 
 #define TMIMG_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirImgProc ) { \
@@ -805,7 +805,8 @@ int TamanoirImgProc::preProcessImage() {
 	if(!m_preproc_status.median_done) {
 		TMIMG_printf(TMLOG_DEBUG, "Process median filter")
 		processMedian();
-		m_preproc_status.median_done;
+
+		m_preproc_status.median_done = 1;
 	}
 	m_progress = 45;
 
@@ -1695,6 +1696,12 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 
 	// If the sensitivity changed, clear also
 	if(m_options.sensitivity != opt.sensitivity) {
+		// We need to re-process median and difference
+		m_preproc_status.median_done =
+				m_preproc_status.diff_done =
+				m_preproc_status.preproc_done =
+				0;
+
 		if(opt.sensitivity > m_options.sensitivity) {
 			// We need less sensibility so we can resume from where we were
 			rewind_to_previous = true;
@@ -1995,7 +2002,7 @@ int TamanoirImgProc::nextDust() {
 		m_block_seed_x += m_block_seed_width;
 		m_seed_x = 0;
 		if(m_block_seed_x >= width) {
-			TMIMG_printf(TMLOG_INFO, "changed seed block y=%d => %d",
+			TMIMG_printf(TMLOG_DEBUG, "changed seed block y=%d => %d",
 						 m_block_seed_y, m_block_seed_y + m_block_seed_height)
 			// block moved to far on right => rewind to left, and go down one block
 			m_block_seed_x = 0;
@@ -3954,31 +3961,36 @@ t_correction TamanoirImgProc::approxCorrection(t_correction correct_in) {
 	int crop_max_y = undoImage_y + undoImage->height;
 	if(correct_in.crop_y > crop_max_y) { return correct_in; }
 
+	// Use a margin
+	int crop_min_x = undoImage_x + correct_in.copy_width;
+	int crop_min_y = undoImage_y + correct_in.copy_height;
+	crop_max_x -= correct_in.copy_width;
+	crop_max_y -= correct_in.copy_height;
 
 	// Check if last crop is still ok for new crop
 	// we need to have bove dest and src in range
 	int src_x = correct_in.crop_x + correct_in.rel_src_x ;
 	int src_min_x = src_x - correct_in.copy_width;
-	if(src_min_x < undoImage_x) { return correct_in; }
+	if(src_min_x < crop_min_x) { return correct_in; }
 	int src_max_x = src_x + correct_in.copy_width;
 	if(src_max_x > crop_max_x) { return correct_in; }
 
 	int src_y = correct_in.crop_y + correct_in.rel_src_y ;
 	int src_min_y = src_y - correct_in.copy_height;
-	if(src_min_y < undoImage_y) { return correct_in; }
+	if(src_min_y < crop_min_y) { return correct_in; }
 	int src_max_y = src_y + correct_in.copy_height;
 	if(src_max_y > crop_max_y) { return correct_in; }
 
 	// same check with dest
 	int dest_x = correct_in.crop_x + correct_in.rel_dest_x ;
 	int dest_min_x = dest_x - correct_in.copy_width;
-	if(dest_min_x < undoImage_x) { return correct_in; }
+	if(dest_min_x < crop_min_x) { return correct_in; }
 	int dest_max_x = dest_x + correct_in.copy_width;
 	if(dest_max_x > crop_max_x) { return correct_in; }
 
 	int dest_y = correct_in.crop_y + correct_in.rel_dest_y ;
 	int dest_min_y = dest_y - correct_in.copy_height;
-	if(dest_min_y < undoImage_y) { return correct_in; }
+	if(dest_min_y < crop_min_y) { return correct_in; }
 	int dest_max_y = dest_y + correct_in.copy_height;
 	if(dest_max_y > crop_max_y) { return correct_in; }
 

@@ -37,6 +37,7 @@
 
 // Preferences UI
 #include "prefsdialog.h"
+#include "tamanoirwizard.h"
 #include <sys/time.h>
 
 /* File for logging messages */
@@ -92,7 +93,7 @@ u8 g_debug_displaylabel = 1;
 #define TMAPP_TIMEOUT	1000
 
 /// Debug management of skipped/known dusts
-u8 g_debug_list = 0;
+u8 g_debug_list = 1;
 
 /** constructor */
 TamanoirApp::TamanoirApp(QWidget * l_parent)
@@ -161,6 +162,9 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	m_blockSize = cvSize(size_w, size_h);
 
+	if(!g_display_options.hide_wizard) {
+		on_actionTutorial_activated();
+	}
 }
 
 
@@ -188,6 +192,13 @@ void TamanoirApp::purge() {
 void TamanoirApp::on_actionAbout_activated() {
 	on_aboutButton_clicked();
 }
+
+void TamanoirApp::on_actionTutorial_activated() {
+	//
+	TamanoirWizard * wiz = new TamanoirWizard();
+	wiz->exec();
+}
+
 void TamanoirApp::on_actionFull_screen_activated() {
 	on_fullScreenButton_clicked();
 }
@@ -316,7 +327,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			// Stop timer only if not in auto mode
 			if( !m_pProcThread->getModeAuto()) {
 
-				TMAPP_printf(TMLOG_DEBUG, "PROTH_NOTHING && not in auto mode => stop refresh timer")
+				TMAPP_printf(TMLOG_DEBUG, "PROTH_NOTHING && not in auto mode "
+							 "=> stop refresh timer")
 
 				refreshTimer.stop();
 			}
@@ -363,11 +375,17 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				#ifdef SIMPLE_VIEW
 				ui.correctPixmapLabel->resize(ui.cropPixmapLabel->size().width(), ui.centralwidget->height());
 				#endif
-
+				// File is loaded
 				refreshMainDisplay();
+
+				// then update cropped
 				updateDisplay();
 				break;
 			case PROTH_PREPROC:
+				// File is loaded and preproc
+				// refresh main because we may have missed the end of load
+				refreshMainDisplay();
+				// then update cropped
 				updateDisplay();
 				break;
 			case PROTH_SEARCH:
@@ -388,10 +406,14 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			 || m_curCommand == PROTH_OPTIONS
 			)
 			&& (m_pProcThread->getCommand() == PROTH_NOTHING
-			|| m_pProcThread->getCommand() == PROTH_SEARCH)
+				|| m_pProcThread->getCommand() == PROTH_SEARCH)
 		) {
-
 			refreshMainDisplay();
+
+			// update display for current dust
+			// First check if a new dust if available
+			m_current_dust = m_pProcThread->getCorrection();
+
 			updateDisplay();
 
 			QFileInfo fi(m_currentFile);
@@ -448,10 +470,11 @@ void TamanoirApp::on_refreshTimer_timeout() {
 								QMessageBox::Question,
 								tr("Tamanoir - Resolution mismatch"),
 								tr("The resolution of ") + dpistr
-										   + tr(" dpi, read in file, may be too low for the scanner resolution. "
+										   + tr(" dpi, read in file or previously set, "
+												"may be too low for the scanner resolution. "
 												"It may be the print resolution. \n"
 											  "Do you want to apply this resolution of ")
-										   + dpistr + tr(" dpi read in file ? If ignore, the resolution would be ")
+										   + dpistr + tr(" dpi read in file ? The resolution may probably be ")
 										   + guess_str + tr(" dpi for ")
 										   + QString(film_guess.format),
 										   0
@@ -465,15 +488,16 @@ void TamanoirApp::on_refreshTimer_timeout() {
 							QPushButton *optDpiButton = msgBox.addButton(optDpiStr, QMessageBox::ActionRole);
 						}
 						if(guess_dpi != l_options.dpi
-						   || guess_dpi != g_options.dpi ) {
+						   && guess_dpi != g_options.dpi ) {
 							QString guessDpiStr;
 							guessDpiStr.sprintf("%d dpi", guess_dpi);
 							QPushButton *guessDpiButton = msgBox.addButton(guessDpiStr, QMessageBox::ActionRole);
 						}
 
+						// Propose resolutions
 						msgBox.exec();
 
-						// Read
+						// Read user's choice
 						QString answerStr = msgBox.clickedButton()->text();
 						TMAPP_printf(TMLOG_INFO, "answer='%s'",
 									 answerStr.ascii())
@@ -1602,7 +1626,8 @@ void fprintfDisplayOptions(FILE * f, tm_display_options * p_options) {
 
 	fprintf(f, "CurrentDir:%s\n", p_options->currentDir );
 	fprintf(f, "Stylesheet:%s\n", p_options->stylesheet);
-	fprintf(f, "ShowAuto:%s\n", p_options->show_auto?"T":"F");
+	fprintf(f, "HideAuto:%s\n", p_options->hide_auto?"T":"F");
+	fprintf(f, "hide_wizard:%s\n", p_options->hide_wizard?"T":"F");
 	fprintf(f, "ExportLayer:%s\n", p_options->export_layer?"T":"F");
 
 	fflush(f);
@@ -1684,11 +1709,17 @@ int TamanoirApp::loadOptions() {
 					if(strcasestr(cmd, "stylesheet")) {
 						strcpy(g_display_options.stylesheet, arg);
 					}
-					if(strcasestr(cmd, "ShowAuto")) {
+					if(strcasestr(cmd, "hide_wizard")) {
 						if(strstr(arg, "T"))
-							g_display_options.show_auto = true;
+							g_display_options.hide_wizard = true;
 						else
-							g_display_options.show_auto = false;
+							g_display_options.hide_wizard = false;
+					}
+					if(strcasestr(cmd, "HideAuto")) {
+						if(strstr(arg, "T"))
+							g_display_options.hide_auto = true;
+						else
+							g_display_options.hide_auto = false;
 					}
 					if(strcasestr(cmd, "Export")) {
 						if(strstr(arg, "T"))
@@ -1747,10 +1778,10 @@ void TamanoirApp::saveOptions() {
 	setStyleSheet(file_styleSheet);
 
 	// show/hide buttons
-	if(g_display_options.show_auto)
-		ui.autoButton->show();
-	else
+	if(g_display_options.hide_auto)
 		ui.autoButton->hide();
+	else
+		ui.autoButton->show();
 
 	FILE * foptions = fopen(optionsFile.ascii(), "w");
 	if(!foptions) {
@@ -1784,10 +1815,12 @@ void TamanoirApp::on_prevButton_clicked() {
 	m_current_dust = skipped_list.takeLast();
 
 	if(g_debug_list) {
-		fprintf(stderr, "TamanoirApp::%s:%d :skipped_list.takeLast() => current=(%d,%d)\n",
+		fprintf(stderr, "TamanoirApp::%s:%d :skipped_list.takeLast() "
+				"=> current=(%d,%d+%dx%d)\n",
 				__func__, __LINE__,
 				m_current_dust.crop_x+m_current_dust.rel_seed_x,
-				m_current_dust.crop_y+m_current_dust.rel_seed_y);
+				m_current_dust.crop_y+m_current_dust.rel_seed_y,
+				m_current_dust.copy_width, m_current_dust.copy_height);
 	}
 
 	fprintf(stderr, "[TmApp]::%s:%d : back for one dust\n", __func__, __LINE__);
@@ -1844,10 +1877,12 @@ void TamanoirApp::on_skipButton_clicked()
 
 			if(g_debug_list) {
 				//
-				fprintf(stderr, "TamanoirApp::%s:%d : !force=> append to skipped_list : current_dust=%d,%d\n",
+				fprintf(stderr, "TamanoirApp::%s:%d : !force=> append to skipped_list : "
+						"current_dust=%d,%d+%dx%d\n",
 						__func__, __LINE__,
 						m_current_dust.crop_x + m_current_dust.rel_seed_x,
-						m_current_dust.crop_y + m_current_dust.rel_seed_y);
+						m_current_dust.crop_y + m_current_dust.rel_seed_y,
+						m_current_dust.copy_width, m_current_dust.copy_height);
 			}
 
 			skipped_list.append(m_current_dust);
@@ -1928,6 +1963,7 @@ void TamanoirApp::on_skipButton_clicked()
 				updateDisplay();
 			} else {
 				refreshTimer.start(TMAPP_TIMEOUT);
+
 				lockTools(true);
 			}
 		}
@@ -1991,10 +2027,9 @@ void TamanoirApp::on_autoButton_clicked()
 	statusBar()->update();
 
 
+	lockTools(true);
 
-
-	fprintf(stderr, "TamanoirApp::%s:%d : AUTO MODE ...\n", __func__, __LINE__);
-		/*if(logfile == stderr) {
+	/*if(logfile == stderr) {
 		char logfilename[512] = TMP_DIRECTORY "tamanoir.txt";
 
 		QFileInfo fi(m_currentFile);
@@ -2981,6 +3016,14 @@ TamanoirThread::TamanoirThread(TamanoirImgProc * p_pImgProc) {
 }
 
 int TamanoirThread::getCommand() {
+	if(m_options.mode_auto ) {
+		if(!m_no_more_dusts) {
+			TMTHR_printf(TMLOG_DEBUG, "Auto && !no_more_dusts -> pretend to be searching ! ")
+			return PROTH_SEARCH;
+		}
+	}
+
+
 	if(m_req_command != PROTH_NOTHING) {
 		return m_req_command;
 	}

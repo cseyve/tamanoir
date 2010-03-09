@@ -64,9 +64,11 @@ const char * getCommandName(int cmd);
 typedef struct {
 	char currentDir[512];	/*! Working directory */
 	// optional display
-	bool show_auto;			/*! Show auto button */
+	bool hide_auto;			/*! Hide auto button */
 	bool show_hotpixels;	/*! Show hot pixels button */
 	bool export_layer;		/*! Propose to export dust mask as layer when saving image */
+
+	bool hide_wizard;		/*! Hide wizard on startup */
 
 	// Display options
 	char stylesheet[512];	/*! Stylesheet */
@@ -233,6 +235,7 @@ private slots:
 
 	void on_actionFull_screen_activated();
 	void on_actionAbout_activated();
+	void on_actionTutorial_activated();
 	void on_actionShortcuts_activated();
 	void on_actionPreferences_activated();
 
