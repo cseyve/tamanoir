@@ -180,6 +180,9 @@ void tmPrintProperties(IplImage * img) {
 typedef struct {
 	IplImage * img_ptr;
 	int ram_size;
+	char file[32];
+	char func[32];
+	int line;
 } t_iplimage_usage;
 
 static t_iplimage_usage * g_iplimg_usage_tab = NULL;
@@ -187,30 +190,57 @@ static int g_max_iplimg_usage = 0;
 static int g_iplimg_usage_total_ram = 0;
 
 /* Create an IplImage width OpenCV's cvCreateImage and clear buffer */
-IplImage * tmCreateImage(CvSize size, int depth, int channels) {
+IplImage * subCreateImage(const char * file, const char * func, int line,
+						 CvSize size, int depth, int channels) {
 
 	int usage_space = -1;
 	if(!g_iplimg_usage_tab ) {
-		g_max_iplimg_usage = 30;
+		g_max_iplimg_usage = 50;
 		g_iplimg_usage_tab = new t_iplimage_usage [ g_max_iplimg_usage ];
-		memset(g_iplimg_usage_tab, 0, sizeof(g_iplimg_usage_tab)*g_max_iplimg_usage );
+		memset(g_iplimg_usage_tab, 0, sizeof(t_iplimage_usage) * g_max_iplimg_usage );
 		usage_space = 0;
 	} else {
-		for(int sp=0; usage_space<0 && sp<g_max_iplimg_usage; sp++) {
+		for(int sp=0; usage_space<0
+			&& sp<g_max_iplimg_usage
+			&& usage_space<0; sp++) {
+
 			if(g_iplimg_usage_tab[sp].img_ptr == NULL ) {
 				usage_space = sp;
 			}
 		}
+
 		if(usage_space < 0) {
 			// there was no more space => resize the
 			int old_max_iplimg_usage = g_max_iplimg_usage ;
-			g_max_iplimg_usage += 10;
 			t_iplimage_usage * old_iplimg_usage_tab = g_iplimg_usage_tab;
-			fprintf(stderr, "[utils] %s:%d : resize array %d => %d\n",__func__, __LINE__,
+			g_max_iplimg_usage += 10;
+
+			fprintf(stderr, "[utils] %s:%d : no more space => "
+					"resize array %d => %d\n"
+					"\t Still allocated : \n",
+					__func__, __LINE__,
 					old_max_iplimg_usage, g_max_iplimg_usage );
+			for(int sp=0; sp<old_max_iplimg_usage; sp++) {
+				if(g_iplimg_usage_tab[sp].img_ptr != NULL ) {
+					fprintf(stderr, "\t[%d]\t%dx%dx%d @ [%s] %s:%d\n",
+							sp,
+							g_iplimg_usage_tab[sp].img_ptr->width,
+							g_iplimg_usage_tab[sp].img_ptr->height,
+							g_iplimg_usage_tab[sp].img_ptr->nChannels,
+							g_iplimg_usage_tab[sp].file,
+							g_iplimg_usage_tab[sp].func,
+							g_iplimg_usage_tab[sp].line
+							);
+				}
+			}
+
+
+			// Allocate new tab and copy old into new
 			g_iplimg_usage_tab = new t_iplimage_usage [ g_max_iplimg_usage ];
-			memset(g_iplimg_usage_tab, 0, sizeof(g_iplimg_usage_tab)*g_max_iplimg_usage );
-			memcpy(g_iplimg_usage_tab, old_iplimg_usage_tab, sizeof(g_iplimg_usage_tab)*old_max_iplimg_usage );
+
+			memset(g_iplimg_usage_tab, 0, sizeof(t_iplimage_usage)*g_max_iplimg_usage );
+			memcpy(g_iplimg_usage_tab, old_iplimg_usage_tab, sizeof(t_iplimage_usage)*old_max_iplimg_usage );
+
 			usage_space = old_max_iplimg_usage; // last old is new first available
 
 			delete [] old_iplimg_usage_tab;
@@ -228,6 +258,13 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 		g_iplimg_usage_tab[usage_space].img_ptr = img;
 		g_iplimg_usage_total_ram += img->widthStep * img->height;
 		g_iplimg_usage_tab[usage_space].ram_size = img->widthStep * img->height;
+
+
+		strncpy(g_iplimg_usage_tab[usage_space].file, file, 31);
+		g_iplimg_usage_tab[usage_space].file[31]='\0';
+		strncpy(g_iplimg_usage_tab[usage_space].func, func, 31);
+		g_iplimg_usage_tab[usage_space].func[31]='\0';
+		g_iplimg_usage_tab[usage_space].line = line;
 
 		if(!(img->imageData)) {
 			fprintf(stderr, "[utils] %s:%d : ERROR : img->imageData=NULL while "
@@ -253,7 +290,8 @@ IplImage * tmCreateImage(CvSize size, int depth, int channels) {
 }
 
 /** @brief Release an image and clear pointer */
-void tmReleaseImage(IplImage ** img) {
+void subReleaseImage(const char * file, const char * func, int line,
+					 IplImage ** img) {
 	if(!img) return;
 	if(!(*img) ) return;
 
@@ -261,10 +299,21 @@ void tmReleaseImage(IplImage ** img) {
 	for(int i = 0; found<0 && i<g_max_iplimg_usage; i++) {
 		if(g_iplimg_usage_tab[i].img_ptr == *img) {
 			found = i;
-			g_iplimg_usage_tab[i].img_ptr = NULL;
-			g_iplimg_usage_tab[i].ram_size = 0;
+			fprintf(stderr, "[imgutils] %s:%d clear img [%d] %dx%dx%d "
+					"allocated at [%s] %s:%d\n",
+					__func__, __LINE__, i,
+					(*img)->width, (*img)->height, (*img)->nChannels,
+					g_iplimg_usage_tab[i].file, g_iplimg_usage_tab[i].func, g_iplimg_usage_tab[i].line);
+			memset(&g_iplimg_usage_tab[i], 0, sizeof(t_iplimage_usage));
+
 			g_iplimg_usage_total_ram -= (*img)->widthStep * (*img)->height;
 		}
+	}
+
+	if(found<0) {
+		fprintf(stderr, "[imgutils] %s:%d : could not find where image has been allocated ! %dx%dx%d",
+				__func__, __LINE__,
+				(*img)->width, (*img)->height, (*img)->nChannels );
 	}
 
 	if( !(*img)->imageData ) return;
@@ -438,11 +487,13 @@ void tmCloseImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations
 
 void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
 	if(displayDiffImage) {
-		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage=%p %dx%d => %p %dx%d\n",
+		if(g_debug_imgverbose) {
+			fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage=%p %dx%d => %p %dx%d\n",
 				__func__, __LINE__,
 				diffImage, diffImage->width, diffImage->height,
 				displayDiffImage, displayDiffImage->width, displayDiffImage->height
 				);
+		}
 		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
 		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
 		int r_disp = 0;
@@ -484,7 +535,9 @@ void tmScaleMax(IplImage * diffImage, IplImage * displayDiffImage) {
 
 void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage) {
 	if(displayDiffImage) {
-		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		if(g_debug_imgverbose) {
+			fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		}
 		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
 		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
 		int r_disp = 0;
@@ -524,10 +577,13 @@ void tmScaleMin(IplImage * diffImage, IplImage * displayDiffImage) {
 
 void tmScaleMean(IplImage * diffImage, IplImage * displayDiffImage) {
 	if(displayDiffImage) {
-		fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		if(g_debug_imgverbose) {
+			fprintf(stderr, "[ImgUtils] %s:%d : downscale diffImage", __func__, __LINE__);
+		}
 		float scale_y = (float)diffImage->height / (float)displayDiffImage->height;
 		float scale_x = (float)diffImage->width / (float)displayDiffImage->width;
 		int r_disp = 0;
+
 		for(float f_r=0;f_r<diffImage->height
 					&& r_disp<displayDiffImage->height; f_r+=scale_y, r_disp++) {
 			int rmin = (int)f_r;

@@ -1,3 +1,9 @@
+tamanoir (1.svn20100308-1) unstable; urgency=low
+
+  * Many improvements in GUI and dust detection 
+
+ -- Christophe Seyve <cseyve@free.fr>  Mon, 8 Mar 2010 18:35:00 +0200
+
 tamanoir (0.svn20091207-1) unstable; urgency=low
 
   * Added inpainting tool and full auto correction mode

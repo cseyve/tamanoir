@@ -197,10 +197,21 @@ void tmPrintProperties(IplImage * img);
 int tmByteDepth(IplImage * iplImage);
 
 /** @brief Create an IplImage width OpenCV's cvCreateImage and clear buffer */
-IplImage * tmCreateImage(CvSize size, int depth, int channels);
+#define tmCreateImage(_size, _depth, _channels) \
+	subCreateImage(__FILE__, __func__, __LINE__, (_size), (_depth), (_channels))
+
+
+/** @brief Create an IplImage width OpenCV's cvCreateImage and clear buffer */
+IplImage * subCreateImage(const char * file, const char * func, int line,
+						  CvSize size, int depth, int channels);
+
+	/** @brief Release an image and clear pointer */
+#define tmReleaseImage(_img) \
+	subReleaseImage(__FILE__, __func__, __LINE__, (_img))
 
 /** @brief Release an image and clear pointer */
-void tmReleaseImage(IplImage ** img);
+void subReleaseImage(const char * file, const char * func, int line,
+					 IplImage ** img);
 
 /** @brief print the list of allocated IplImage */
 void tmPrintIplImages();

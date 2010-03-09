@@ -18,5 +18,6 @@
         <file>icon/help-about.png</file>
         <file>icon/input-keyboard.png</file>
         <file>icon/view-fullscreen.png</file>
+        <file>icon/tools-wizard.png</file>
     </qresource>
 </RCC>

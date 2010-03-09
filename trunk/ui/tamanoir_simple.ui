@@ -1082,10 +1082,17 @@
     <addaction name="actionPreferences"/>
     <addaction name="actionFull_screen"/>
     <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>?</string>
+    </property>
     <addaction name="actionAbout"/>
     <addaction name="actionShortcuts"/>
+    <addaction name="actionTutorial"/>
    </widget>
    <addaction name="menuOptions"/>
+   <addaction name="menu"/>
   </widget>
   <action name="Left">
    <property name="text">
@@ -1140,6 +1147,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionTutorial">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/tools-wizard.png</normaloff>:/icon/tools-wizard.png</iconset>
+   </property>
+   <property name="text">
+    <string>Tutorial</string>
+   </property>
+   <property name="toolTip">
+    <string>Tutorial for efficient use of Tamanoir</string>
    </property>
   </action>
  </widget>

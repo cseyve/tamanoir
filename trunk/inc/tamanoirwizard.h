@@ -1,11 +1,10 @@
 /***************************************************************************
- *            prefsdialog.h
+ *            tamanoir.h
  *
- *  Thu Jun 18 23:47:41 2009
- *  Copyright  2007  Christophe Seyve
+ *  Tue 9 22:47:41 2010
+ *  Copyright  2010  Christophe Seyve
  *  Email cseyve@free.fr
  ****************************************************************************/
-
 /*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,23 +21,28 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef PREFSDIALOG_H
-#define PREFSDIALOG_H
+#ifndef TAMANOIRWIZARD_H
+#define TAMANOIRWIZARD_H
 
-#include "ui_prefsdialog.h"
+#include <QWizard>
 
-class PrefsDialog : public QDialog, private Ui::PrefsDialog
-{
-	Q_OBJECT
+namespace Ui {
+    class TamanoirWizard;
+}
 
+class TamanoirWizard : public QWizard {
+    Q_OBJECT
 public:
-	PrefsDialog(QWidget *parent = 0);
+    TamanoirWizard(QWidget *parent = 0);
+    ~TamanoirWizard();
 
+protected:
+    void changeEvent(QEvent *e);
+
+private:
+    Ui::TamanoirWizard *ui;
 private slots:
-	void on_styleComboBox_activated(const QString & str);
-	void on_hideAutoCheckBox_toggled(bool on);
-	void on_exportLayerCheckBox_toggled(bool on);
+	void on_showCheckBox_toggled(bool);
 };
 
-
-#endif // PREFSDIALOG_H
+#endif // TAMANOIRWIZARD_H
