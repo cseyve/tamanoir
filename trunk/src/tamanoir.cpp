@@ -93,7 +93,7 @@ u8 g_debug_displaylabel = 1;
 #define TMAPP_TIMEOUT	1000
 
 /// Debug management of skipped/known dusts
-u8 g_debug_list = 1;
+u8 g_debug_list = 0;
 
 /** constructor */
 TamanoirApp::TamanoirApp(QWidget * l_parent)
@@ -412,8 +412,6 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 			// update display for current dust
 			// First check if a new dust if available
-			m_current_dust = m_pProcThread->getCorrection();
-
 			updateDisplay();
 
 			QFileInfo fi(m_currentFile);
@@ -481,17 +479,17 @@ void TamanoirApp::on_refreshTimer_timeout() {
 										   );
 						QString fileDpiStr;
 						fileDpiStr.sprintf("%d dpi", l_options.dpi);
-						QPushButton *fileDpiButton = msgBox.addButton(fileDpiStr, QMessageBox::ActionRole);
+						msgBox.addButton(fileDpiStr, QMessageBox::ActionRole);
 						if(g_options.dpi != l_options.dpi) {
 							QString optDpiStr;
 							optDpiStr.sprintf("%d dpi", g_options.dpi);
-							QPushButton *optDpiButton = msgBox.addButton(optDpiStr, QMessageBox::ActionRole);
+							msgBox.addButton(optDpiStr, QMessageBox::ActionRole);
 						}
 						if(guess_dpi != l_options.dpi
 						   && guess_dpi != g_options.dpi ) {
 							QString guessDpiStr;
 							guessDpiStr.sprintf("%d dpi", guess_dpi);
-							QPushButton *guessDpiButton = msgBox.addButton(guessDpiStr, QMessageBox::ActionRole);
+							msgBox.addButton(guessDpiStr, QMessageBox::ActionRole);
 						}
 
 						// Propose resolutions
@@ -2019,6 +2017,9 @@ void TamanoirApp::on_autoButton_clicked()
 
 		connect(m_pProgressDialog, SIGNAL(canceled()), this, SLOT(on_m_pProgressDialog_canceled()));
 	}
+
+
+
 	m_pProgressDialog->setValue(0);
 	m_pProgressDialog->show();
 	m_pProgressDialog->update();
@@ -2026,10 +2027,11 @@ void TamanoirApp::on_autoButton_clicked()
 	statusBar()->showMessage(tr("Auto-correct running... please wait."));
 	statusBar()->update();
 
-
+	// Lock control panel
 	lockTools(true);
 
-	/*if(logfile == stderr) {
+	TMAPP_printf(TMLOG_INFO, "Launch AUTO MODE processing...")
+	lockTools(true);
 		char logfilename[512] = TMP_DIRECTORY "tamanoir.txt";
 
 		QFileInfo fi(m_currentFile);
@@ -2046,7 +2048,6 @@ void TamanoirApp::on_autoButton_clicked()
 			fprintf(stderr, "TamanoirApp::%s:%d : Logging messages in '%s'\n", __func__, __LINE__,
 				logfilename);
 		}
-		} else */
 	{
 		g_debug_imgverbose = 0;
 	}
@@ -2056,7 +2057,7 @@ void TamanoirApp::on_autoButton_clicked()
 
 	TMAPP_printf(TMLOG_INFO, "RUN AUTO MODE RUNNING")
 
-			// Apply previous correction
+	// cancel previous correction
 	if(m_pProcThread) {
 		m_pProcThread->setModeAuto(true);
 		refreshTimer.start(TMAPP_TIMEOUT);
