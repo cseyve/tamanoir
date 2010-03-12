@@ -805,7 +805,6 @@ int TamanoirImgProc::preProcessImage() {
 	if(!m_preproc_status.median_done) {
 		TMIMG_printf(TMLOG_DEBUG, "Process median filter")
 		processMedian();
-
 		m_preproc_status.median_done = 1;
 	}
 	m_progress = 45;

@@ -40,6 +40,7 @@
 
 
 FILE * logfile = stderr;
+u8 g_debug_alloc = 0;
 
 extern u8 g_debug_imgverbose;
 
@@ -222,7 +223,8 @@ IplImage * subCreateImage(const char * file, const char * func, int line,
 					old_max_iplimg_usage, g_max_iplimg_usage );
 			for(int sp=0; sp<old_max_iplimg_usage; sp++) {
 				if(g_iplimg_usage_tab[sp].img_ptr != NULL ) {
-					fprintf(stderr, "\t[%d]\t%dx%dx%d @ [%s] %s:%d\n",
+					if(g_debug_alloc) {
+						fprintf(stderr, "\t[%d]\t%dx%dx%d @ [%s] %s:%d\n",
 							sp,
 							g_iplimg_usage_tab[sp].img_ptr->width,
 							g_iplimg_usage_tab[sp].img_ptr->height,
@@ -231,6 +233,7 @@ IplImage * subCreateImage(const char * file, const char * func, int line,
 							g_iplimg_usage_tab[sp].func,
 							g_iplimg_usage_tab[sp].line
 							);
+					}
 				}
 			}
 
@@ -248,11 +251,11 @@ IplImage * subCreateImage(const char * file, const char * func, int line,
 	}
 
 
-	/*
-	fprintf(stderr, "[utils] %s:%d : creating IplImage : %dx%d x depth=%d x channels=%d\n",
+	if(g_debug_alloc) {
+		fprintf(stderr, "[utils] %s:%d : creating IplImage : %dx%d x depth=%d x channels=%d\n",
 			__func__, __LINE__,
 			size.width, size.height, depth, channels);
-	*/
+	}
 	IplImage * img = cvCreateImage(size, depth, channels);
 	if(img) {
 		g_iplimg_usage_tab[usage_space].img_ptr = img;
@@ -299,11 +302,13 @@ void subReleaseImage(const char * file, const char * func, int line,
 	for(int i = 0; found<0 && i<g_max_iplimg_usage; i++) {
 		if(g_iplimg_usage_tab[i].img_ptr == *img) {
 			found = i;
-			fprintf(stderr, "[imgutils] %s:%d clear img [%d] %dx%dx%d "
+			if(g_debug_alloc) {
+				fprintf(stderr, "[imgutils] %s:%d clear img [%d] %dx%dx%d "
 					"allocated at [%s] %s:%d\n",
 					__func__, __LINE__, i,
 					(*img)->width, (*img)->height, (*img)->nChannels,
 					g_iplimg_usage_tab[i].file, g_iplimg_usage_tab[i].func, g_iplimg_usage_tab[i].line);
+			}
 			memset(&g_iplimg_usage_tab[i], 0, sizeof(t_iplimage_usage));
 
 			g_iplimg_usage_total_ram -= (*img)->widthStep * (*img)->height;
