@@ -18,7 +18,7 @@ You need :
 ==Qt4 + QtCreator==
 
 Easiest way : download 
-Download : http://www.qtsoftware.com/downloads
+Download : http://.qt.nokia.com/ download LGPL
 Then install
 
 ----
@@ -31,6 +31,12 @@ Then install
 Download patched version for 16bit support : [http://cseyve.free.fr/Vision/download/opencv-tiff16bit.tar.bz2]
 
 I don't now how to compile it for Windows.
+
+----
+== LibTIFF for Windows ==
+
+Download setup version 
+http://gnuwin32.sourceforge.net/packages/tiff-win32.htm
 
 ----
 == Tamanoir ==
