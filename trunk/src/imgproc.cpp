@@ -79,11 +79,11 @@ u8 g_debug_TamanoirImgProc = TMLOG_INFO;
 #define TMIMG_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirImgProc ) { \
 					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
-					fprintf(stderr,"%d.%03d %s [TmImgProc]::%s:%d : ", \
+					fprintf(logfile,"%d.%03d %s [TmImgProc]::%s:%d : ", \
 							(int)(l_nowtv.tv_sec % 1000), (int)(l_nowtv.tv_usec/1000), \
 							TMLOG_MSG((a)), __func__,__LINE__); \
-					fprintf(stderr,__VA_ARGS__); \
-					fprintf(stderr,"\n"); \
+					fprintf(logfile,__VA_ARGS__); \
+					fprintf(logfile,"\n"); \
 			} \
 	}
 #define PURGE_SIZECHANGED(_img, _size) if((_img) && \
@@ -1118,8 +1118,8 @@ int TamanoirImgProc::preProcessImage() {
 
 	m_threshold = m_options.sensitivity;
 
-	float dwsc_x = (float)m_dwsc_diffImage->width / (float)diffImage->width;
-	float dwsc_y = (float)m_dwsc_diffImage->height / (float)diffImage->height;
+//	float dwsc_x = (float)m_dwsc_diffImage->width / (float)diffImage->width;
+//	float dwsc_y = (float)m_dwsc_diffImage->height / (float)diffImage->height;
 
 	// Threshold diff image
 	for(int r=0;r<height; r++) {
@@ -1146,11 +1146,11 @@ int TamanoirImgProc::preProcessImage() {
 			}
 		}
 	}
-        if(m_abortLoading) { // check if we need to abort this processing
-                TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
-                m_lock = false;
-                return TMIMG_ERR_ABORT;
-        }
+	if(m_abortLoading) { // check if we need to abort this processing
+		TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
+		m_lock = false;
+		return TMIMG_ERR_ABORT;
+	}
 #endif
 	TMIMG_save("diffImage", diffImage)
 	m_progress = 70;
@@ -1159,8 +1159,8 @@ int TamanoirImgProc::preProcessImage() {
 	if(1) {
 		tmCloseImage(diffImage, medianImage, grayImage, 1);
 
-			// For debug, save image in temporary directory
-			if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-closed" IMG_EXTENSION, medianImage);
+		// For debug, save image in temporary directory
+		if(g_debug_savetmp) tmSaveImage(TMP_DIRECTORY "diffImage-closed" IMG_EXTENSION, medianImage);
 		cvCopy(medianImage, diffImage);
 	}
 
@@ -1221,6 +1221,10 @@ int TamanoirImgProc::preProcessImage() {
 
 
 void TamanoirImgProc::processDownscaledAnalysis() {
+	if(!g_debug_dwsc) {
+
+		return;
+	}
 
 	// Downscale eroded and dilates images to have the "summary" of image and dusts positions
 	m_downscale_factor = 4 * m_smooth_size;
@@ -1751,7 +1755,7 @@ int TamanoirImgProc::setOptions(tm_options opt) {
 		while(m_lock) {
 			m_abortLoading = true;
 			// Wait for unlock
-			sleep(1); TMIMG_printf(TMLOG_DEBUG, "Wait for unlock...")
+			tmsleep(1); TMIMG_printf(TMLOG_DEBUG, "Wait for unlock...")
 		}
 		m_abortLoading = false;
 		if(!m_preproc_status.preproc_done) {
@@ -2591,8 +2595,8 @@ int TamanoirImgProc::findDust(int x, int y,
 				// check the source and the destination
 				// are in the same extended grown region,
 				// (tree branch, building edge...)
-		// FIXME : improve this connection search
-		m_dust_detection_props.src_not_connected_to_dest = is_a_dust =
+				// FIXME : improve this connection search
+				m_dust_detection_props.src_not_connected_to_dest = is_a_dust =
 							srcNotConnectedToDest(pcorrection);
 
 /* CROPPED IMAGES :
@@ -2873,7 +2877,9 @@ int TamanoirImgProc::findDust(int x, int y,
 		// Clear grown region with neutral mask
 		tmEraseRegion( growImage, diffImage,
 			x, y,
-			255 );
+			255,
+			DIFF_NOT_DUST
+			);
 	}
 
 	MUTEX_UNLOCK(&mutex);
@@ -3750,6 +3756,18 @@ bool TamanoirImgProc::dilateDust(
 			m_dust_detection_props.contrast = contrast;
 
 			m_dust_detection_props.visible_enough = 0;
+
+			if(force_search) {
+				if(g_debug_dust_seek) {
+					fprintf(stderr, "%s:%d\t ===> is a dust = %c dust=%g / neigh=%g |diff=%g| > 10 ?/ C=%g >0.2\n",
+						__func__, __LINE__,
+							(is_a_dust ? 'T' : 'F'),
+							sum_dust, sum_neighbour,
+							fabsf(sum_dust-sum_neighbour),
+							contrast
+							);
+				}
+			}
 
 			// test if colour is different enough
 			switch(m_options.filmType) {

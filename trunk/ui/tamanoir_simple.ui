@@ -943,11 +943,11 @@
             </item>
             <item>
              <widget class="QCheckBox" name="searchCloneSrcCheckBox">
-              <property name="maximumSize">
-               <size>
-                <width>80</width>
-                <height>16777215</height>
-               </size>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
               <property name="toolTip">
                <string>Search for clone source (S)</string>

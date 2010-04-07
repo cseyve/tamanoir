@@ -20,9 +20,13 @@ OBJECTS_DIR = .obj-simple
 DEFINES += SIMPLE_VIEW \
     QT3_SUPPORT
 CONFIG += qt \
-    warn_on \
-    build_all \
-    release
+    warn_on
+
+win32: {
+    CONFIG += debug_and_release
+    OBJECTS_DIR = obj
+    MOC_DIR = moc
+}
 TRANSLATIONS = tamanoir_French.ts
 
 # icon
@@ -75,17 +79,29 @@ message( "Installation directory = $(PWD) ")
 LIBS = 
 DYN_LIBS = 
 STATIC_LIBS = 
+
 win32: { 
     message("Win32 specific paths : OpenCV must be installed in C:\Program Files\OpenCV")
     INCLUDEPATH += "C:\Program Files\OpenCV\cxcore\include"
     INCLUDEPATH += "C:\Program Files\OpenCV\cv\include"
     INCLUDEPATH += "C:\Program Files\OpenCV\cvaux\include"
     INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
+    INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
+
     DYN_LIBS += -L"C:\Program Files\OpenCV\lib" \
         -L"C:\Program Files\OpenCV\bin" \
         -lcxcore \
         -lcv
+    exists("C:\Program Files\GnuWin32\include\tiffio.h" ) {
+        INCLUDEPATH += "C:\Program Files\GnuWin32\include"
+        DYN_LIBS += -L"C:\Program Files\GnuWin32\lib" \
+            -ltiff
+        SOURCES += src/cv2tiff.cpp
+        DEFINES += HAVE_LIBTIFF
+        STATIC_LIBS += "C:\Program Files\GnuWin32\lib\libtiff.a"
+    }
 }
+
 unix: { 
     # Test if OpenCV library is present
     OPENCV_STATIC_LIBDIR = 
@@ -256,8 +272,8 @@ unix::DEFINES += VERSION_YY="`date +%Y`" \
     VERSION_MM="`date +%m | sed 's/0//'`" \
     VERSION_DD="`date +%d | sed 's/0//'`" \
     __LINUX__
-win32:DEFINES += VERSION_YY="2009" \
-    VERSION_MM="10" \
+win32:DEFINES += VERSION_YY="2010" \
+	VERSION_MM="03" \
     VERSION_DD="13"
 
 # linux-g++::CONFIG += debug_and_release

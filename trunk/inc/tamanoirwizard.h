@@ -1,5 +1,5 @@
 /***************************************************************************
- *            tamanoir.h
+ *            tamanoirwizard.h
  *
  *  Tue 9 22:47:41 2010
  *  Copyright  2010  Christophe Seyve

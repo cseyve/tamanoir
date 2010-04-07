@@ -231,7 +231,6 @@ private slots:
 	void on_loadButton_clicked();
 	void on_saveButton_clicked();
 
-	void on_aboutButton_clicked();
 
 	void on_actionFull_screen_activated();
 	void on_actionAbout_activated();
