@@ -63,7 +63,7 @@ typedef pthread_mutex_t Mutex_t;
 typedef HANDLE Mutex_t;
 #define MUTEX_INIT(m)	{ *m = CreateMutex(NULL, FALSE, NULL); }
 #define MUTEX_LOCK(m)	{ WaitForSingleObject( *(m), INFINITE ); }
-#define MUTEX_UNLOCK(m)	ReleaseMutex(*(m))
+#define MUTEX_UNLOCK(m)	{ ReleaseMutex(*(m)); }
 #endif
 
 // For Open CV Functions
@@ -96,7 +96,7 @@ typedef HANDLE Mutex_t;
 #define TMP_DIRECTORY	"c:/temp/"
 #define IMG_EXTENSION	".jpg"
 #else // MacOS X
-#define TMP_DIRECTORY	"/Users/tof/tmp/"
+#define TMP_DIRECTORY	"/sw/tmp/"
 #define IMG_EXTENSION	".jpg"
 #endif
 #endif
@@ -271,7 +271,7 @@ void tmEraseRegion(
 	IplImage * diffImage,
 	int c, int r,
 	unsigned char fillValue_grown,
-	unsigned char fillValue_diff = DIFF_NOT_DUST
+	unsigned char fillValue_diff
 	);
 
 /** @brief Crop an IplImage around a point in another IplImage

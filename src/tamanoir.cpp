@@ -57,30 +57,74 @@ u8 g_debug_TmThread = TMLOG_INFO;
 
 /// Debug level for Tamanoir GUI
 u8 g_debug_TamanoirApp = TMLOG_INFO;
+u8 g_debug_TamanoirThread = TMLOG_DEBUG;
 
+
+#ifdef WIN32
+// NTFS/FAT is not protected against multiple write, so we use a mutex to lock printf
+static Mutex_t * logfile_mutex = NULL;
 #define TMAPP_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirApp ) { \
+					if(!logfile_mutex) { \
+						logfile_mutex = new Mutex_t; \
+						MUTEX_INIT(logfile_mutex) \
+					} \
+					MUTEX_LOCK(logfile_mutex) \
 					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
-                                        fprintf(stderr,"%03d.%03d %s [TmApp]::%s:%d : ", \
-                                                        (int)(l_nowtv.tv_sec%1000), (int)(l_nowtv.tv_usec/1000), \
+					fprintf(logfile,"%03d.%03d %s [TmApp]::%s:%d : ", \
+							(int)(l_nowtv.tv_sec%1000), (int)(l_nowtv.tv_usec/1000), \
 							TMLOG_MSG((a)), __func__,__LINE__); \
-					fprintf(stderr,__VA_ARGS__); \
-					fprintf(stderr,"\n"); \
+					fprintf(logfile,__VA_ARGS__); \
+					fprintf(logfile,"\n"); \
+					fflush(logfile); \
+					MUTEX_UNLOCK(logfile_mutex) \
 			} \
 	}
 
-u8 g_debug_TamanoirThread = TMLOG_DEBUG;
+
+#define TMTHR_printf(a,...)       { \
+			if( (a)<=g_debug_TamanoirThread ) { \
+					if(!logfile_mutex) { \
+						logfile_mutex = new Mutex_t; \
+						MUTEX_INIT(logfile_mutex) \
+					} \
+					MUTEX_LOCK(logfile_mutex) \
+					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
+					fprintf(logfile,"%d.%03d %s [TmThread]::%s:%d : ", \
+							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
+							TMLOG_MSG((a)), __func__,__LINE__); \
+					fprintf(logfile,__VA_ARGS__); \
+					fprintf(logfile,"\n"); \
+					fflush(logfile); \
+					MUTEX_UNLOCK(logfile_mutex) \
+			} \
+	}
+#else // not WIN32 = MacOS X and Linux : protected filesystem, no nee for Mutex
+#define TMAPP_printf(a,...)       { \
+			if( (a)<=g_debug_TamanoirApp ) { \
+					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
+					fprintf(logfile,"%03d.%03d %s [TmApp]::%s:%d : ", \
+							(int)(l_nowtv.tv_sec%1000), (int)(l_nowtv.tv_usec/1000), \
+							TMLOG_MSG((a)), __func__,__LINE__); \
+					fprintf(logfile,__VA_ARGS__); \
+					fprintf(logfile,"\n"); \
+					fflush(logfile); \
+			} \
+	}
+
 
 #define TMTHR_printf(a,...)       { \
 			if( (a)<=g_debug_TamanoirThread ) { \
 					struct timeval l_nowtv; gettimeofday (&l_nowtv, NULL); \
-					fprintf(stderr,"%d.%03d %s [TmThread]::%s:%d : ", \
+					fprintf(logfile,"%d.%03d %s [TmThread]::%s:%d : ", \
 							(int)(l_nowtv.tv_sec), (int)(l_nowtv.tv_usec/1000), \
 							TMLOG_MSG((a)), __func__,__LINE__); \
-					fprintf(stderr,__VA_ARGS__); \
-					fprintf(stderr,"\n"); \
+					fprintf(logfile,__VA_ARGS__); \
+					fprintf(logfile,"\n"); \
+					fflush(logfile); \
 			} \
 	}
+#endif
 
 
 #ifdef SIMPLE_VIEW
@@ -99,9 +143,12 @@ u8 g_debug_list = 0;
 TamanoirApp::TamanoirApp(QWidget * l_parent)
 	: QMainWindow(l_parent)
 {
-	fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
+#ifdef WIN32
+	logfile = fopen("tamanoir.log", "w");
+#endif
+	fprintf(logfile, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	statusBar()->showMessage( QString("") );
-		m_fileDialog = NULL;
+	m_fileDialog = NULL;
 	m_pImgProc = NULL;
 	m_pProcThread = NULL;
 	m_pProgressDialog = NULL;
@@ -118,11 +165,11 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	memset(&m_current_dust, 0, sizeof(t_correction));
 
 	QString homeDirStr = QString("/home/");
-	if(getenv("HOME"))
+	if(getenv("HOME")) {
 		homeDirStr = QString(getenv("HOME"));
-
-
-	strcpy(g_display_options.currentDir, homeDirStr.ascii());
+	}
+	QByteArray homedir_utf8 = homeDirStr.toUtf8();
+	strcpy(g_display_options.currentDir, homedir_utf8.data());
 
 	ui.setupUi((QMainWindow *)this);
 	ui.infoFrame->hide();
@@ -189,8 +236,34 @@ void TamanoirApp::purge() {
 	}
 }
 
+QSplashScreen * g_splash = NULL;
+
 void TamanoirApp::on_actionAbout_activated() {
-	on_aboutButton_clicked();
+	QDir dir(g_application_path);
+	QPixmap pix(":/icon/tamanoir_about.png");
+	if(g_splash) {
+		g_splash->setPixmap(pix);
+	}
+	else {
+		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
+	}
+
+
+	QString verstr, cmd = QString("Ctrl+");
+	QString item = QString("<li>"), itend = QString("</li>\n");
+	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
+						  + verstr.sprintf("svn%04d%02d%02d", VERSION_YY, VERSION_MM, VERSION_DD)
+
+						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
+						  + tr("Developer: ") + QString("C. Seyve - ")
+						  + tr("Artist: ") + QString("M. Lecarme<br><br>")
+							);
+	repaint();// to force display of splash
+
+	g_splash->show();
+	g_splash->raise(); // for full screen mode
+	g_splash->update();
+
 }
 
 void TamanoirApp::on_actionTutorial_activated() {
@@ -203,7 +276,6 @@ void TamanoirApp::on_actionFull_screen_activated() {
 	on_fullScreenButton_clicked();
 }
 
-QSplashScreen * g_splash = NULL;
 
 void TamanoirApp::on_actionShortcuts_activated() {
 	QDir dir(g_application_path);
@@ -248,33 +320,6 @@ void TamanoirApp::on_actionPreferences_activated() {
 	widget->show();
 }
 
-
-void TamanoirApp::on_aboutButton_clicked() {
-	QDir dir(g_application_path);
-	QPixmap pix(":/icon/tamanoir_about.png");
-	if(g_splash) {
-		g_splash->setPixmap(pix);
-	}
-	else {
-		g_splash = new QSplashScreen(pix, Qt::WindowStaysOnTopHint );
-	}
-
-
-	QString verstr, cmd = QString("Ctrl+");
-	QString item = QString("<li>"), itend = QString("</li>\n");
-	g_splash->showMessage(tr("<b>Tamanoir</b> version: ")
-						  + verstr.sprintf("svn%04d%02d%02d", VERSION_YY, VERSION_MM, VERSION_DD)
-
-						  + QString("<br>Website: <a href=\"http://tamanoir.googlecode.com/\">http://tamanoir.googlecode.com/</a><br><br>")
-						  + tr("Developer: ") + QString("C. Seyve - ")
-						  + tr("Artist: ") + QString("M. Lecarme<br><br>")
-							);
-	repaint();// to force display of splash
-
-	g_splash->show();
-	g_splash->raise(); // for full screen mode
-	g_splash->update();
-}
 
 void TamanoirApp::on_fullScreenButton_clicked() {
 	if(	!isFullScreen()) {
@@ -378,11 +423,28 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				// File is loaded
 				refreshMainDisplay();
 
+				// Check if input image is 16bit, disable the Inpaint button
+				if(m_pImgProc->getOriginal() &&
+				   m_pImgProc->getOriginal()->depth != IPL_DEPTH_8U) {
+					ui.inpaintButton->setEnabled(false);
+				} else {
+					ui.inpaintButton->setEnabled(true);
+				}
+
 				// then update cropped
 				updateDisplay();
 				break;
 			case PROTH_PREPROC:
 				// File is loaded and preproc
+
+				// Check if input image is 16bit, disable the Inpaint button
+				if(m_pImgProc->getOriginal() &&
+						m_pImgProc->getOriginal()->depth != IPL_DEPTH_8U) {
+					ui.inpaintButton->setEnabled(false);
+				} else {
+					ui.inpaintButton->setEnabled(true);
+				}
+
 				// refresh main because we may have missed the end of load
 				refreshMainDisplay();
 				// then update cropped
@@ -498,10 +560,10 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						// Read user's choice
 						QString answerStr = msgBox.clickedButton()->text();
 						TMAPP_printf(TMLOG_INFO, "answer='%s'",
-									 answerStr.ascii())
+									 answerStr.toUtf8().data())
 
 						int dpi = 2400;
-						if(sscanf(answerStr.ascii(), "%d", &dpi) == 1)
+						if(sscanf(answerStr.toUtf8().data(), "%d", &dpi) == 1)
 						{
 							l_options.dpi = dpi;
 
@@ -552,13 +614,15 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 				m_pProcThread->runPreProcessing();
 			}
-			else
-			if(m_curCommand == PROTH_PREPROC) {
+			else if(m_curCommand == PROTH_PREPROC) {
 				ui.overAllProgressBar->setValue(0);
 
-				TMAPP_printf(TMLOG_INFO, "PRE-PROCESSING FINISHED ! "
-						 "m_curCommand=%d m_pProcThread=%d\n",
+				TMAPP_printf(TMLOG_DEBUG, "PRE-PROCESSING FINISHED ! "
+						 "m_curCommand=%d m_pProcThread=%d",
 						 m_curCommand, m_pProcThread->getCommand())
+
+				m_current_dust.crop_width = 0;// to prevent from removing the first dust
+				on_skipButton_clicked();
 			}
 
 /*			//
@@ -970,8 +1034,6 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
-
-
 	if(e && m_pProcThread && m_pImgProc) {
 		int dist_to_border = 100;
 
@@ -1064,11 +1126,11 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				}
 
 				if(!m_draw_on) {
-					if(is_src_selected)// use hand for source
+					if(is_src_selected) { // use hand for source
 						ui.cropPixmapLabel->setCursor( Qt::ClosedHandCursor );
-					else // and cross for dest
+					} else { // and cross for dest
 						ui.cropPixmapLabel->setCursor( Qt::CrossCursor );
-
+					}
 				}
 			}
 
@@ -1090,14 +1152,15 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				}
 
 			} else {
-				// Move dest
-				m_current_dust.rel_dest_x = m_current_dust.rel_seed_x = e->pos().x();
-				m_current_dust.rel_dest_y = m_current_dust.rel_seed_y = e->pos().y();
 
 				if(m_draw_on == TMMODE_CLONE) {
+
 					/** No search when we click = click=apply clone **/
 					m_pImgProc->applyCorrection(m_current_dust, true);
 				} else {
+					// Move dest only if not in search mode
+					m_current_dust.rel_dest_x = m_current_dust.rel_seed_x = e->pos().x();
+					m_current_dust.rel_dest_y = m_current_dust.rel_seed_y = e->pos().y();
 					// draw in inpainting mask
 					m_pImgProc->lockInpaintDrawing(true);
 					m_pImgProc->drawInpaintCircle(m_current_dust);
@@ -1418,9 +1481,10 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 			} else {
 				QFileInfo fi(argv[arg]);
 				if(fi.exists()) {
-					if( loadFile( argv[arg] ) >= 0)
+					if( loadFile( argv[arg] ) >= 0) {
 						// don't open the file
 						open_load_dialog = false;
+					}
 				}
 			}
 
@@ -1442,16 +1506,17 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 
 
 int TamanoirApp::loadFile(QString s) {
-	if(m_fileDialog) {
+	if(m_fileDialog) { // Hide dialoag
 		m_fileDialog->hide();
 		m_fileDialog->close();
-
-		//delete m_fileDialog;
 	}
 
 	QFileInfo fi(s);
-	if(!fi.exists())
+	if(!fi.exists()) {
+		TMAPP_printf(TMLOG_ERROR, "File '%s' does not exists",
+					 s.toUtf8().constData())
 		return -1;
+	}
 	ui.loadingTextLabel->setText(tr("Loading ") + s + " ...");
 	show();
 
@@ -1460,8 +1525,10 @@ int TamanoirApp::loadFile(QString s) {
 	statusBar()->update();
 
 	m_currentFile = s;
+	QByteArray homedir_utf8 = fi.absolutePath().toUtf8();
+	strcpy(g_display_options.currentDir, homedir_utf8.data());
 
-	strcpy(g_display_options.currentDir, fi.absolutePath().ascii());
+	// save current options to load next time from the same dircetory
 	saveOptions();
 
 	// Clear known dusts list
@@ -1469,9 +1536,7 @@ int TamanoirApp::loadFile(QString s) {
 	skipped_list.clear();
 
 
-
-	fprintf(stderr, "TamanoirApp::%s:%d : file='%s'...\n",
-		__func__, __LINE__, s.latin1());
+	TMAPP_printf(TMLOG_INFO, "loading file='%s'...\n", s.toUtf8().data())
 	// Open file
 	if(!m_pImgProc) {
 		m_pImgProc = new TamanoirImgProc( ui.cropPixmapLabel->width() -2,
@@ -1479,31 +1544,29 @@ int TamanoirApp::loadFile(QString s) {
 
 		refreshMainDisplay();
 
-	/*	m_pImgProc->setHotPixelsFilter(m_options.hotPixels);
-		m_pImgProc->setTrustCorrection(m_options.trust);
-		m_pImgProc->setResolution(m_options.dpi);
-		m_pImgProc->setFilmType(m_options.filmType);*/
 		m_pImgProc->setOptions(g_options);
 	}
 
-	if(!m_pProcThread) {
+	if(!m_pProcThread) { // Create background processing thread
 		m_pProcThread = new TamanoirThread(m_pImgProc);
 	}
 
 
+	// Use background thread to load the file without locking the GUI
 	int ret = m_pProcThread->loadFile( s );
 	if(ret < 0) {
-
 		QMessageBox::critical( 0, tr("Tamanoir"),
 			tr("Cannot load file ") + s + tr(". Format or compression is not compatible"));
 
 		return -1;
 	}
+
 	m_curCommand = PROTH_LOAD_FILE;
 
 	// Lock tool frame
 	lockTools(true);
 
+	// Refresh timer while loading
 	refreshTimer.start(TMAPP_TIMEOUT);
 
 	return 0;
@@ -1514,7 +1577,6 @@ void TamanoirApp::lockTools(bool lock) {
 	ui.cropGroupBox->setDisabled(lock);
 	ui.dustGroupBox->setDisabled(lock);
 	ui.toolFrame->setDisabled(lock);
-	//ui.loadButton->setEnabled(lock);
 	ui.saveButton->setDisabled(lock);
 }
 
@@ -1580,9 +1642,9 @@ void TamanoirApp::on_saveButton_clicked()
 			fprintf(stderr, "TmApp::%s:%d saving mask %p as '%s'",
 					__func__, __LINE__,
 					maskImg,
-					pathmask.ascii());
+					pathmask.toUtf8().data());
 			if(maskImg) {
-				tmSaveImage(pathmask.ascii(), maskImg);
+				tmSaveImage(pathmask.toUtf8().data(), maskImg);
 			}
 		}
 	}
@@ -1631,19 +1693,25 @@ void fprintfDisplayOptions(FILE * f, tm_display_options * p_options) {
 	fflush(f);
 }
 
-
+extern QString g_application_path;
 int TamanoirApp::loadOptions() {
 	//
+	QString optionsPath = g_application_path;
 	char homedir[512] = ".";
 	if(getenv("HOME")) {
 		strcpy(homedir, getenv("HOME"));
+		optionsPath = QString(homedir);
 	}
-	optionsFile = QString(homedir) + QString("/.tamanoirrc");
-
+#ifndef WIN32
+	optionsFile =  optionsPath + QString("/.tamanoirrc");
+#else
+	optionsFile =  optionsPath + QString("/tamanoir.ini");
+#endif
 	memset(&g_options, 0, sizeof(tm_options)); // set all to false
 
 	// Read
-	FILE * foptions = fopen(optionsFile.ascii(), "r");
+	QByteArray file_utf8 = optionsFile.toUtf8();
+	FILE * foptions = fopen((char *)file_utf8.data(), "r");
 	if(!foptions) {
 		// Update options
 		g_options.filmType = ui.typeComboBox->currentIndex();
@@ -1654,9 +1722,11 @@ int TamanoirApp::loadOptions() {
 
 
 		on_dpiComboBox_currentIndexChanged(ui.dpiComboBox->currentText());
-		fprintf(stderr, "TamanoirApp::%s:%d :  no options file : use default in GUI\n",
-				__func__, __LINE__);
+		TMAPP_printf(TMLOG_ERROR, "no options file : use default in GUI")
 		fprintfOptions(stderr, &g_options);
+//		int ret = QMessageBox::warning(this, tr("Tamanoir - Options"),
+//				tr("cannot open file ") + optionsFile,
+//				QMessageBox::Ok);
 
 		return 0;
 	}
@@ -1669,6 +1739,7 @@ int TamanoirApp::loadOptions() {
 		ret= fgets(line, 511, foptions);
 		if(ret) {
 			if(strlen(line)>1 && line[0] != '#' && line[0] != '\n' && line[0] != '\r' ) {
+				// strip eol
 				if(line[strlen(line)-1]=='\r')
 					line[strlen(line)-1]='\0';
 				if(strlen(line)>1)
@@ -1679,32 +1750,46 @@ int TamanoirApp::loadOptions() {
 				if(separation) {
 					*separation = '\0';
 					char * cmd = line, *arg = separation+1;
-					fprintf(stderr, "\t%s:%d : cmd='%s' arg='%s'\n",
-							__func__, __LINE__, cmd, arg);
 
-					if(strcasestr(cmd, "dir")) {
+					fprintf(logfile, "\t%s:%d : cmd='%s' arg='%s'\n",
+							__func__, __LINE__, cmd, arg);
+/*
+# Options :
+Trust:F
+HotPixels:F
+OnlyEmpty:F
+FilmType:1
+DPI:2450
+Sensitivity:36
+CurrentDir:/home/tof/Vision/Tamanoir-svn/tamanoir/dataset
+Stylesheet:Default (system)
+HideAuto:F
+hide_wizard:T
+ExportLayer:T
+  */
+					if(strcasestr(cmd, "CurrentDir")) {
 						strcpy(g_display_options.currentDir, arg);
 					} else
-					if(strcasestr(cmd, "trust")) {
+					if(strcasestr(cmd, "Trust")) {
 						g_options.trust = (arg[0]=='T');
 					} else
-					if(strcasestr(cmd, "hot")) {
+					if(strcasestr(cmd, "Hot")) {
 						g_options.hotPixels = (arg[0]=='T');
 					} else
-					if(strcasestr(cmd, "empty")) {
+					if(strcasestr(cmd, "Empty")) {
 						g_options.onlyEmpty = (arg[0]=='T');
 					} else
-					if(strcasestr(cmd, "film")) {
+					if(strcasestr(cmd, "Film")) {
 						g_options.filmType = atoi(arg);
 					} else
-					if(strcasestr(cmd, "dpi")) {
+					if(strcasestr(cmd, "DPI")) {
 						g_options.dpi = atoi(arg);
 					}
-					if(strcasestr(cmd, "sensitivity")) {
+					if(strcasestr(cmd, "Sensitivity")) {
 						g_options.sensitivity = atoi(arg);
 					}
 
-					if(strcasestr(cmd, "stylesheet")) {
+					if(strcasestr(cmd, "Stylesheet")) {
 						strcpy(g_display_options.stylesheet, arg);
 					}
 					if(strcasestr(cmd, "hide_wizard")) {
@@ -1733,11 +1818,9 @@ int TamanoirApp::loadOptions() {
 
 	fclose(foptions);
 
-	fprintf(stderr, "TamanoirApp::%s:%d: read options : \n", __func__, __LINE__);
-	fprintfOptions(stderr, &g_options);
-	fprintfDisplayOptions(stderr, &g_display_options);
-
-
+	fprintf(logfile, "TamanoirApp::%s:%d: read options : \n", __func__, __LINE__);
+	fprintfOptions(logfile, &g_options);
+	fprintfDisplayOptions(logfile, &g_display_options);
 
 	// Update GUI with those options
 	ui.typeComboBox->setCurrentIndex( g_options.filmType );
@@ -1769,20 +1852,31 @@ void TamanoirApp::saveOptions() {
 	QString filename=":/qss/tamanoir-" + str + ".qss";
 
 	QFile file(filename);
-	fprintf(stderr, "TamanoirApp::%s:%d => file='%s' !!\n", __func__, __LINE__,
-			filename.ascii());
+	TMAPP_printf(TMLOG_INFO, " => stylesheet file='%s' !!\n",
+			filename.toUtf8().data())
 	file.open(QFile::ReadOnly);
+
 	QString file_styleSheet = QLatin1String(file.readAll());
 	setStyleSheet(file_styleSheet);
 
 	// show/hide buttons
-	if(g_display_options.hide_auto)
+	if(g_display_options.hide_auto) {
 		ui.autoButton->hide();
-	else
+	} else {
 		ui.autoButton->show();
+	}
 
-	FILE * foptions = fopen(optionsFile.ascii(), "w");
+	QByteArray file_utf8 = optionsFile.toUtf8();
+	TMAPP_printf(TMLOG_INFO, "Saving options in '%s'",
+				 optionsFile.toUtf8().data())
+	FILE * foptions = fopen((char *)file_utf8.data(), "w");
 	if(!foptions) {
+		TMAPP_printf(TMLOG_ERROR, "Cannot save file '%s'",
+					 (char *)file_utf8.data())
+		QMessageBox::warning(this, tr("Tamanoir - Options"),
+				tr("cannot save file ") + optionsFile,
+				QMessageBox::Ok);
+
 		return;
 	}
 
@@ -1797,9 +1891,10 @@ void TamanoirApp::saveOptions() {
 
 void TamanoirApp::on_prevButton_clicked() {
 	if(skipped_list.isEmpty()) {
-
+		TMAPP_printf(TMLOG_TRACE, "skipped_list is empty => no dust for previous")
 		return;
 	}
+
 	if(!force_mode && m_pProcThread) {
 		if(g_debug_list) {
 			fprintf(stderr, "TamanoirApp::%s:%d : !force_mode => insertCorrection(%d,%d)\n",
@@ -2038,7 +2133,7 @@ void TamanoirApp::on_autoButton_clicked()
 		//QString abspathname = fi.absPathName();
 		QString ext = fi.extension();  // ext = ".jpg"
 
-		sprintf(logfilename, "%s%s.txt", TMP_DIRECTORY, fi.baseName(false).latin1());
+		sprintf(logfilename, "%s%s.txt", TMP_DIRECTORY, fi.baseName(false).toUtf8().data());
 
 		logfile = fopen(logfilename, "w");
 		if(!logfile) {
@@ -2211,13 +2306,13 @@ void TamanoirApp::on_sensitivityComboBox_currentIndexChanged(int i) {
 }
 
 void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
-	fprintf(stderr, "TamanoirApp::%s:%d : resolution changed to type %s ...\n",
-		__func__, __LINE__, str.ascii());
+	TMAPP_printf(TMLOG_INFO, "TamanoirApp::%s:%d : resolution changed to type '%s'' ...\n",
+		__func__, __LINE__, str.toUtf8().data());
 	statusBar()->showMessage( tr("Changed resolution: please wait...") );
 	statusBar()->update();
 
 	int dpi = 2400;
-	if(sscanf(str.ascii(), "%d", &dpi) != 1) {
+	if(sscanf(str.toUtf8().data(), "%d", &dpi) != 1) {
 		g_options.dpi = 2400;
 	} else {
 		g_options.dpi = dpi;
@@ -3132,13 +3227,13 @@ int TamanoirThread::loadFile(QString s) {
 
 	QFileInfo fi(s);
 	if(!fi.exists()) {
-		fprintf(stderr, "TmThread::%s:%d : file '%s' does not exists\n", __func__, __LINE__, s.ascii());
+		fprintf(stderr, "TmThread::%s:%d : file '%s' does not exists\n", __func__, __LINE__, s.toUtf8().data());
 		return -1;
 	}
 
 	int ret = m_req_command = PROTH_LOAD_FILE;
 	fprintf(stderr, "TmThread::%s:%d : request load file '%s' \n",
-			__func__, __LINE__, s.ascii());
+			__func__, __LINE__, s.toUtf8().data());
 
 	mutex.lock();
 	// Unlock thread
@@ -3318,24 +3413,24 @@ void TamanoirThread::run() {
 
 			break;
 		case PROTH_SAVE_FILE:
-			TMTHR_printf(TMLOG_INFO, "save file '%s'\n", m_filename.ascii())
+			TMTHR_printf(TMLOG_INFO, "save file '%s'\n", m_filename.toUtf8().data())
 			m_pImgProc->saveFile(m_filename);
 			break;
 
 		case PROTH_LOAD_FILE:
-			TMTHR_printf(TMLOG_INFO, "load file '%s'\n", m_filename.ascii())
+			TMTHR_printf(TMLOG_INFO, "load file '%s'\n", m_filename.toUtf8().data())
 			TMTHR_printf(TMLOG_INFO, "Stopping auto mode")
 
 			m_options.mode_auto = false;
 			ret = m_pImgProc->loadFile(m_filename);
 			m_no_more_dusts = false;
 
-			TMTHR_printf(TMLOG_INFO, "file '%s' LOADED", m_filename.ascii())
+			TMTHR_printf(TMLOG_INFO, "file '%s' LOADED", m_filename.toUtf8().data())
 
 			break;
 
 		case PROTH_PREPROC:
-			TMTHR_printf(TMLOG_INFO, "pre-processing for file '%s'...", m_filename.ascii())
+			TMTHR_printf(TMLOG_INFO, "pre-processing for file '%s'...", m_filename.toUtf8().data())
 			ret = m_pImgProc->preProcessImage();
 			break;
 
@@ -3396,7 +3491,7 @@ void TamanoirThread::run() {
 			// There will be new dusts
 			m_no_more_dusts = false;
 
-			// Search for next dust
+			// Pre-process input file
 			TMTHR_printf(TMLOG_DEBUG, "process options change done => next step is PROTH_PREPROC....")
 			m_req_command = PROTH_PREPROC;
 
@@ -3408,12 +3503,6 @@ void TamanoirThread::run() {
 
 	m_running = false;
 }
-
-
-
-
-
-
 
 
 

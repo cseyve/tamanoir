@@ -888,12 +888,20 @@ Voulez-vous utiliser cette résolution de </translation>
         <source> dpi read in file ? The resolution may probably be </source>
         <translation> dpi ? La résolution est probablement de </translation>
     </message>
+    <message>
+        <source>Tamanoir - Options</source>
+        <translation>Tamanoir - Options</translation>
+    </message>
+    <message>
+        <source>cannot save file </source>
+        <translation>impossible de sauver le fichier </translation>
+    </message>
 </context>
 <context>
     <name>TamanoirWizard</name>
     <message>
         <source>Wizard</source>
-        <translation>Assistant</translation>
+        <translation type="obsolete">Assistant</translation>
     </message>
     <message>
         <source>Tutorial</source>
@@ -1172,6 +1180,10 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Vous pouvez sauver l&apos;image en cliquant sur le bouton &amp;quot;&lt;span style=&quot; font-style:italic;&quot;&gt;Sauver&lt;/span&gt;&amp;quot; ou le raccourci &lt;span style=&quot; font-style:italic;&quot;&gt;Ctrl+S&lt;/span&gt;. L&apos;image corrigée utilise le même nom de fichier que l&apos;original, et l&apos;original est sauvé avec l&apos;extension &amp;quot;-copie.ext&amp;quot;.&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Maintenant... au travail !&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Tamanoir tutorial</source>
+        <translation>Tutorial Tamanoir</translation>
     </message>
 </context>
 </TS>

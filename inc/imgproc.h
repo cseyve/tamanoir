@@ -87,11 +87,13 @@
   @section Algorithm Dust detection algorithm
 
   Dusts are detected using a difference between the original image (originalImage) and its
-	slightly blurred version (medianImage).
+	slightly "blurred" version (medianImage).
+	The dusts are highlighted by erosion (for positives) or dilatation (for negatives).
 	The difference (diffImage) is computed depending on the type of film :
 	since the dusts are opaque, they appear brighter than the background for negative films
 	and darker as the background for positive films (slides...).
 	Therefore in scans of negative, the diffImage is filled only if original-blurred > 0
+	The diffImage is normalized to remove high frequency details, e.g. diffImage -= eroded(diffImage)
 
 	There are 2 threshold levels in diffImage :
 	- dust candidates are filled with DIFF_THRESHVAL
@@ -111,6 +113,7 @@
 		- Corner test : maybe the dust is only a corner in a texture, and the blur operation only showed it
 				NOT FULLY IMPLEMENTED = NOT ACTIVE
 		- Check if the dust is a fiber : NOT FULLY IMPLEMENTED : no action when it's a fiber
+			=> Maybe use cvInpaint to fill automatically, but it may fill electric wires, tree branches, ...
 		- Contrast check : the dust must be visible, e.g. its value must be different from neighbour : |mean-neighbour|>10 && |contrast|>0.02
 	- search a source candidate for a clone operation : tmSearchBestCorrelation
 		If a candidate is found (by correlation), we check its ability to be a real dust :

@@ -49,7 +49,9 @@ void tmInitGlobals() {
 	if(tmInitGlobals_init) return;
 
 	tmInitGlobals_init = 1;
-#ifndef __LINUX__
+
+	// Only on MacOS X
+#if !defined(__LINUX__) && !defined(WIN32)
 	if(getenv( "HOME")) {
 		strcpy(g_tmp_directory, getenv( "HOME"));
 		strcat(g_tmp_directory, "/tmp/");
@@ -768,7 +770,7 @@ void tmFillRegion(IplImage * origImage,
 /** use cache to fasten
 
 */
-static pthread_mutex_t * coeftab_mutex = NULL;
+static Mutex_t * coeftab_mutex = NULL;
 float *coeftab_src = NULL;
 float *coeftab_dest = NULL;
 int coeftab_size = 0;

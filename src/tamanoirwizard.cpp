@@ -1,5 +1,5 @@
 /***************************************************************************
- *            tamanoir.h
+ *            tamanoirwizard.cpp
  *
  *  Tue 9 22:47:41 2010
  *  Copyright  2010  Christophe Seyve
@@ -58,6 +58,7 @@ void TamanoirWizard::on_showCheckBox_toggled(bool on)
 		tmApp->saveOptions();
 	}
 }
+
 
 void TamanoirWizard::changeEvent(QEvent *e)
 {
