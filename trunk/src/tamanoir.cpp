@@ -156,6 +156,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	cropPixmapLabel_last_button = Qt::NoButton;
 	is_src_selected = true;
 	m_searchCloneSrc = true; // search for clone src candidate
+	m_unsaved_changes = false;
+
 	m_draw_on = TMMODE_NOFORCE;
 
 	// Clear options
@@ -1032,6 +1034,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 }
 
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
+	m_unsaved_changes = true;
 
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(e && m_pProcThread && m_pImgProc) {
@@ -1563,6 +1566,8 @@ int TamanoirApp::loadFile(QString s) {
 
 	m_curCommand = PROTH_LOAD_FILE;
 
+	m_unsaved_changes = false;
+
 	// Lock tool frame
 	lockTools(true);
 
@@ -1581,6 +1586,33 @@ void TamanoirApp::lockTools(bool lock) {
 }
 
 /****************************** Button slots ******************************/
+void TamanoirApp::on_actionOpen_2_activated() {
+
+	on_loadButton_clicked();
+}
+
+void TamanoirApp::on_actionQuit_activated() {
+	if(!m_unsaved_changes) {
+		exit(0);
+	}
+	// May want to save ?
+	int ret = QMessageBox::question(this,
+				   tr("Tamanoir - Save before quit ?"),
+				   tr("There are unsaved changes, do you want to save before quitting ?") ,
+				   QMessageBox::Ok,
+				   QMessageBox::Cancel);
+
+	if(ret == QMessageBox::Ok) {
+		on_saveButton_clicked();
+	}
+	// Bye
+	exit(0);
+}
+
+void TamanoirApp::on_actionSave_activated() {
+	on_saveButton_clicked();
+}
+
 void TamanoirApp::on_loadButton_clicked()
 {
 	if(!m_fileDialog) {
@@ -1623,6 +1655,8 @@ void TamanoirApp::on_saveButton_clicked()
 	QFileInfo fi(m_currentFile);
 	QString ext = fi.extension(FALSE);
 	QString base = fi.baseName( TRUE );
+
+	m_unsaved_changes = false;
 
 	if(g_display_options.export_layer)
 	{
@@ -2073,6 +2107,7 @@ void TamanoirApp::on_correctButton_clicked()
 	if(m_pImgProc) {
 		m_pImgProc->forceCorrection(m_current_dust, force_mode);
 	}
+	m_unsaved_changes = true;
 
 	// Clear current dust
 	memset(&m_current_dust, 0, sizeof(t_correction));
@@ -2101,6 +2136,8 @@ void TamanoirApp::on_autoButton_clicked()
 
 	if(ret == QMessageBox::Cancel)
 		return;
+
+	m_unsaved_changes = true;
 
 	// update progress dialog
 /*	if(!m_pProgressDialog) {
