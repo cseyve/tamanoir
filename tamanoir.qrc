@@ -19,5 +19,6 @@
         <file>icon/input-keyboard.png</file>
         <file>icon/view-fullscreen.png</file>
         <file>icon/tools-wizard.png</file>
+        <file>icon/application-exit.png</file>
     </qresource>
 </RCC>

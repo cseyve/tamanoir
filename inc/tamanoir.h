@@ -223,6 +223,7 @@ private:
 
 	CvSize originalMainPixmapLabelSize;
 
+	bool m_unsaved_changes;
 	bool m_overCorrected;
 signals:
 
@@ -237,6 +238,10 @@ private slots:
 	void on_actionTutorial_activated();
 	void on_actionShortcuts_activated();
 	void on_actionPreferences_activated();
+
+	void on_actionOpen_2_activated();
+	void on_actionSave_activated();
+	void on_actionQuit_activated();
 
 
 	void on_autoButton_clicked();

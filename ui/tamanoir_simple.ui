@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>805</width>
+    <width>809</width>
     <height>629</height>
    </rect>
   </property>
@@ -1071,7 +1071,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>805</width>
+     <width>809</width>
      <height>27</height>
     </rect>
    </property>
@@ -1091,6 +1091,15 @@
     <addaction name="actionShortcuts"/>
     <addaction name="actionTutorial"/>
    </widget>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionOpen_2"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <addaction name="menuFile"/>
    <addaction name="menuOptions"/>
    <addaction name="menu"/>
   </widget>
@@ -1143,10 +1152,7 @@
      <normaloff>:/icon/view-fullscreen.png</normaloff>:/icon/view-fullscreen.png</iconset>
    </property>
    <property name="text">
-    <string>Full screen</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+F</string>
+    <string>Full screen (Ctrl+F)</string>
    </property>
   </action>
   <action name="actionTutorial">
@@ -1161,12 +1167,39 @@
     <string>Tutorial for efficient use of Tamanoir</string>
    </property>
   </action>
+  <action name="actionOpen_2">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/document-open.png</normaloff>:/icon/document-open.png</iconset>
+   </property>
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/drive-harddisk.png</normaloff>:/icon/drive-harddisk.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="icon">
+    <iconset resource="../tamanoir.qrc">
+     <normaloff>:/icon/application-exit.png</normaloff>:/icon/application-exit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
    <class>QImageDisplay</class>
    <extends>QLabel</extends>
-   <header>qimagedisplay.h</header>
+   <header location="global">qimagedisplay.h</header>
   </customwidget>
  </customwidgets>
  <resources>

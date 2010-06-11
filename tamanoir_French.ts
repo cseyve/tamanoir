@@ -1,35 +1,45 @@
-<!DOCTYPE TS><TS>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS><TS version="1.1" language="en_US">
+<defaultcodec></defaultcodec>
 <context>
     <name>PrefsDialog</name>
     <message>
+        <location filename="ui/prefsdialog.ui" line="17"/>
         <source>Preferences</source>
         <translation>Préférences</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="24"/>
         <source>Tamanoir preferences</source>
         <translation>Tamanoir - Préférences</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="37"/>
         <source>Processing options</source>
         <translation>Options de traitement</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="40"/>
         <source>Processing</source>
         <translation>Traitement</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="46"/>
         <source>Dust layer mask</source>
         <translation>Masque des poussières</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="53"/>
         <source>propose the exportation of dust mask</source>
         <translation>Propose l&apos;exportation du masque des poussières</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="73"/>
         <source>Auto-correction</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="83"/>
         <source>Display the Auto button to process the whole picture without asking the user</source>
         <translation>Affichage du bouton Auto pour traiter toute l&apos;image sans demander à l&apos;utilisateur</translation>
     </message>
@@ -38,26 +48,32 @@
         <translation type="obsolete">affichage du bouton Auto</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="97"/>
         <source>Display options</source>
         <translation>Options d&apos;affichage</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="100"/>
         <source>Display</source>
         <translation>Affichage</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="106"/>
         <source>Style/theme</source>
         <translation>Style/thème</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="114"/>
         <source>Default (system)</source>
         <translation>Défaut (système)</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="119"/>
         <source>Gray</source>
         <translation>Gris</translation>
     </message>
     <message>
+        <location filename="ui/prefsdialog.ui" line="86"/>
         <source>hide Auto button</source>
         <translation>cacher le bouton Auto</translation>
     </message>
@@ -69,6 +85,7 @@
         <translation type="obsolete">Tamanoir</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1188"/>
         <source>Save</source>
         <translation>Sauver</translation>
     </message>
@@ -85,18 +102,22 @@
         <translation type="obsolete">Actions et options</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="339"/>
         <source>Go back to previous correction. Shortcut: left arrow</source>
         <translation>Correction précédente. Raccourci : flèche gauche</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="587"/>
         <source>Automatically correct the whole image</source>
         <translation>Correction automatique de toute l&apos;image</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="593"/>
         <source>Auto</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="300"/>
         <source>Rewind to top-left of image for dust searching</source>
         <translation>Retour au coin haut-gauche (début) pour la recherche</translation>
     </message>
@@ -109,10 +130,12 @@
         <translation type="obsolete">Refuser</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="391"/>
         <source>Apply this correction then go to next</source>
         <translation>Appliquer la correction et passer à la suivante</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="397"/>
         <source>Apply</source>
         <translation>Appliquer</translation>
     </message>
@@ -121,50 +144,62 @@
         <translation type="obsolete">&lt;b&gt;Type de film :&lt;/b&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="432"/>
         <source>Film type : positive (from digital cameras or slides) or negative</source>
         <translation>Type de film : positif (numérique ou diapos) ou négatif</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="467"/>
         <source>Undefined</source>
         <translation>Indéfini</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="441"/>
         <source>Negative</source>
         <translation>Négatif</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="446"/>
         <source>Positive</source>
         <translation>Positif</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="457"/>
         <source>Scan resolution, used to guess the size on minimal dust</source>
         <translation>Résolution du scanner (détermine la taille minimale des poussières)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="477"/>
         <source>600 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="482"/>
         <source>1200 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="487"/>
         <source>2400 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="492"/>
         <source>3200 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="497"/>
         <source>4800 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="568"/>
         <source>Detect dusts only in empty areas (sky, ...)</source>
         <translation>Détection des poiusssières seulement dans les zones uniformes (ciel, ...)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="571"/>
         <source>Empty only</source>
         <translation>Vide seult</translation>
     </message>
@@ -185,6 +220,7 @@
         <translation type="obsolete">Peu sensible</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="552"/>
         <source>Trust small dusts with very good correction proposal</source>
         <translation>Remplacer les poussières qui ont a priori une correction très bonne</translation>
     </message>
@@ -193,10 +229,12 @@
         <translation type="obsolete">Confiance</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="783"/>
         <source>Enable hot pixels removal, e.g. very small light points</source>
         <translation>Active la détection des pixels chauds (points lumineux isolés)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="786"/>
         <source>Hot pixels</source>
         <translation>Pixels chauds</translation>
     </message>
@@ -209,6 +247,7 @@
         <translation type="obsolete">Originale (extrait)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="894"/>
         <source>Drag the green rectangle region to change correction origin. Right clic to resize correction rectangle.</source>
         <translation>Déplacer le rectangle vert pour changer l&apos;origine du clonage. </translation>
     </message>
@@ -237,54 +276,67 @@
         <translation type="obsolete">Image originale</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="242"/>
         <source>Main display : current dust is marked in blue, corrected ones in green, ones with refused proposals in yellow</source>
         <translation>Affichage principal : la poussière courante est marquée en bleu, les corrections validées en vert, et les refusées en jaune</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="100"/>
         <source>Save image</source>
         <translation>Sauvegarder l&apos;image</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="175"/>
         <source>img proc info</source>
         <translation>info traitement d&apos;images</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="197"/>
         <source>Global view</source>
         <translation>Vue générale</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="294"/>
         <source>Actions</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1080"/>
         <source>Options</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="631"/>
         <source>After</source>
         <translation>Après</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="749"/>
         <source>TextLabel</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="730"/>
         <source>Loading</source>
         <translation>Chargement de </translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="21"/>
         <source>Tamanoir - Dust removal tool</source>
         <translation>Tamanoir - Dépoussiérage de scans</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="87"/>
         <source>Ctrl+O</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="113"/>
         <source>Ctrl+S</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="129"/>
         <source>Display progress of loading or processing</source>
         <translation>Affiche la progression du chargment ou des traitements</translation>
     </message>
@@ -293,26 +345,32 @@
         <translation type="obsolete">A propos : Tamanoir version et aide en ligne</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1126"/>
         <source>About</source>
         <translation>A propos</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1108"/>
         <source>Left</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="378"/>
         <source>Right</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="404"/>
         <source>A</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="423"/>
         <source>Parameters</source>
         <translation>Paramètres</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="508"/>
         <source>Sensitivity = difference of color / backgound</source>
         <translation>Sensibilité = différence de couleur avec le fond</translation>
     </message>
@@ -321,90 +379,112 @@
         <translation type="obsolete">Sensibilité :</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="524"/>
         <source>Sensitiviyty</source>
         <translation>Sensibilité</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="527"/>
         <source>Dusts are shown in red on global display</source>
         <translation>Les poussières apparaissent en rouge dans la vue globale</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="555"/>
         <source>Trust</source>
         <translation>Confiance</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="558"/>
         <source>T</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="590"/>
         <source>Process automatic dust detection and replacement with proposal (may be long)</source>
         <translation>Détection et correction automatique de toutes les poussières avec les corrections proposées (peut être long)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="628"/>
         <source>Proposed correction. When the mouse is over the display, the dust is shown in red.</source>
         <translation>Correction proposée. Quand la souris est au-dessus de l&apos;affichage, la poussière est affichée en rouge.</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="717"/>
         <source>diffPixmapLabel</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="796"/>
         <source>Mark a red rectangle in global view to correct a dust later</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="799"/>
         <source>Mark</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="802"/>
         <source>M</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="809"/>
         <source>info</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="812"/>
         <source>Alt+I</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="819"/>
         <source>Undo last change</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="822"/>
         <source>Undo</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="825"/>
         <source>Ctrl+Z</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="862"/>
         <source>Toggle fullscreen mode</source>
         <translation>Passer en mode plein écran</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="865"/>
         <source>Fullscreen</source>
         <translation>PLein écran</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1158"/>
         <source>Ctrl+F</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="897"/>
         <source>Before / Original image</source>
         <translation>Avant / originale</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="927"/>
         <source>Linear correction: draw the trajectory of correction in &quot;Original&quot; display. Mouse left button set the destination point, right button set the source position.</source>
         <translation>Outil de clonage : corriger par copier/coller dans l&apos;affichage original. Le bouton gauche de la souris déplace la destination du clonage, le bouton droit fixe l&apos;origine du clonage.</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="933"/>
         <source>&amp;Clone</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="940"/>
         <source>C</source>
         <translation></translation>
     </message>
@@ -413,169 +493,220 @@
         <translation type="obsolete">Recherche d&apos;une source pour le clonage (raccourci : S)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="959"/>
         <source>&amp;Search</source>
         <translation>Recherche (&amp;S)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="962"/>
         <source>S</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="992"/>
         <source>Use inpainting to fill the dust or fiber</source>
         <translation>Utilisation de l&apos;extrapolation pour combler la poussière ou la fibre</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="998"/>
         <source>&amp;Inpaint</source>
         <translation>Extrapolat&amp;ion</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1005"/>
         <source>I</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1117"/>
         <source>Preferences</source>
         <translation>Préférences</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1129"/>
         <source>Display version information about Tamanoir</source>
         <translation>A propos de Tamanoir</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1141"/>
         <source>Shortcuts</source>
         <translation>Raccourcis</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="832"/>
         <source>topleft</source>
         <translation>hautgauche</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="835"/>
         <source>Home</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="842"/>
         <source>down</source>
         <translation>Préc</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="845"/>
         <source>PgDown</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="852"/>
         <source>Page up</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="855"/>
         <source>PgUp</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="365"/>
         <source>Skip the correction and go to next proposal. Shortcut: right arrow</source>
         <translation>Refuser en passant à la proposition suivante. Raccourci : flèche droite</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="74"/>
         <source>Open an image file</source>
         <translation>Ouvrir un fichier image</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="472"/>
         <source>300 dpi</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1179"/>
         <source>Open</source>
         <translation>Ouvrir</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="511"/>
         <source>Sensitivity:</source>
         <translation>Sensibilité :</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="14"/>
         <source>Tamanoir - Dust removal tool for scans</source>
         <translation>Tamanoir - Dépoussiérage de scans</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="77"/>
         <source>Open an image file for processing</source>
         <translation>Ouvrir un fichier image pour traitement</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="103"/>
         <source>Save current corrected image with same file name and save a backup of original</source>
         <translation>Sauver le fichier corrigé sous le même nom et faire une copie de l&apos;original</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="132"/>
         <source>Processing progress</source>
         <translation>Progression</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="191"/>
         <source>Global view of image</source>
         <translation>Vue globale de l&apos;image</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="194"/>
         <source>Global view of the whole image with corrections marked</source>
         <translation>Vue globale de l&apos;image avec les corrections</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="303"/>
         <source>Rewind to first dust from top-left</source>
         <translation>Retour à la première poussière à partir du haut à gauche</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="342"/>
         <source>Go back to previous correction proposal</source>
         <translation>Retour sur la proposition de correction précédente</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="368"/>
         <source>Skip current correction and go to next correction</source>
         <translation>Passer cette correction et aller à la suivante</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="394"/>
         <source>Apply this correction then go to next proposal</source>
         <translation>Appliquer cette correction et aller à la suivante</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="420"/>
         <source>Parameters for detection</source>
         <translation>Paramètres de détection</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="460"/>
         <source>Scan resolution: defines the minimal size of dust. The smaller the resolution, the smaller the dust will be found.</source>
         <translation>Résolution de scan : définit la taille minimale de poussière. Plus la résolution est basse, plus les poussières sont petites dans l&apos;image.</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="930"/>
         <source>Clone region from source to destination</source>
         <translation>Outil tampon de la source vers la destination</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="953"/>
         <source>Search for clone source (S)</source>
         <translation>Rechercher une source pour le tampon (S)</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="956"/>
         <source>Search for a source near the region </source>
         <translation>Rechercher une source proche de la destination</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="995"/>
         <source>Use inpainting (extrapolation) to fill the dust or fiber</source>
         <translation>Utiliser l&apos;extrapolation pour remplir la poussière ou la fibre</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1132"/>
         <source>F1</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1155"/>
         <source>Full screen</source>
         <translation>Plein écran</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1088"/>
         <source>?</source>
         <translation>?</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1167"/>
         <source>Tutorial</source>
         <translation>Tutoriel</translation>
     </message>
     <message>
+        <location filename="ui/tamanoir_simple.ui" line="1170"/>
         <source>Tutorial for efficient use of Tamanoir</source>
         <translation>Tutoriel pour une utilisation efficace de Tamanoir</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="1096"/>
+        <source>File</source>
+        <translation>Fichier</translation>
+    </message>
+    <message>
+        <location filename="ui/tamanoir_simple.ui" line="1193"/>
+        <source>Quit</source>
+        <translation>Quitter</translation>
     </message>
 </context>
 <context>
     <name>TamanoirApp</name>
     <message>
+        <location filename="src/tamanoir.cpp" line="485"/>
         <source>Could not load file </source>
         <translation>Impossible d&apos;ouvrir le fichier </translation>
     </message>
@@ -584,10 +715,12 @@
         <translation type="obsolete">Image chargée et pré-traitée. Image : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="492"/>
         <source>. Size:</source>
         <translation>. Taille :</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="533"/>
         <source>Tamanoir - Resolution mismatch</source>
         <translation>Tamanoir - Incohérence de résolution</translation>
     </message>
@@ -596,26 +729,32 @@
         <translation type="obsolete"> dpi lus dans le fichier ? Sinon la résolution sera de </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="541"/>
         <source> dpi for </source>
         <translation> dpi pour </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1471"/>
         <source>Args=</source>
         <translation>Args=</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1527"/>
         <source>Loading and pre-processing </source>
         <translation>Chargement et pré-traitement </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2130"/>
         <source>Tamanoir</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1562"/>
         <source>Cannot load file </source>
         <translation>Impossible d&apos;ouvrir le fichier </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1562"/>
         <source>. Format or compression is not compatible</source>
         <translation>. Le format ou la compression est incompatible</translation>
     </message>
@@ -632,10 +771,12 @@
         <translation type="obsolete">-copie.</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1689"/>
         <source>Saving </source>
         <translation>Sauvegarde </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1699"/>
         <source> + backup as </source>
         <translation>+ copie dans </translation>
     </message>
@@ -646,42 +787,52 @@ Do you want to rewind to first dust?</source>
 Voulez-vous revenir au début ?</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1985"/>
         <source>Rewind to first dust.</source>
         <translation>Retour au début.</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2040"/>
         <source>Finished</source>
         <translation>Terminé</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2047"/>
         <source>NONE</source>
         <translation>AUCUN</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2054"/>
         <source>After background processing =&gt; </source>
         <translation>Après traitement en tâche de fond =&gt;</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2056"/>
         <source>True positive:</source>
         <translation>Vrais positifs : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2061"/>
         <source>No proposal:</source>
         <translation>Aucune proposition :</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2066"/>
         <source>False positive:</source>
         <translation>Faux positifs : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2071"/>
         <source>False negative:</source>
         <translation>Faux négatifs :</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2077"/>
         <source>Performances</source>
         <translation>Performances</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2078"/>
         <source> </source>
         <translation></translation>
     </message>
@@ -694,6 +845,7 @@ Voulez-vous revenir au début ?</translation>
         <translation type="obsolete">Abandon</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2159"/>
         <source>Auto-correct running... please wait.</source>
         <translation>Auto-correction en cours : merci de patienter.</translation>
     </message>
@@ -702,34 +854,42 @@ Voulez-vous revenir au début ?</translation>
         <translation type="obsolete">Auto-correction : terminée.</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2213"/>
         <source>Changed film type: please wait...</source>
         <translation>Changement du type de films : merci de patienter...</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2325"/>
         <source>Changed sensitivity: please wait...</source>
         <translation>Changement de sensibilité : merci de patienter...</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2348"/>
         <source>Changed resolution: please wait...</source>
         <translation>Changement de résolution : merci de patienter...</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2369"/>
         <source>Changed to &apos;trust&apos; mode : </source>
-        <translation type="obsolete">Passage en mode &quot;confiance&quot; :</translation>
+        <translation>Passage en mode &quot;confiance&quot; :</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2369"/>
         <source>ON</source>
         <translation>ACTIF</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2369"/>
         <source>OFF</source>
         <translation>INACTIF</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2382"/>
         <source>Changed empty area filter: please wait...</source>
         <translation>Changement de mode &quot;Vide seulement&quot; : merci de patienter...</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2397"/>
         <source>Changed hot pixels filter: please wait...</source>
         <translation>Activation du filtre pixels chauds : merci de patienter...</translation>
     </message>
@@ -742,76 +902,93 @@ Voulez-vous revenir au début ?</translation>
         <translation type="obsolete">Tamanoir - Choisissez une photo à nettoyer</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1523"/>
         <source>Loading </source>
         <translation>Chargement de </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="295"/>
         <source>&lt;b&gt;Tamanoir&lt;/b&gt; version: </source>
         <translation>&lt;b&gt;Tamanoir&lt;/b&gt; version : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="3089"/>
         <source>Corrected: dust: </source>
         <translation>Corrigée : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="260"/>
         <source>Developer: </source>
         <translation>Développeur : </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="298"/>
         <source>Shortcuts :&lt;br&gt;&lt;ul&gt;
 </source>
         <translation>Raccourcis : &lt;br&gt;&lt;ul&gt;
 </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="261"/>
         <source>Artist: </source>
         <translation>Artiste :</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="489"/>
         <source> bit</source>
         <translation> bit</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1620"/>
         <source>Tamanoir - Open a picture for cleaning</source>
         <translation>Tamanoir - Ouvrir un fichier à nettoyer</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1623"/>
         <source>Images (*.png *.p*m *.xpm *.jp* *.tif* *.bmp *.cr2*.PNG *.P*M *.XPM *.JP* *.TIF* *.BMP *.CR2)</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1664"/>
         <source>-mask</source>
         <translation>-masque</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1666"/>
         <source>Tamanoir - Save dust layer as image ?</source>
         <translation>Tamanoir - Sauver le masque des poussières en tant qu&apos;image ?</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1667"/>
         <source>Do you want to save the dust layer mask as </source>
         <translation>Voulez-vous sauver le masque des poussières dans </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1668"/>
         <source> ?</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1687"/>
         <source>-orig.</source>
         <translation></translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1967"/>
         <source>Rewind to first dust will make the application ask you another time to refuse the dusts you have already seen.
 Do you want to rewind to first dust ?</source>
         <translation>Le retour au début va entraîner que le logiciel redemandera de confirmer pour les poussières déjà traitées.
 Voulez-vous revenir au début ?</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="2133"/>
         <source>The auto mode will rewind to the first dust, and will validate every dust correction without asking for confirmation.
 Do you want to process with the Auto mode ?</source>
         <translation>Le mode automatique redémarre au début de l&apos;image et valide toutes les propositions de correction sans demander de confirmation.
 Voulez-vous vraiment traiter l&apos;image en mode Auto ?</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="534"/>
         <source>The resolution of </source>
         <translation>La résolution de </translation>
     </message>
@@ -826,6 +1003,7 @@ Voulez-vous appliquer cette résolution de </translation>
         <translation type="obsolete"> dpi ?</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1870"/>
         <source> dpi</source>
         <translation></translation>
     </message>
@@ -835,34 +1013,42 @@ Voulez-vous appliquer cette résolution de </translation>
         <translation type="obsolete">Raccourcis :&lt;br&gt;&lt;li&gt;</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="298"/>
         <source>O: Open a picture file</source>
         <translation>O: Ouvrir un fichier image</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="299"/>
         <source>S: Save corrected image</source>
         <translation>S : Sauver l&apos;image corrigée </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="300"/>
         <source>H: Display version information</source>
         <translation>H : information d&apos;aide et de version</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="301"/>
         <source>M: Mark current crop area in red</source>
         <translation>M : Marquer la région actuelle en rouge</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="302"/>
         <source>A: Apply proposed correction</source>
         <translation>A : Appliquer la correction proposée</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="303"/>
         <source>&amp;rarr;: Go to next proposal</source>
         <translation>&amp;rarr; : aller à la proposition suivante</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="304"/>
         <source>&amp;larr;: Go to previous proposal</source>
         <translation>&amp;larr; : aller à la proposition précédente</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="305"/>
         <source>C: Switch to clone tool mode</source>
         <translation>C : utiliser le mode Clonage/tampon</translation>
     </message>
@@ -871,6 +1057,7 @@ Voulez-vous appliquer cette résolution de </translation>
         <translation type="obsolete">Tamanoir - Avertissement sur la résolution</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="492"/>
         <source>Loaded file. Image: </source>
         <translation>Fichier chargé. Image : </translation>
     </message>
@@ -879,22 +1066,36 @@ Voulez-vous appliquer cette résolution de </translation>
         <translation type="obsolete"> dpi lu dans le fichier ? Si vous ignorez, la résolution appliquée sera </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="539"/>
         <source> dpi, read in file or previously set, may be too low for the scanner resolution. It may be the print resolution. 
 Do you want to apply this resolution of </source>
         <translation> dpi, lu dans le fichier ou choisi précédemment, est peut-être trop faible pour être la résolution du scanner. Il s&apos;agit peut-être de la résolution d&apos;impression. 
 Voulez-vous utiliser cette résolution de </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="540"/>
         <source> dpi read in file ? The resolution may probably be </source>
         <translation> dpi ? La résolution est probablement de </translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1910"/>
         <source>Tamanoir - Options</source>
         <translation>Tamanoir - Options</translation>
     </message>
     <message>
+        <location filename="src/tamanoir.cpp" line="1911"/>
         <source>cannot save file </source>
         <translation>impossible de sauver le fichier </translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="1600"/>
+        <source>Tamanoir - Save before quit ?</source>
+        <translation>Tamanoir- Sauver avant de quitter ?</translation>
+    </message>
+    <message>
+        <location filename="src/tamanoir.cpp" line="1601"/>
+        <source>There are unsaved changes, do you want to save before quitting ?</source>
+        <translation>Le fichier a été modifié. Voulez-vous sauver avant de quitter ?</translation>
     </message>
 </context>
 <context>
@@ -904,14 +1105,17 @@ Voulez-vous utiliser cette résolution de </translation>
         <translation type="obsolete">Assistant</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="34"/>
         <source>Tutorial</source>
         <translation>Tutoriel</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="37"/>
         <source>Introduction</source>
         <translation>Introduction</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="43"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -938,18 +1142,22 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Ce tutoriel vous montrera une méthode pour nettoyer efficacement vos images.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="87"/>
         <source>show this tutorial on startup</source>
         <translation>afficher ce tutoriel au démarrage</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="98"/>
         <source>Tamanoir&apos;s GUI</source>
         <translation>Interface de Tamanoir</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="101"/>
         <source>GUI organization</source>
         <translation>Organisation de l&apos;interface</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="107"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -982,14 +1190,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Chaque afficheur ou bouton présente une info-bulle lorsque la souris passe au-dessus.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="132"/>
         <source>Process in 2 passes</source>
         <translation>Traitement en 2 passes</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="135"/>
         <source>First pass in semi-auto, second in manual</source>
         <translation>La première passe en mode assisté, la seconde en manuel</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="147"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1014,14 +1225,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;2) Correction manuelle :&lt;/span&gt; Tamanoir propose des outils pour corriger manuellement les poussières et fibres restantes : tampon et extrapolation.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="171"/>
         <source>Open a scanned picture</source>
         <translation>Ouvrir une image scannée</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="174"/>
         <source>Open and confirm scan resolution</source>
         <translation>Ouvrir et confirmer la résolution du scan</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="180"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1052,14 +1266,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;La progression du chargement et pré-traitement est affichée dans la barre en bas à gauche.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="207"/>
         <source>First pass: semi-auto cleaning</source>
         <translation>Première passe : nettoyage en mode assisté</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="210"/>
         <source>Use shortcuts for fast correction apply/skip actions</source>
         <translation>Utiliser les raccourcis pour rapidement accepter ou refuser les corrections</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="216"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1086,14 +1303,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Vous pouvez &lt;span style=&quot; font-weight:600;&quot;&gt;modifier la correction proposée &lt;/span&gt;en changeant soit la position de la source (ellipse verte) soit de la destination de la copie (bout de la flèche), ou sa taille (avec la molette de la souris ou en saisissant le bord de l&apos;ellipse). L&apos;image corrigée est rafraîchie en temps réel.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="241"/>
         <source>Prepare second pass</source>
         <translation>Préparer la seconde passe</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="244"/>
         <source>Mark missed dusts and fibers</source>
         <translation>Marquer les poussières ratées et les fibres non corrigées</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="250"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1118,14 +1338,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Ainsi il doit y avoir une seconde passe en mode manuel.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="274"/>
         <source>Second pass: manual correction</source>
         <translation>Seconde passe : correction manuelle</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="277"/>
         <source>Use clone tool or inpainting to correct missed dusts</source>
         <translation>Utiliser l&apos;outil Tampon ou Extrapolation pour corriger les poussières restantes</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="283"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1152,14 +1375,17 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Ainsi va jusqu&apos;au bloc en bas à droite de l&apos;image...&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="308"/>
         <source>Save your picture</source>
         <translation>Sauver l&apos;image corrigée</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="311"/>
         <source>Tamanoir creates a backup then overwrite the original file</source>
         <translation>Tamanoir crée une copie et écrase le fichier original</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="317"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -1182,6 +1408,7 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Maintenant... au travail !&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
+        <location filename="ui/tamanoirwizard.ui" line="26"/>
         <source>Tamanoir tutorial</source>
         <translation>Tutorial Tamanoir</translation>
     </message>
