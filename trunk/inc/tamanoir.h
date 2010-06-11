@@ -94,7 +94,7 @@ public:
 	int saveFile(QString s);
 	int setOptions(tm_options options);
 
-	/** Stop processing thread */
+	/** @brief Stop processing thread */
 	void stop() { m_run = false; };
 
 	/** @brief Returns processing state, PROTH_NOTHING if done */
