@@ -32,7 +32,10 @@ TRANSLATIONS = tamanoir_French.ts
 # icon
 # reference : file:///usr/share/qt4/doc/html/appicon.html
 mac::ICON = icon/Tamanoir.icns
-win32::RC_FILE = icon/tamanoir.rc
+win32: {
+	RC_FILE = icon/tamanoir.rc
+	ICON = icon/tamanoir32.ico
+}
 linux-g++::ICON = icon/Tamanoir32.png
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 

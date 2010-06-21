@@ -951,7 +951,7 @@ static int cvt_whole_image( TIFF *in, IplImage *out )
 
 					if(TIFFReadScanline(in, buf, y) /*row*/ == 1) {
 
-fprintf(stderr, "\r\t\t%s:%d : line y=%d x=%d : copy buf=%p into "
+/*fprintf(stderr, "\r\t\t%s:%d : line y=%d x=%d : copy buf=%p into "
 		"data=%p nbytes=%d=%dx%dx%d",
 		__func__, __LINE__, y, x,
 		buf,
@@ -959,7 +959,7 @@ fprintf(stderr, "\r\t\t%s:%d : line y=%d x=%d : copy buf=%p into "
 		tile_width*byte_depth*channels,
 		tile_width, byte_depth, channels
 		); fflush(stderr);
-
+*/
 						memcpy(data,
 							   buf,
 							   tile_width*byte_depth*channels

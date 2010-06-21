@@ -2038,7 +2038,7 @@ int tmProcessDilate_Erode(int l_FilmType,
  */
 
 
-#define spmax 576*2
+#define spmax 1000
 
 void tmGrowRegion(IplImage * growInImage,
 				  IplImage * growOutImage,
@@ -2056,8 +2056,8 @@ void tmGrowRegion(IplImage * growInImage,
 	int pile_x[spmax];
 	int pile_y[spmax];
 
-	unsigned char * growIn = (u8 *)growInImage->imageData;
-	unsigned char * growOut = (u8 *)growOutImage->imageData;
+//	unsigned char * growIn = (u8 *)growInImage->imageData;
+//	unsigned char * growOut = (u8 *)growOutImage->imageData;
 	int swidth = growInImage->widthStep;
 	int sheight = growInImage->height;
 
@@ -2106,22 +2106,24 @@ void tmGrowRegion(IplImage * growInImage,
 	int growYMin = r;
 	int growYMax = r;
 
-	if(growIn[c+r * swidth] < threshold)
+	if(IPLPIX_8U(growInImage, c, r) < threshold)
 		return;
 
 	while(pile_sp != -1)
 	{
 		// determinate extreme abscisses xi and xf
 		y = pile_y[pile_sp];
-		int row = y * swidth;
+
+		u8 * growin = IPLLINE_8U(growInImage, y);
+		u8 * growout = IPLLINE_8U(growOutImage, y);
 
 		//looking for right extremity
 		x = pile_x[pile_sp]+1;
 
 
 		if(x<=cmax) {
-			while( growOut[x+row]==0 &&
-				   growIn[x+row]>=threshold && x<cmax) {
+			while( x<cmax && growout[x]==0 &&
+				   growin[x]>=threshold ) {
 				x++;
 			}
 			xf = x-1;
@@ -2135,8 +2137,8 @@ void tmGrowRegion(IplImage * growInImage,
 		pile_sp --;
 
 		if(x>cmin) {
-			while( growOut[x+row]==0 &&
-				   growIn[x+row]>=threshold && x>cmin) {
+			while( x>cmin && growout[x]==0 &&
+				   growin[x]>=threshold) {
 				x--;
 			}
 			xi = x+1;
@@ -2147,7 +2149,7 @@ void tmGrowRegion(IplImage * growInImage,
 		// reset the line
 		int w = xf - xi + 1;
 		if(w>0) {
-			memset(growOut + row+xi, fillValue, w);
+			memset(growout + xi, fillValue, w);
 			surf += w;
 
 			if(xi<growXMin) growXMin = xi;
@@ -2156,21 +2158,30 @@ void tmGrowRegion(IplImage * growInImage,
 			if(y>growYMax) growYMax = y;
 
 
+			int xstart = xf+1;
+			if(xf>=cmax) xstart = cmax;
+			int xi_1 = xi - 1;
+			if(xi_1<0) xi_1 = 0;
 
 			//#define CON_8
 			// line under current seed
 			if( y < rmax -1) {
-				if(xf < cmax - 1)
-					x = xf + 1; // 8con
-				else
-					x = xf;
-				if(xi <= 0) xi = 1;
-				int row2 = row + swidth;
+				x = xstart;
+				u8 * growin_down = IPLLINE_8U(growInImage, y+1);
+				u8 * growout_down = IPLLINE_8U(growOutImage, y+1);
 
-				while(x>=xi-1) {
-					while( (growOut[x+row2]>0 || growIn[x+row2]<threshold)
-						&& (x>=xi-1)) 	x--; // 8-connexity
-					if( (x>=xi-1) && growOut[x+row2]==0 && growIn[x+row2]>=threshold) {
+				while(x>=xi_1) {
+					while( (x>=xi_1)
+						&& (growout_down[x]>0
+							|| growin_down[x]<threshold)
+						) { // 8-connexity
+						x--;
+					}
+
+					if( (x>=xi_1)
+						&& growout_down[x]==0
+						&& growin_down[x]>=threshold) {
+
 						if(pile_sp < spmax-1)
 						{
 							pile_sp++;
@@ -2178,24 +2189,30 @@ void tmGrowRegion(IplImage * growInImage,
 							pile_y[pile_sp] = y+1;
 						}
 					}
-					while( growOut[x+row2]==0 && growIn[x+row2]>=threshold && (x>=xi-1)) // 8-con
+					// do not store points where it has already been grown or will be grown at next iter
+					while( (x>=xi_1) && ( growout_down[x]==0 &&
+						   growin_down[x]>=threshold )
+						   ) // 8-con
 						x--;
 				}
 			}
 
 			// line above current line
 			if( y > rmin) {
-				if(xf < cmax - 1)
-					x = xf + 1; // 8con
-				else
-					x = xf;
-				if(xi <= 0) xi = 1;
-				int row3 = row - swidth;
+				x = xstart;
+				u8 * growin_up= IPLLINE_8U(growInImage, y-1);
+				u8 * growout_up = IPLLINE_8U(growOutImage, y-1);
 
-				while(x>=xi-1) { // 8-con
-					while( (growOut[x+row3]>0 || growIn[x+row3]<threshold)
-						&& (x>=xi-1)) x--;
-					if( (x>=xi-1) && growOut[x+row3]==0 && (growIn[x+row3]>=threshold)) {
+				while(x>=xi_1) { // 8-con
+					while( (x>=xi_1)
+						&& (growout_up[x]>0 || growin_up[x]<threshold)
+						) {
+						x--;
+					}
+					if( (x>=xi_1)  // still above segment
+						&& growout_up[x]==0 // not alreayd grown
+						&& growin_up[x]>=threshold // over threshold
+						) {
 						if(pile_sp < spmax-1)
 						{
 							pile_sp++;
@@ -2204,9 +2221,11 @@ void tmGrowRegion(IplImage * growInImage,
 						}
 					}
 
-					while( growOut[x+row3]==0 && (growIn[x+row3]>=threshold)
-						&& (x>=xi-1)) // 8-con
+					while( (x>=xi_1)
+						&& ( (growin_up[x]>=threshold) && (growout_up[x]==0)
+						) ) {// 8-con
 						x--;
+					}
 				}
 			}
 		}
@@ -2239,8 +2258,8 @@ void tmFloodRegion(IplImage * growInImage,
 	int pile_x[spmax];
 	int pile_y[spmax];
 
-	unsigned char * growIn = (u8 *)growInImage->imageData;
-	unsigned char * growOut = (u8 *)growOutImage->imageData;
+//	unsigned char * growIn = (u8 *)growInImage->imageData;
+//	unsigned char * growOut = (u8 *)growOutImage->imageData;
 	int swidth = growInImage->widthStep;
 	int sheight = growInImage->height;
 	int x,y,xi,xf;
@@ -2282,7 +2301,7 @@ void tmFloodRegion(IplImage * growInImage,
 	}
 
 	if(fillValue==0) {
-		fillValue=1;
+		fillValue = 1;
 	}
 
 	// reinit growXMin, ...
@@ -2295,14 +2314,17 @@ void tmFloodRegion(IplImage * growInImage,
 	{
 		// determinate extreme abscisses xi and xf
 		y = pile_y[pile_sp];
-		int row = y * swidth;
 
 		//looking for right extremity
 		x = pile_x[pile_sp]+1;
 
+		u8 * growin = IPLLINE_8U(growInImage, y);
+		u8 * growout = IPLLINE_8U(growOutImage, y);
+
 		if(x<=cmax) {
-			while( growOut[x+row]==0 &&
-				abs((int)growIn[x+row] - (int)seedValue) <= threshold && x<cmax) {
+			while( x<cmax
+				&&growout[x]==0
+				&& abs((int)growin[x] - (int)seedValue) <= threshold) {
 				x++;
 			}
 			xf = x-1;
@@ -2313,11 +2335,12 @@ void tmFloodRegion(IplImage * growInImage,
 		// idem for left
 		x = pile_x[pile_sp]-1;
 		// we look for new seed
-		pile_sp --;
+		pile_sp --; // next seed will erase this one
 
 		if(x>cmin) {
-			while( growOut[x+row]==0 &&
-				abs((int)growIn[x+row] - (int)seedValue)<=threshold && x>cmin) {
+			while( x >cmin
+				   && growout[x]==0
+				   && abs((int)growin[x] - (int)seedValue)<=threshold ) {
 				x--;
 			}
 			xi = x+1;
@@ -2328,7 +2351,7 @@ void tmFloodRegion(IplImage * growInImage,
 		// reset the line
 		int w = xf - xi + 1;
 		if(w > 0) {
-			memset(growOut + row+xi, fillValue, w);
+			memset(growout + xi, fillValue, w);
 			surf += w;
 
 			if(xi<growXMin) growXMin = xi;
@@ -2337,27 +2360,29 @@ void tmFloodRegion(IplImage * growInImage,
 			if(y>growYMax) growYMax = y;
 
 
+			int xstart = xf+1;
+			if(xstart > cmax) xstart = xf;
+			int xi_1 = xi - 1;
+			if(xi_1<cmin) xi_1 = cmin;
 
 	//#define CON_8
 			// line under current seed
 			if( y < rmax -1) {
-				if(xf < cmax - 1) {
-					x = xf + 1; // 8con
-				} else {
-					x = xf;
-				}
+				x = xstart;
+				u8 * growin_down = IPLLINE_8U(growInImage, y+1);
+				u8 * growout_down = IPLLINE_8U(growOutImage, y+1);
 
-				if(xi <= 0) { xi = 1; }
-				int row2 = row + swidth;
-
-				while(x>=xi-1) {
-					while( (growOut[x+row2]>0
-								|| abs((int)growIn[x+row2]-seedValue)>threshold)
-							&& (x>=xi-1)) {	// 8-connexity
-							x--;
+				while(x>=xi_1) {
+					while( x >= xi_1 // 8-connexity
+							&& (growout_down[x]>0
+								|| abs((int)growin_down[x]-seedValue)>threshold)
+							) {
+						x--;
 					}
 
-					if( (x>=xi-1) && growOut[x+row2]==0 && abs((int)growIn[x+row2]-seedValue)<=threshold) {
+					if( (x>=xi_1)
+						&& growout_down[x]==0
+						&& abs((int)growin_down[x]-seedValue)<=threshold) {
 						if(pile_sp < spmax-1)
 						{
 							pile_sp++;
@@ -2366,9 +2391,9 @@ void tmFloodRegion(IplImage * growInImage,
 						}
 					}
 
-					while( growOut[x+row2]==0
-						   && abs((int)growIn[x+row2]-seedValue) <= threshold
-						   && (x>=xi-1))
+					while( (x>=xi_1)
+						&& growout_down[x]==0
+						&& abs((int)growin_down[x]-seedValue) <= threshold)
 					{	// 8-con
 						x--;
 					}
@@ -2377,19 +2402,21 @@ void tmFloodRegion(IplImage * growInImage,
 
 			// line above current line
 			if( y > rmin) {
-				if(xf < cmax - 1)
-					x = xf + 1; // 8con
-				else
-					x = xf;
-				if(xi <= 0) xi = 1;
-				int row3 = row - swidth;
+				x = xstart;
+				u8 * growin_up = IPLLINE_8U(growInImage, y-1);
+				u8 * growout_up = IPLLINE_8U(growOutImage, y-1);
 
-				while(x>=xi-1) { // 8-con
-					while( (growOut[x+row3]>0
-								|| abs((int)growIn[x+row3]-seedValue)>threshold)
-							&& (x>=xi-1)) { x--;
+				while(x>=xi_1) { // 8-con
+					while( (x>=xi_1)
+							&& (growout_up[x]>0
+								|| abs((int)growin_up[x]-seedValue)>threshold)
+							) {
+						x--;
 					}
-					if( (x>=xi-1) && growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)) {
+
+					if( (x>=xi_1)
+						&& growout_up[x]==0
+						&& (abs((int)growin_up[x]-seedValue)<=threshold)) {
 						if(pile_sp < spmax-1)
 						{
 							pile_sp++;
@@ -2398,8 +2425,10 @@ void tmFloodRegion(IplImage * growInImage,
 						}
 					}
 
-					while( growOut[x+row3]==0 && (abs((int)growIn[x+row3]-seedValue)<=threshold)
-							&& (x>=xi-1) ) { // 8-con
+					while( (x>=xi_1)
+						&& growout_up[x]==0
+						&& (abs((int)growin_up[x]-seedValue)<=threshold)
+						 ) { // 8-con
 						x--;
 					}
 				}
@@ -2428,8 +2457,9 @@ void tmEraseRegion(
 	unsigned char fillValue_grown,
 	unsigned char fillValue_diff)
 {
-	int pile_x[spmax];
-	int pile_y[spmax];
+#define spmax_erase	4000
+	int pile_x[spmax_erase	];
+	int pile_y[spmax_erase	];
 	int swidth = grownImage->widthStep;
 	int sheight = grownImage->height;
 
@@ -2484,23 +2514,36 @@ void tmEraseRegion(
 		return;
 	}
 
+
+	u8 fillValue_out = fillValue_diff;
 	while(pile_sp != -1)
 	{
+//		fprintf(stderr, "[imgutils] %s:%d: destack "
+//				"[%d] = %d,%d\n", __func__, __LINE__,
+//				pile_sp,
+//				pile_x[pile_sp], pile_y[pile_sp]);
+
 		// determinate extreme abscisses xi and xf
 		y = pile_y[pile_sp];
 		int row = y * swidth;
+
+		u8 * growline = IPLLINE_8U(grownImage, y);
 
 		//looking for right extremity
 		x = pile_x[pile_sp]+1;
 
 		if(x<=cmax) {
-			while(growIn[x+row]== fillValue_grown && x<cmax) {
-				x++;
+			while(x<cmax && growline[x] == fillValue_grown) {
+				x++; }
+
+			if(x<cmax) { // we stopped because we went out of filled region
+				xf = x-1;
+			} else { // we stopped because we reached the limit
+				xf = cmax;
 			}
-			xf = x-1;
-		}
-		else
+		} else {
 			xf = cmax;
+		}
 
 		// idem for left
 		x = pile_x[pile_sp]-1;
@@ -2508,22 +2551,29 @@ void tmEraseRegion(
 		pile_sp --;
 
 		if(x>cmin) {
-			while( growIn[x+row]== fillValue_grown && x>cmin) {
+			while( x>cmin && growline[x] == fillValue_grown) {
 				x--;
 			}
 			xi = x+1;
-		}
-		else
+		} else {
 			xi = cmin;
-
+		}
 
 		// reset the line
 		int w = xf - xi + 1;
 		if(w>0) {
-			memset(growIn + row+xi, 0, w);
+			// Clear output region
+			//FIXME : a quoi ca set de remplir av des 0 ??
+			memset(growline + xi, 32, w);
+
+//			fprintf(stderr, "[imgutils] %s:%d: clear "
+//					"%d,%d + w=%d\n", __func__, __LINE__,
+//					xi, y, w);
+
 			// And neutralize diffImage
 			if(diffOut) {
-				memset(diffOut + row+xi, fillValue_diff, w); }
+				memset(diffOut + row+xi, fillValue_diff, w);
+			}
 
 			surf += w;
 			/*fprintf(stderr, "\t%s:%d : clearing %d,%d + %d\n",
@@ -2531,56 +2581,89 @@ void tmEraseRegion(
 					xi, y, w);
 			*/
 
+			int xstart = xf;
+			if(xf < cmax - 1)
+				xstart = xf + 1; // 8con
+			int xi_1 = xi-1;
+			if(xi_1 < 0) { xi_1 = 0; }
 
 			// line under current seed
-			if( y < rmax -1) {
-				if(xf < cmax - 1)
-					x = xf + 1; // 8con
-				else
-					x = xf;
-				if(xi <= 0) xi = 1;
-				int row2 = row + swidth;
+			if( y+1 < rmax) {
+				x = xstart;
 
-				while(x>=xi-1) {
-					while( (growIn[x+row2] != fillValue_grown)
-							&& (x>=xi-1)) 	x--; // 8-connexity
-					if( (x>=xi-1) && growIn[x+row2]== fillValue_grown) {
-						if(pile_sp < spmax-1)
+				u8 * growdown = IPLLINE_8U(grownImage, y+1);
+
+				while(x>=xi_1) {
+					while( (x>=xi_1)
+						&& (growdown[x] != fillValue_grown) ) { // 8-connexity
+//						fprintf(stderr, "[imgutils] %s:%d: \t scan from "
+//								"%d,%d : %p=%d  xi=%d xf=%d\n", __func__, __LINE__,
+//								x, y+1, &growdown[x], growdown[x],
+//								xi, xf);
+						x--; }
+
+					if( (x>=xi_1) && growdown[x] == fillValue_grown
+						) {
+						if(pile_sp < spmax_erase -1)
 						{
 							pile_sp++;
+
 							pile_x[pile_sp] = x;
 							pile_y[pile_sp] = y+1;
+//							fprintf(stderr, "[imgutils] %s:%d: stack under "
+//									"[%d] = %d,%d\n", __func__, __LINE__,
+//									pile_sp,
+//									pile_x[pile_sp], pile_y[pile_sp]);
+						} else {
+							fprintf(stderr, "[imgutils] %s:%d: stack limit reached : %d items\n", __func__, __LINE__,
+									pile_sp);
+						}
+
+						while( (x>=xi_1)
+							&& growdown[x] == fillValue_grown // while in filled
+							 ) { // 8-con
+							x--;
 						}
 					}
-					while( growIn[x+row2]== fillValue_grown && (x>=xi-1)) // 8-con
-						x--;
+
 				}
 			}
 
 			// line above current line
 			if( y > rmin) {
-				if(xf < cmax - 1)
-					x = xf + 1; // 8con
-				else
-					x = xf;
-				if(xi <= 0) xi = 1;
-				int row3 = row - swidth;
+				x = xstart;
 
-				while(x>xi) { // 8-con
-					while( (growIn[x+row3]!= fillValue_grown)
-							&& (x>=xi-1)) x--;
-					if( (x>=xi-1) &&  (growIn[x+row3]== fillValue_grown)) {
-						if(pile_sp < spmax-1)
+				u8 * growup = IPLLINE_8U(grownImage, y-1);
+
+				while(x>=xi-1) { // 8-con
+					while( (growup[x] != fillValue_grown)
+						&& (x>=xi-1)) {
+//						fprintf(stderr, "[imgutils] %s:%d: \t scan up from "
+//								"%d,%d : %p=%d  xi=%d xf=%d\n", __func__, __LINE__,
+//								x, y+1, &growup[x], growup[x],
+//								xi, xf);
+
+						x--; }
+					if( (x>=xi-1) && (growup[x]==fillValue_grown)) {
+						if(pile_sp < spmax_erase -1)
 						{
 							pile_sp++;
 							pile_x[pile_sp] = x;
 							pile_y[pile_sp] = y-1;
+//							fprintf(stderr, "[imgutils] %s:%d: stack above "
+//									"[%d] = %d,%d\n", __func__, __LINE__,
+//									pile_sp,
+//									pile_x[pile_sp], pile_y[pile_sp]);
+						} else {
+							fprintf(stderr, "[imgutils] %s:%d: stack limit reached : %d items\n", __func__, __LINE__,
+									pile_sp);
 						}
 					}
 
-					while( growIn[x+row3]== fillValue_grown
-							&& (x>=xi-1)) // 8-con
+					while( growup[x] == fillValue_grown
+						   && (x>=xi-1)) { // 8-con
 						x--;
+					}
 				}
 			}
 		}
