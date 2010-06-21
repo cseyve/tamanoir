@@ -173,6 +173,7 @@ public:
 	~TamanoirApp();
 
 	void setArgs(int argc, char **argv);
+	void setCurCommand(int cmd);
 	/** @brief Load image file */
 	int loadFile(QString s);
 	/** Save current options for next launch of Tamanoir */

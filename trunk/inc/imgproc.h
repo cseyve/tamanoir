@@ -199,6 +199,10 @@ typedef struct t_correction_ {
 	/// physical/real height of dust in millimeters
 	float height_mm;
 
+	// Options adequacy
+	u8 trustable;	/*! Could have been corrected if the trust option has been enabled */
+	u8 empty_neighbourhood;	/*!  option has been enabled */
+
 	/// Accuracy
 	float bg_diff;
 	float proposal_diff;
@@ -242,7 +246,7 @@ typedef struct {
 	u8 diff_from_dest;				/*! return of @see srcDifferentFromDest(pcorrection); */
 	u8 correctedBetterThanOriginal; /*! return of @see correctedBetterThanOriginal(pcorrection); */
 	u8 neighbourhoodEmpty;			/*! return of @see neighbourhoodEmpty(pcorrection); */
-} t_dust_detection_props;
+} tm_dust_detection_props;
 
 /** @brief Already known dust for evaluation mode */
 typedef struct _known_dust {
@@ -345,8 +349,10 @@ public:
 	void allowDebugCrop(bool on) { m_show_crop_debug = on; };
 
 
-	/** @brief Set all options in one single call */
-	int setOptions(tm_options opt);
+	/** @brief Set all options in one single call
+		@return true if the change implies reprocessing from start
+	*/
+	bool setOptions(tm_options opt);
 
 	/** @brief Get all options in one single call */
 	tm_options getOptions() { return m_options; };
@@ -377,7 +383,7 @@ public:
 	int nextDust();
 
 	/** @brief Get dust detection properties */
-	t_dust_detection_props getDustProps() { return m_dust_detection_props; };
+	tm_dust_detection_props getDustProps() { return m_dust_detection_props; };
 
 	/** @brief Change the origin of current correction */
 	void setCopySrc(int x, int y);
@@ -508,7 +514,7 @@ private:
 	Mutex_t mutex;
 
 	/** @brief Dust detection properties */
-	t_dust_detection_props m_dust_detection_props;
+	tm_dust_detection_props m_dust_detection_props;
 
 	/** @brief Purge allocated buffers */
 	void purge();
@@ -640,8 +646,11 @@ private:
 	IplImage * erodedImage;
 	IplImage * dilatedImage;
 
-	/// Image of difference, thresholded with different values
+	/// Image of difference, thresholded with different values, then closed
 	IplImage * diffImage;
+
+	/// Image of difference, thresholded with different values, before closing (used for contrast)
+	IplImage * diffImageUnclosed;
 
 	/// Downscaled version of diffImage, used to show dusts when changing the sensitivity
 	IplImage * displayDiffImage;
@@ -768,7 +777,6 @@ private:
 	int m_findDust_last_seed_x;
 	/** @brief Last seed to prevent from doing the same operations many times in findDust */
 	int m_findDust_last_seed_y;
-
 
 	/** @brief Last seed position (used for searching next) */
 	int m_block_seed_x;

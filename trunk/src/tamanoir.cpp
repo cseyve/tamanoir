@@ -48,7 +48,7 @@ extern u8 g_debug_imgverbose;
 extern u8 g_debug_savetmp;
 extern u8 g_debug_correlation;
 extern u8 g_evaluate_mode;
-
+extern u8 g_debug_dust_seek;
 extern QString g_application_path;
 
 
@@ -133,6 +133,11 @@ u8 g_debug_displaylabel = 0;
 u8 g_debug_displaylabel = 1;
 #endif
 
+#define changeCurCommand(_cmd) { \
+			fprintf(stderr, "CHG COMMAND from %s:%d ", __func__, __LINE__); \
+			setCurCommand((_cmd)); \
+	}
+
 /// Period of background processing threadpolling
 #define TMAPP_TIMEOUT	1000
 
@@ -150,6 +155,7 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	statusBar()->showMessage( QString("") );
 	m_fileDialog = NULL;
 	m_pImgProc = NULL;
+	m_curCommand = PROTH_NOTHING;
 	m_pProcThread = NULL;
 	m_pProgressDialog = NULL;
 	force_mode = false;
@@ -369,15 +375,21 @@ const char * getCommandName(int cmd) {
 
 void TamanoirApp::on_refreshTimer_timeout() {
 	if(m_pProcThread) {
-		if(refreshTimer.isActive() &&
-			m_pProcThread->getCommand() == PROTH_NOTHING) {
+		if(refreshTimer.isActive()
+		   && (m_curCommand == PROTH_NOTHING
+			   || m_curCommand == PROTH_SEARCH)
+			&& m_pProcThread->getCommand() == PROTH_NOTHING) {
 			// Stop timer only if not in auto mode
 			if( !m_pProcThread->getModeAuto()) {
-
 				TMAPP_printf(TMLOG_DEBUG, "PROTH_NOTHING && not in auto mode "
 							 "=> stop refresh timer")
-
 				refreshTimer.stop();
+			}
+
+			if(m_curCommand == PROTH_SEARCH) // We were searching for first dust
+			{
+				setCurCommand(PROTH_NOTHING);
+				on_skipButton_clicked();
 			}
 
 			lockTools(false);
@@ -385,15 +397,16 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 		if(m_curCommand == PROTH_NOTHING &&
 		   m_pProcThread->getCommand() != PROTH_NOTHING) {
-			m_curCommand = m_pProcThread->getCommand();
+
+			changeCurCommand ( m_pProcThread->getCommand() );
 		}
 
-		//if(g_debug_TmThread)
-		TMAPP_printf(TMLOG_DEBUG, "m_curCommand=%s m_pProcThread.cmd=%s progress=%d\n",
+		TMAPP_printf(TMLOG_INFO, "m_curCommand=%s m_pProcThread.cmd=%s progress=%d\n",
 				getCommandName(m_curCommand), getCommandName(m_pProcThread->getCommand()),
 				m_pImgProc->getProgress())
 
-		// If nothing changed, just update GUI
+		// If nothing changed, e.g. if an action is still running,
+		// just update GUI for the progress
 		if( m_curCommand == m_pProcThread->getCommand()
 			|| m_pProcThread->getModeAuto()
 			) {
@@ -422,20 +435,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				#ifdef SIMPLE_VIEW
 				ui.correctPixmapLabel->resize(ui.cropPixmapLabel->size().width(), ui.centralwidget->height());
 				#endif
-				// File is loaded
-				refreshMainDisplay();
 
-				// Check if input image is 16bit, disable the Inpaint button
-				if(m_pImgProc->getOriginal() &&
-				   m_pImgProc->getOriginal()->depth != IPL_DEPTH_8U) {
-					ui.inpaintButton->setEnabled(false);
-				} else {
-					ui.inpaintButton->setEnabled(true);
-				}
-
-				// then update cropped
-				updateDisplay();
-				break;
 			case PROTH_PREPROC:
 				// File is loaded and preproc
 
@@ -463,6 +463,13 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			return;
 		}
 
+		// If we were saving a file
+		if( (m_curCommand == PROTH_SAVE_FILE)
+			&& (m_pProcThread->getCommand() == PROTH_NOTHING)) {
+			changeCurCommand(PROTH_NOTHING);
+			// The timer will be stopped at next iteration and the GUI blocks will be enabled again
+		}
+
 
 		// If we WERE loading a file and now it's done
 		if( (m_curCommand == PROTH_LOAD_FILE
@@ -472,6 +479,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 			&& (m_pProcThread->getCommand() == PROTH_NOTHING
 				|| m_pProcThread->getCommand() == PROTH_SEARCH)
 		) {
+			TMAPP_printf(TMLOG_INFO, "LOADING/PREPROC/SETOPTIONS Finished ")
+
 			refreshMainDisplay();
 
 			// update display for current dust
@@ -501,8 +510,8 @@ void TamanoirApp::on_refreshTimer_timeout() {
 					fprintf(stderr, "TamanoirApp::%s:%d : LOADING FINISHED => "
 							"resolution=%d dpi (current=%d dpi)\n", __func__, __LINE__,
 							l_options.dpi, g_options.dpi);
-					m_pProcThread->setOptions(g_options);
 
+					m_pProcThread->setOptions(g_options);
 				} else {
 					do_guess_dpi = false; // no more guess
 					int guess_dpi = 0;
@@ -574,7 +583,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 								l_options.dpi, g_options.dpi)
 
 							// apply old resolution
-	//						m_curCommand = PROTH_OPTIONS;
+	//						changeCurCommand (PROTH_OPTIONS);
 							m_pProcThread->setOptions(l_options);
 						}
 					}
@@ -609,22 +618,24 @@ void TamanoirApp::on_refreshTimer_timeout() {
 
 			// If loading is finished,
 			if(m_curCommand == PROTH_LOAD_FILE) {
-				m_curCommand = PROTH_PREPROC;
 				TMAPP_printf(TMLOG_INFO, "LOADING FINISHED => PREPROC "
 						 "m_curCommand=%d m_pProcThread=%d\n",
 						 m_curCommand, m_pProcThread->getCommand())
 
 				m_pProcThread->runPreProcessing();
+				changeCurCommand (PROTH_PREPROC);
 			}
 			else if(m_curCommand == PROTH_PREPROC) {
 				ui.overAllProgressBar->setValue(0);
-
+				changeCurCommand (PROTH_NOTHING);
 				TMAPP_printf(TMLOG_DEBUG, "PRE-PROCESSING FINISHED ! "
 						 "m_curCommand=%d m_pProcThread=%d",
 						 m_curCommand, m_pProcThread->getCommand())
 
 				m_current_dust.crop_width = 0;// to prevent from removing the first dust
 				on_skipButton_clicked();
+			} else {
+				changeCurCommand (PROTH_NOTHING);
 			}
 
 /*			//
@@ -1477,7 +1488,18 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 				fprintf(stderr, "TamanoirApp::%s:%d option '%s'\n",
 					__func__, __LINE__, argv[arg]);
 				if(strcasestr(argv[arg], "debug")) // All debug options
+				{
+					TMAPP_printf(TMLOG_INFO, "activate DEBUG + g_debug_savetmp = g_debug_imgverbose = g_debug_dust_seek = 1")
+					g_debug_savetmp = g_debug_imgverbose = g_debug_dust_seek = 1;
+					g_debug_TamanoirApp = TMLOG_DEBUG;
+				}
+
+				if(strcasestr(argv[arg], "trace")) // All debug options
+				{
+					TMAPP_printf(TMLOG_INFO, "activate TRACE + g_debug_savetmp = g_debug_imgverbose = 1")
 					g_debug_savetmp = g_debug_imgverbose = 1;
+					g_debug_TamanoirApp = TMLOG_TRACE;
+				}
 				if(strcasestr(argv[arg], "save")) // All debug options
 					g_debug_savetmp = 1;
 
@@ -1507,6 +1529,13 @@ void TamanoirApp::setArgs(int argc, char **argv) {
 }
 
 
+
+void TamanoirApp::setCurCommand(int cmd) {
+	TMAPP_printf(TMLOG_INFO, "Change current command : %d=%s => %d=%s",
+				 m_curCommand, g_command_names[m_curCommand],
+				 cmd, g_command_names[cmd]);
+	m_curCommand = cmd;
+}
 
 int TamanoirApp::loadFile(QString s) {
 	if(m_fileDialog) { // Hide dialoag
@@ -1564,7 +1593,8 @@ int TamanoirApp::loadFile(QString s) {
 		return -1;
 	}
 
-	m_curCommand = PROTH_LOAD_FILE;
+	changeCurCommand(PROTH_LOAD_FILE);
+
 
 	m_unsaved_changes = false;
 
@@ -1700,7 +1730,7 @@ void TamanoirApp::on_saveButton_clicked()
 		}
 
 		// Save image
-		m_curCommand = m_pProcThread->saveFile( m_currentFile );
+		changeCurCommand (m_pProcThread->saveFile( m_currentFile ));
 
 		statusBar()->showMessage( msg );
 
@@ -1709,7 +1739,7 @@ void TamanoirApp::on_saveButton_clicked()
 		processAndPrintStats(&stats);
 
 		// Display in progress bar
-		m_curCommand = PROTH_SAVE_FILE; //m_pProcThread->getCommand();
+		changeCurCommand (PROTH_SAVE_FILE); //m_pProcThread->getCommand();
 		refreshTimer.start(TMAPP_TIMEOUT);
 	}
 }
@@ -2028,7 +2058,8 @@ void TamanoirApp::on_skipButton_clicked()
 		} else { // No dust available, wait for a new one
 			int state = m_pProcThread->getCommand();
 
-			int next = m_curCommand = m_pProcThread->nextDust();
+			int next = m_pProcThread->nextDust();
+			changeCurCommand (PROTH_SEARCH);
 
 			TMAPP_printf(TMLOG_DEBUG, "m_current_dust.copy_width <= 0 cmd=%d next=%d",
 						 state, next)
@@ -2085,7 +2116,7 @@ void TamanoirApp::on_skipButton_clicked()
 
 			if(state == PROTH_NOTHING) // Search was done
 			{
-				m_curCommand = PROTH_NOTHING;
+				changeCurCommand (PROTH_NOTHING);
 
 				updateDisplay();
 			} else {
@@ -2222,10 +2253,10 @@ void TamanoirApp::on_typeComboBox_currentIndexChanged(int i) {
 	g_options.filmType = i;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
 	} else {
-		m_curCommand = PROTH_NOTHING;
+		changeCurCommand (PROTH_NOTHING);
 	}
 
 	saveOptions();
@@ -2308,10 +2339,10 @@ void TamanoirApp::on_sensitivityHorizontalSlider_sliderReleased() {
 	g_options.sensitivity = threshold;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
 	} else {
-		m_curCommand = PROTH_NOTHING;
+		changeCurCommand (PROTH_NOTHING);
 	}
 
 	updateMainDisplay();
@@ -2333,10 +2364,10 @@ void TamanoirApp::on_sensitivityComboBox_currentIndexChanged(int i) {
 	g_options.sensitivity = i;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
 	} else {
-		m_curCommand = PROTH_NOTHING;
+		changeCurCommand (PROTH_NOTHING);
 	}
 
 	saveOptions();
@@ -2356,10 +2387,10 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 	}
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
 	} else {
-		m_curCommand = PROTH_NOTHING;
+		changeCurCommand (PROTH_NOTHING);
 	}
 
 	saveOptions();
@@ -2371,9 +2402,9 @@ void TamanoirApp::on_trustCheckBox_toggled(bool on) {
 	g_options.trust = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
-	} else m_curCommand = PROTH_NOTHING;
+	} else changeCurCommand (PROTH_NOTHING);
 
 	saveOptions();
 }
@@ -2385,9 +2416,9 @@ void TamanoirApp::on_emptyCheckBox_toggled(bool on) {
 	g_options.onlyEmpty = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
-	} else m_curCommand = PROTH_NOTHING;
+	} else changeCurCommand (PROTH_NOTHING);
 
 	saveOptions();
 }
@@ -2399,9 +2430,9 @@ void TamanoirApp::on_hotPixelsCheckBox_toggled(bool on) {
 	g_options.hotPixels = on;
 
 	if(m_pProcThread) {
-		m_curCommand = m_pProcThread->setOptions(g_options);
+		changeCurCommand (m_pProcThread->setOptions(g_options));
 		refreshTimer.start(TMAPP_TIMEOUT);
-	} else m_curCommand = PROTH_NOTHING;
+	} else changeCurCommand (PROTH_NOTHING);
 
 	saveOptions();
 }
@@ -2833,7 +2864,7 @@ void TamanoirApp::updateCroppedDisplay()
 			g_debug_imgverbose = g_debug_savetmp = 1;
 
 			//
-			t_dust_detection_props props =
+			tm_dust_detection_props props =
 					m_pImgProc->getDustProps();
 			/*
 u8 big_enough;					*! Size if big enough to be a dust (dpeend on dpi) *
@@ -2856,7 +2887,7 @@ u8 diff_from_neighbour;			*! return of @see differentFromNeighbourHood(pcorrecti
 u8 diff_from_dest;				*! return of @see srcDifferentFromDest(pcorrection); *
 u8 correctedBetterThanOriginal; *! return of @see correctedBetterThanOriginal(pcorrection); *
 u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
-} t_dust_detection_props;
+} tm_dust_detection_props;
 
 			  */
 			char proptxt[1024];
@@ -3165,6 +3196,10 @@ int TamanoirThread::getCommand() {
 }
 
 int TamanoirThread::runPreProcessing() {
+	TMAPP_printf(TMLOG_INFO, " PREPROC "
+			 "m_reqCommand=%d PROTH_PREPROC\n",
+			 m_req_command);
+
 	m_req_command = PROTH_PREPROC;
 	m_no_more_dusts = false;
 
@@ -3215,30 +3250,63 @@ int TamanoirThread::setOptions(tm_options options) {
 	if(!m_run) {
 		start();
 	}
+
+	bool restart_from_changes = false;
+
 	TMTHR_printf(TMLOG_WARNING, "FIXME : fix conditions of dust list clearing on option changes")
 	// If something2388  changed, clear already known dusts
 	if(m_options.filmType != options.filmType) {
-		m_dust_list.clear();
+		TMTHR_printf(TMLOG_INFO, "Film type changed = %d != old=%d "
+					 "=> restart from topleft",
+					 options.filmType, m_options.filmType);
 	}
+
 	if(m_options.trust != options.trust) {
+		TMTHR_printf(TMLOG_INFO, "Trust mode changed = %c != old=%c "
+					 "=> restart from topleft",
+					 options.trust?'T':'F',
+					 m_options.trust?'T':'F');
 		m_dust_list.clear();
 	}
+
 	if(m_options.dpi != options.dpi) {
+		TMTHR_printf(TMLOG_INFO, "Resolution changed = %d != old=%d "
+					 "=> restart from topleft",
+					 options.dpi, m_options.dpi);
 		m_dust_list.clear();
 	}
-	if(m_options.sensitivity != options.sensitivity) {
+
+	// new is more sensitive => need to change
+	if(m_options.sensitivity < options.sensitivity) {
+		TMTHR_printf(TMLOG_INFO, "New sensitivity =%d > old=%d => restart ftop topleft",
+					 options.sensitivity, m_options.sensitivity);
 		m_dust_list.clear();
 	}
+
 	if(m_options.onlyEmpty != options.onlyEmpty) {
+		TMTHR_printf(TMLOG_INFO, "Only empty option changed = %c != old=%c "
+					 "=> restart from topleft",
+					 options.onlyEmpty?'T':'F',
+					 m_options.onlyEmpty?'T':'F');
 		m_dust_list.clear();
 	}
 
-
-	m_options = options;
 	int ret = m_req_command = PROTH_OPTIONS;
+	if(memcmp(&m_options, &options, sizeof(options)) != 0) {
+		TMTHR_printf(TMLOG_INFO, "Options changed")
+		ret = m_req_command = PROTH_OPTIONS;
+	}
+	m_options = options;
 
-	// The user may have changed the options while loading
-	m_pImgProc->abortLoading(true);
+
+	if(restart_from_changes) {
+		// The user may have changed the options while loading
+		m_pImgProc->abortLoading(true);
+
+		TMTHR_printf(TMLOG_INFO, "Apply changes, rewind to start")
+		m_dust_list.clear();
+		m_pImgProc->firstDust();
+	}
 
 	// Unlock thread
 	mutex.lock();
@@ -3415,7 +3483,7 @@ void TamanoirThread::run() {
 		int wait_ms = 20;
 		if(m_options.mode_auto
 		   && !m_no_more_dusts) {
-			wait_ms = 1;
+			wait_ms = 1; // go fastest
 		}
 		mutex.lock();
 		waitCond.wait(&mutex, wait_ms);
@@ -3433,7 +3501,7 @@ void TamanoirThread::run() {
 		m_req_command = PROTH_NOTHING;
 
 		int ret;
-
+		bool do_search = false;
 		switch(m_current_command) {
 		default:
 		case PROTH_NOTHING:
@@ -3443,7 +3511,8 @@ void TamanoirThread::run() {
 			   ) {
 				// If there are not too much dusts in list, continue to search
 				if(m_dust_list.count() < 100) {
-					m_req_command = PROTH_SEARCH;
+					//m_req_command = PROTH_SEARCH;
+					do_search = true;
 					TMTHR_printf(TMLOG_TRACE, "nothing => PROTH_SEARCH !!!")
 				}
 			}
@@ -3455,10 +3524,13 @@ void TamanoirThread::run() {
 			break;
 
 		case PROTH_LOAD_FILE:
-			TMTHR_printf(TMLOG_INFO, "load file '%s'\n", m_filename.toUtf8().data())
-			TMTHR_printf(TMLOG_INFO, "Stopping auto mode")
+			TMTHR_printf(TMLOG_INFO, "LOADING FILE '%s'\n", m_filename.toUtf8().data())
+			if(m_options.mode_auto) {
+				TMTHR_printf(TMLOG_INFO, "Stopping auto mode")
 
-			m_options.mode_auto = false;
+				m_options.mode_auto = false;
+			}
+
 			ret = m_pImgProc->loadFile(m_filename);
 			m_no_more_dusts = false;
 
@@ -3469,11 +3541,45 @@ void TamanoirThread::run() {
 		case PROTH_PREPROC:
 			TMTHR_printf(TMLOG_INFO, "pre-processing for file '%s'...", m_filename.toUtf8().data())
 			ret = m_pImgProc->preProcessImage();
+			TMTHR_printf(TMLOG_INFO, "PRE-PROCESSING for file '%s' : DONE. Next command is PROTH_SEARCH", m_filename.toUtf8().data())
+			m_req_command = PROTH_SEARCH;
+
 			break;
 
 		case PROTH_SEARCH:
 			TMTHR_printf(TMLOG_TRACE, "searching for next dust (while main frame is displaying)")
+			do_search = true;
 
+			break;
+
+		case PROTH_OPTIONS:
+			TMTHR_printf(TMLOG_INFO, "process options changes....")
+			if(g_debug_list) {
+				//
+				fprintf(stderr, "TmThread::%s:%d : PROTH_OPTIONS => "
+						"dust_list.clear()\n",
+						__func__, __LINE__);
+			}
+
+			bool need_preproc =
+				m_pImgProc->setOptions(m_options);
+
+			// There will be new dusts
+			m_no_more_dusts = false;
+
+			// Pre-process input file
+			if(need_preproc) {
+				// Clear dust list
+				m_dust_list.clear();
+				TMTHR_printf(TMLOG_DEBUG, "process options change done => next step is PROTH_PREPROC....")
+				m_req_command = PROTH_PREPROC;
+			}
+
+			break;
+		}
+
+		// If we have nothing to do, we can search for next dust
+		if(do_search) {
 			ret = m_pImgProc->nextDust();
 			if(ret > 0) {
 				// Add to list
@@ -3501,39 +3607,23 @@ void TamanoirThread::run() {
 					//req_command = PROTH_SEARCH;
 				}
 			} else { // no more dust
+
 				if(ret == 0) {
 					m_no_more_dusts = true;
-					TMTHR_printf(TMLOG_INFO, "no more dust (ret=%d) -> Stopping auto mode", ret)
+					TMTHR_printf(TMLOG_INFO, "no more dust (ret=%d)", ret);
 
-					// Stop auto mode
-					m_options.mode_auto = false;
+					if(m_options.mode_auto) {
+						TMTHR_printf(TMLOG_INFO, "no more dust (ret=%d) "
+									 "=> Stopping auto mode", ret);
+
+						// Stop auto mode
+						m_options.mode_auto = false;
+					}
 				}
 			}
 			TMTHR_printf(TMLOG_TRACE, "    => next dust ret=%d", ret)
-
-			break;
-		case PROTH_OPTIONS:
-			TMTHR_printf(TMLOG_INFO, "process options changes....")
-
-			// Clear dust list
-			m_dust_list.clear();
-			if(g_debug_list) {
-				//
-				fprintf(stderr, "TmThread::%s:%d : PROTH_OPTIONS => "
-						"dust_list.clear()\n",
-						__func__, __LINE__);
-			}
-			m_pImgProc->setOptions(m_options);
-
-			// There will be new dusts
-			m_no_more_dusts = false;
-
-			// Pre-process input file
-			TMTHR_printf(TMLOG_DEBUG, "process options change done => next step is PROTH_PREPROC....")
-			m_req_command = PROTH_PREPROC;
-
-			break;
 		}
+
 
 		m_current_command = PROTH_NOTHING;
 	}
