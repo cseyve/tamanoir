@@ -196,7 +196,10 @@
            <property name="title">
             <string>Global view</string>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout">
+           <property name="alignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_6">
             <property name="topMargin">
              <number>0</number>
             </property>
@@ -240,6 +243,9 @@
               </property>
               <property name="toolTip">
                <string>Main display : current dust is marked in blue, corrected ones in green, ones with refused proposals in yellow</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
               </property>
               <property name="pixmap">
                <pixmap/>
@@ -1072,7 +1078,7 @@
      <x>0</x>
      <y>0</y>
      <width>809</width>
-     <height>27</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">

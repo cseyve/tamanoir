@@ -2951,7 +2951,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 		curImage = m_pImgProc->getCropArrow();
 
 		if(curImage) {
-			QLabel * pLabel = ui.cropPixmapLabel;
+			QImageDisplay * pLabel = ui.cropPixmapLabel;
 			//unused int label_width = pLabel->width()-LABELWIDTH_MARGIN;
 			if(g_debug_displaylabel) {
 				QString propStr;
@@ -2981,6 +2981,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				grayQImage,
 				QPixmap::Color );
 			pLabel->setPixmap(pixmap);
+			pLabel->setCorrection(m_current_dust);
 			pLabel->repaint();
 		}
 

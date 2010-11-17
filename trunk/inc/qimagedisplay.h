@@ -37,8 +37,17 @@ class QImageDisplay : public QLabel {
     Q_OBJECT
 public:
     QImageDisplay(QWidget * l_parent = NULL);
-    
+	void paintEvent(QPaintEvent *);
+
+	/** @brief Set the move properties */
+	void setCorrection(t_correction correction) {
+		m_correction = correction;
+		update();
+	};
+
 private:
+	t_correction m_correction ;
+
     void mouseReleaseEvent(QMouseEvent * e);
     void mousePressEvent(QMouseEvent * e);
     void mouseMoveEvent(QMouseEvent * e);
