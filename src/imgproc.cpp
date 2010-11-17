@@ -4421,13 +4421,14 @@ void TamanoirImgProc::cropCorrectionImages(
 			correction.copy_width, correction.copy_height,
 			disp_correctColorImage
 			);
-
+/* done in paintEvent now
 		tmMarkCloneRegion(disp_cropColorImage,
 			correction.rel_dest_x, correction.rel_dest_y, // dest
 			correction.rel_src_x, correction.rel_src_y, // src
 			correction.copy_width, correction.copy_height,
 			false // mark move dest
 			);
+*/
 
 	} // else, we are in inpaint mode, we mark the grown region in image
 	else {
