@@ -20,7 +20,7 @@ configure-stamp:
 	#BUILD_STATIC=true 
 	# generate translation file
 	lrelease-qt4 tamanoir_French.ts -qm tamanoir_French.qm
-	qmake-qt4 Tamanoir.pro
+	qmake-qt4 Tamanoir-distrib.pro
 
 	touch configure-stamp
 
