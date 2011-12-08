@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
 	QString translationFile = QString("tamanoir_") +
 			  localLang.languageToString(localLang.language()) +
 			  QString(".qm");
-	fprintf(stderr, "Translation file='%s'\n", translationFile.ascii());
+	fprintf(stderr, "Translation file='%s'\n", translationFile.toAscii().data());
 	tor.load( translationFile,
 				dir.absolutePath() );
 

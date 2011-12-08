@@ -196,14 +196,14 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	ui.prevButton->setEnabled(TRUE);
 	ui.loadingTextLabel->setText(QString(""));
-	ui.cloneButton->setToggleButton(true);
+	ui.cloneButton->setCheckable(true);
 
 	m_resize_rect = false;
 
 	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
 	m_nav_x_block = m_nav_y_block = 0;
 #ifdef SIMPLE_VIEW
-	ui.fullScreenButton->setToggleButton(TRUE);
+	ui.fullScreenButton->setCheckable(TRUE);
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
@@ -606,7 +606,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						ui.dpiComboBox->setCurrentIndex(ind);
 
 					} else { // add an item
-						ui.dpiComboBox->insertItem(dpistr + tr(" dpi"));
+						ui.dpiComboBox->insertItem(-1, dpistr + tr(" dpi"));
 						TMAPP_printf(TMLOG_INFO, "Add a new resolution in l_options=%d dpi in combo",
 									 g_options.dpi)
 
@@ -878,7 +878,7 @@ void TamanoirApp::on_inpaintButton_toggled(bool state) {
 
 	if(state) {
 		ui.cloneButton->blockSignals(true);
-		ui.cloneButton->setOn(false);
+		ui.cloneButton->setChecked(false);
 		ui.cloneButton->blockSignals(false);
 	}
 
@@ -914,7 +914,7 @@ void TamanoirApp::on_cloneButton_toggled(bool state) {
 	m_draw_on = (state ? TMMODE_CLONE : TMMODE_NOFORCE);
 	if(state) {
 		ui.inpaintButton->blockSignals(true);
-		ui.inpaintButton->setOn(false);
+		ui.inpaintButton->setChecked(false);
 		ui.inpaintButton->blockSignals(false);
 	}
 
@@ -1683,8 +1683,8 @@ void TamanoirApp::on_saveButton_clicked()
 	fprintf(stderr, "TamanoirApp::%s:%d : saving in original file, and use a copy for backup...\n", __func__, __LINE__);
 
 	QFileInfo fi(m_currentFile);
-	QString ext = fi.extension(FALSE);
-	QString base = fi.baseName( TRUE );
+	QString ext = fi.completeSuffix();
+	QString base = fi.completeBaseName();
 
 	m_unsaved_changes = false;
 
@@ -1724,7 +1724,7 @@ void TamanoirApp::on_saveButton_clicked()
 		QFileInfo ficopy(copystr);
 
 		if(!ficopy.exists()) {
-			QDir dir( fi.dirPath(TRUE) );
+			QDir dir( fi.absoluteDir() );
 			dir.rename(m_currentFile, copystr);
 			msg+= tr(" + backup as ") + copystr;
 		}
@@ -1897,7 +1897,7 @@ ExportLayer:T
 	if(ind >= 0)
 		ui.dpiComboBox->setCurrentIndex(ind);
 	else { // add an item
-		ui.dpiComboBox->insertItem(str + tr(" dpi"));
+		ui.dpiComboBox->insertItem(-1, str + tr(" dpi"));
 		fprintf(stderr, "TamanoirApp::%s:%d : Add a resolution: resolution=%d dpi\n", __func__, __LINE__,
 				g_options.dpi);
 
@@ -2199,9 +2199,9 @@ void TamanoirApp::on_autoButton_clicked()
 
 		QFileInfo fi(m_currentFile);
 		//QString abspathname = fi.absPathName();
-		QString ext = fi.extension();  // ext = ".jpg"
+		QString ext = fi.completeSuffix();  // ext = ".jpg"
 
-		sprintf(logfilename, "%s%s.txt", TMP_DIRECTORY, fi.baseName(false).toUtf8().data());
+		sprintf(logfilename, "%s%s.txt", TMP_DIRECTORY, fi.baseName().toUtf8().data());
 
 		logfile = fopen(logfilename, "w");
 		if(!logfile) {
@@ -2278,7 +2278,7 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 	cvCvtColor(diffImage, colorImg, CV_GRAY2BGR);
 	TMAPP_printf(TMLOG_INFO, "Change level to %d for diffImage=%dx%d",
 				 threshold, colorImg->width, colorImg->height)
-	QImage greyDiff(colorImg->width, colorImg->height, 32);
+	QImage greyDiff(colorImg->width, colorImg->height, QImage::Format_RGB32);
 	TMAPP_printf(TMLOG_INFO, "copy colorImg= pitch:%d x height:%d",
 				 colorImg->widthStep, colorImg->height)
 
@@ -2310,7 +2310,7 @@ void TamanoirApp::on_sensitivityHorizontalSlider_valueChanged(int val) {
 */
 	TMAPP_printf(TMLOG_INFO, "Convert to Pixmap=%dx%d x %dbit",
 				 greyDiff.width(), greyDiff.height(), greyDiff.depth())
-	QPixmap greyPixmap; greyPixmap.convertFromImage(greyDiff);
+	QPixmap greyPixmap = QPixmap::fromImage(greyDiff);
 	TMAPP_printf(TMLOG_INFO, "Display colorImg=%dx%d",
 				 colorImg->width, colorImg->height)
 	ui.mainPixmapLabel->setPixmap(greyPixmap);
@@ -2396,8 +2396,10 @@ void TamanoirApp::on_dpiComboBox_currentIndexChanged(QString str) {
 	saveOptions();
 }
 
-void TamanoirApp::on_trustCheckBox_toggled(bool on) {
-	statusBar()->showMessage(tr("Changed to 'trust' mode : " + (on?tr("ON"):tr("OFF"))));
+void TamanoirApp::on_trustCheckBox_toggled(bool on)
+{
+	statusBar()->showMessage( tr("Changed to 'trust' mode : ")
+							  + (on?tr("ON"):tr("OFF")));
 
 	g_options.trust = on;
 
@@ -2516,7 +2518,10 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only )
 	if((orig_width % 2) == 1)
 		orig_width--;
 
-	QImage qImage(orig_width, iplImage->height, 8*depth);
+	QImage qImage(orig_width, iplImage->height,
+				  depth == 8 ? QImage::Format_Mono :
+				  (depth == 32 ? QImage::Format_RGB32 : QImage::Format_RGB888)
+				  );
 	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 
 /*
@@ -2826,11 +2831,10 @@ void TamanoirApp::updateMainDisplay() {
 			//int scaled_height = displayImage->height;
 
 
-			QImage mainImage(gray_width, displayImage->height, 32); //8*displayImage->nChannels);
+			QImage mainImage(gray_width, displayImage->height, QImage::Format_RGB32); //8*displayImage->nChannels);
 			mainImage = iplImageToQImage(displayImage, true, false);
 
-			QPixmap pixmap;
-			pixmap.convertFromImage( mainImage );
+			QPixmap pixmap = QPixmap::fromImage( mainImage );
 			/* fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
 									__func__, __LINE__,
 									m_main_display_rect.width(),m_main_display_rect.height() );
@@ -2976,10 +2980,8 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				grayQImage.setColor(255, qRgb(0,255,0));
 			}
 
-			QPixmap pixmap;
-			pixmap.convertFromImage(
-				grayQImage,
-				QPixmap::Color );
+			QPixmap pixmap = QPixmap::fromImage(
+						grayQImage);
 			pLabel->setPixmap(pixmap);
 			pLabel->setCorrection(m_current_dust);
 			pLabel->repaint();
@@ -3074,10 +3076,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 												 true // with only red as false color
 												 ); //.scaledToWidth(label_width);
 
-			QPixmap pixmap;
-			pixmap.convertFromImage(
-				grayQImage, //.scaledToWidth(pLabel->width()),
-				QPixmap::Color);
+			QPixmap pixmap = QPixmap::fromImage(
+				grayQImage //.scaledToWidth(pLabel->width()),
+				);
 			pLabel->setPixmap(pixmap);
 			pLabel->repaint();
 		}
@@ -3099,10 +3100,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 					grayQImage.setColor(255, qRgb(255,0,0));
 				}
 
-				QPixmap pixmap;
-				pixmap.convertFromImage(
-						grayQImage,//.smoothScale(pLabel->width(),pLabel->height()),
-						QPixmap::Color);
+				QPixmap pixmap = QPixmap::fromImage(
+						grayQImage//.smoothScale(pLabel->width(),pLabel->height()),
+						);
 				pLabel->setPixmap(pixmap);
 				pLabel->repaint();
 			}
@@ -3149,10 +3149,8 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 					}
 				}
 
-				QPixmap pixmap;
-				pixmap.convertFromImage(
-						grayQImage, //.smoothScale(pLabel->width(),pLabel->height()),
-						QPixmap::Color);
+				QPixmap pixmap = QPixmap::fromImage(
+						grayQImage);
 				pLabel->setPixmap(pixmap);
 				pLabel->repaint();
 			}
@@ -3521,7 +3519,7 @@ void TamanoirThread::run() {
 			break;
 		case PROTH_SAVE_FILE:
 			TMTHR_printf(TMLOG_INFO, "save file '%s'\n", m_filename.toUtf8().data())
-			m_pImgProc->saveFile(m_filename);
+			m_pImgProc->saveFile(m_filename.toUtf8().data());
 			break;
 
 		case PROTH_LOAD_FILE:
@@ -3532,7 +3530,7 @@ void TamanoirThread::run() {
 				m_options.mode_auto = false;
 			}
 
-			ret = m_pImgProc->loadFile(m_filename);
+			ret = m_pImgProc->loadFile(m_filename.toUtf8().data());
 			m_no_more_dusts = false;
 
 			TMTHR_printf(TMLOG_INFO, "file '%s' LOADED", m_filename.toUtf8().data())

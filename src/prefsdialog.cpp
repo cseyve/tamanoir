@@ -38,9 +38,9 @@ PrefsDialog::PrefsDialog(QWidget * parent)
 	hideAutoCheckBox->setChecked(g_display_options.hide_auto);
 }
 
-void PrefsDialog::on_styleComboBox_activated(const QString & str) {
-
-	strcpy(g_display_options.stylesheet, str.ascii());
+void PrefsDialog::on_styleComboBox_activated(const QString & str)
+{
+	strcpy(g_display_options.stylesheet, str.toAscii().data() );
 
 	tmApp->saveOptions();
 }

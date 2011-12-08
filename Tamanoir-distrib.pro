@@ -17,8 +17,7 @@ INCLUDEPATH += . \
     inc \
     ui
 OBJECTS_DIR = .obj-simple
-DEFINES += SIMPLE_VIEW \
-    QT3_SUPPORT
+DEFINES += SIMPLE_VIEW 
 CONFIG += qt \
     warn_on
 
