@@ -58,7 +58,7 @@ void QImageDisplay::paintEvent(QPaintEvent * e)
 
 		pix.fill( this, cr.topLeft() );
 
-		QPainter p( &pix);
+		QPainter p(this); //( &pix);
 		p.setRenderHint(QPainter::Antialiasing);
 
 		if(cr != this->rect()) {
@@ -124,7 +124,7 @@ void QImageDisplay::paintEvent(QPaintEvent * e)
 			}
 		}
 		p.end();
-		bitBlt( this, cr.topLeft(), &pix );
+		//bitBlt( this, cr.topLeft(), &pix );
 	}
 
 }
