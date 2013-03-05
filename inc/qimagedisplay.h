@@ -39,14 +39,22 @@ public:
     QImageDisplay(QWidget * l_parent = NULL);
 	void paintEvent(QPaintEvent *);
 
+	/** @brief Show copy vector */
+	void showCopyVector(bool on)
+	{
+		m_showVector = on;
+		update();
+	}
+
 	/** @brief Set the move properties */
 	void setCorrection(t_correction correction) {
 		m_correction = correction;
 		update();
-	};
+	}
 
 private:
 	t_correction m_correction ;
+	bool m_showVector;
 
     void mouseReleaseEvent(QMouseEvent * e);
     void mousePressEvent(QMouseEvent * e);

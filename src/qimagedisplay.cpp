@@ -26,11 +26,14 @@
 #include <qevent.h>
 #include <QPainter>
 
+#include <stdio.h>
+
 unsigned char g_debug_QImageDisplay = 0;
 
 QImageDisplay::QImageDisplay(QWidget * l_parent)
 	: QLabel(l_parent) {
 	setMouseTracking(false);
+	m_showVector = true;
 
 	memset(&m_correction, 0, sizeof(t_correction));
 }
@@ -67,30 +70,40 @@ void QImageDisplay::paintEvent(QPaintEvent * e)
 			p.drawImage(xoff, yoff, ImgRGB);
 		}
 
-		if(m_correction.crop_width > 0) {
-
+		if(m_showVector && m_correction.crop_width > 0)
+		{
 			// + 1 pixel offset for drawing
-			int dest_x = m_correction.rel_dest_x - cr.x() +1;
-			int dest_y = m_correction.rel_dest_y - cr.y() +1;
-			int src_x = m_correction.rel_src_x - cr.x() +1;
-			int src_y = m_correction.rel_src_y - cr.y() +1;
+			int dest_x = m_correction.rel_dest_x - cr.x() ;
+			int dest_y = m_correction.rel_dest_y - cr.y() ;
+			int src_x = m_correction.rel_src_x - cr.x() ;
+			int src_y = m_correction.rel_src_y - cr.y() ;
 
-			QBrush grayBrush(qRgba(0,0,0,60));
+			// Offset for black arrow
+			int off_x = 1, off_y = 1;
+			if(dest_x < src_x) {
+				off_x = -1;
+			}
+			if(dest_y < src_y) {
+				off_y = -1;
+			}
+			src_x += off_x; src_y += off_y;
+			dest_x += off_x; dest_y += off_y;
+
+			QBrush grayBrush(qRgba(0,0,0,20));
 			p.setPen( QPen(grayBrush, 2));
 			for(int pass=0; pass<2; pass++) {
 				if(pass==1) {
-					QBrush greenBrush(qRgba(240,240,240,180));
+					QBrush greenBrush(qRgba(255,255,255,180));
 					p.setPen( QPen(greenBrush, 2));
-					src_x--; src_y--;
-					dest_x--; dest_y--;
-
+					src_x -= off_x; src_y -= off_y;
+					dest_x -= off_x; dest_y -= off_y;
 				}
+				int copy_vector_x = dest_x - src_x;
+				int copy_vector_y = dest_y - src_y;
 				int src_center_x = src_x;
 				int src_center_y = src_y;
 				int dest_center_x = dest_x;
 				int dest_center_y = dest_y;
-				int copy_vector_x = dest_center_x - src_center_x;
-				int copy_vector_y = dest_center_y - src_center_y;
 
 				p.drawEllipse( QPoint( src_x, src_y),
 							m_correction.copy_width/2+1, m_correction.copy_height/2+1);

@@ -387,6 +387,7 @@ public:
 
 	/** @brief Change the origin of current correction */
 	void setCopySrc(int x, int y);
+
 	/** @brief Change the origin of a former correction */
 	void setCopySrc(t_correction * pcorrection, int rel_x, int rel_y);
 

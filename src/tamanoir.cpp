@@ -699,14 +699,15 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 		// Create a fake dust in middle
 		int crop_w = m_blockSize.width; //ui.cropPixmapLabel->size().width()-2;
 		int crop_h = m_blockSize.height; //ui.cropPixmapLabel->size().height()-2;
-		int offset_x = (ui.mainPixmapLabel->size().width()-2 - scaled_width)/2;// pixmap is centered
-		int offset_y = (ui.mainPixmapLabel->size().height()-2 - scaled_height)/2;// pixmap is centered
+		int offset_x = (ui.mainPixmapLabel->size().width() - scaled_width)/2;// pixmap is centered
+		int offset_y = (ui.mainPixmapLabel->size().height() - scaled_height)/2;// pixmap is centered
 
 		memset(&m_current_dust, 0, sizeof(t_correction));
 		m_current_dust.crop_x = std::max(0, (int)roundf( (e->pos().x()-offset_x) * scale_x) -crop_w/2);
 		m_current_dust.crop_y = std::max(0, (int)roundf( (e->pos().y()-offset_y) * scale_y) -crop_h/2);
 		m_current_dust.crop_width = crop_w;
 		m_current_dust.crop_height = crop_h;
+
 		// Limit to right and bottom
 		if(m_current_dust.crop_x + m_current_dust.crop_width >= origImage->width) {
 			m_current_dust.crop_x = std::max(0, origImage->width - m_current_dust.crop_width-1);
@@ -1412,8 +1413,13 @@ void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 		updateDisplay();
 	}
 }
-void TamanoirApp::updateCroppedCursor() {
+
+
+void TamanoirApp::updateCroppedCursor()
+{
+
 	if(m_draw_on == TMMODE_INPAINT) {
+		ui.cropPixmapLabel->showCopyVector(false);
 		t_correction * l_correction = &m_current_dust;
 		int radius = tmmin(l_correction->copy_width,
 						   l_correction->copy_height)/2 ;
@@ -1439,7 +1445,12 @@ void TamanoirApp::updateCroppedCursor() {
 		QCursor bmpcursor(pixmap, pixmap_bg, radius, radius);
 		ui.cropPixmapLabel->setCursor( bmpcursor);
 	}
+	else {
+		ui.cropPixmapLabel->showCopyVector(true);
+	}
 }
+
+
 void TamanoirApp::on_cropPixmapLabel_signalWheelEvent(QWheelEvent * e) {
 	if(e && m_pProcThread) {
 		t_correction * l_correction = &m_current_dust;
@@ -1980,7 +1991,7 @@ void TamanoirApp::on_prevButton_clicked() {
 				m_current_dust.copy_width, m_current_dust.copy_height);
 	}
 
-	fprintf(stderr, "[TmApp]::%s:%d : back for one dust\n", __func__, __LINE__);
+	TMAPP_printf(TMLOG_TRACE, "back for one dust")
 
 	if(skipped_list.isEmpty()) {
 		ui.prevButton->setEnabled(FALSE);
@@ -2018,7 +2029,7 @@ void TamanoirApp::on_rewindButton_clicked() {
 void TamanoirApp::on_skipButton_clicked()
 {
 	if(m_pProcThread) {
-		// Mark skip on image
+		// Mark skip on image and store for step backward
 		if(m_pImgProc) {
 			if(m_current_dust.crop_width>0) {
 				m_pImgProc->skipCorrection(m_current_dust);
@@ -2053,6 +2064,7 @@ void TamanoirApp::on_skipButton_clicked()
 			// Try to keep the same crop x,y to show to user
 			// that we did not change the block
 			m_current_dust = m_pImgProc->approxCorrection(m_current_dust);
+
 			// Update display with this correction proposal
 			updateDisplay();
 		} else { // No dust available, wait for a new one
@@ -2516,13 +2528,27 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only )
 
 	int orig_width = iplImage->width;
 	if((orig_width % 2) == 1)
+	{
 		orig_width--;
+	}
+
+
+	if(orig_width != iplImage->width)
+	{
+		fprintf(stderr, "[TamanoirApp]::%s:%d : CHANGED WIDTH => %dx%dx%dx%d => %dx%dx%dx%d\n",
+				__func__, __LINE__,
+				iplImage->width, iplImage->height, iplImage->depth, iplImage->nChannels,
+				orig_width, iplImage->height, ( depth == 8 ? 1 :
+															 (depth == 32 ? 4 : 3)
+				));
+	}
 
 	QImage qImage(orig_width, iplImage->height,
 				  depth == 8 ? QImage::Format_Mono :
 				  (depth == 32 ? QImage::Format_RGB32 : QImage::Format_RGB888)
 				  );
-	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
+	qImage.fill(0);
+	//memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
 
 /*
 	if(iplImage->nChannels == 4)
@@ -2832,7 +2858,7 @@ void TamanoirApp::updateMainDisplay() {
 
 
 			QImage mainImage(gray_width, displayImage->height, QImage::Format_RGB32); //8*displayImage->nChannels);
-			mainImage = iplImageToQImage(displayImage, true, false);
+			mainImage = iplImageToQImage(displayImage, true, false).copy();
 
 			QPixmap pixmap = QPixmap::fromImage( mainImage );
 			/* fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
@@ -2896,20 +2922,20 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 			  */
 			char proptxt[1024];
 			sprintf(proptxt, "seed:%d,%d "
-					"grown:%d,%d+%dx%d:%d"
-						"\n"
-					"rel:%d,%d+%dx%d"
-						"\n"
+					"grown:%d,%d+%dx%d:%d "
+						//"\n"
+					"rel:%d,%d+%dx%d "
+						//"\n"
 					"%s %s flood=%g area=%g %s " // ... fiber
-						"\n"
-					"mean{D=%g N=%g C=%.2g}\n"
+						//"\n"
+					"mean{D=%g N=%g C=%.2g} "
 					"=>vis=%c "
-					"dilateDust=%c best=%g=>%g"
-						"\n"
+					"dilateDust=%c best=%g=>%g "
+						//"\n"
 					"bestCor=%d "
-						"\n"
+						//"\n"
 					"corr/src=%g !conn(src/dst)=%c"
-						"\n"
+						//"\n"
 					"diff/N=%c eqdif=%.2g "
 					"diff/dest=%c=%g dx,y=%d,%d "
 						"\n"
