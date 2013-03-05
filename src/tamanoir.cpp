@@ -2535,7 +2535,7 @@ QImage iplImageToQImage(IplImage * iplImage, bool false_colors, bool red_only )
 
 	if(orig_width != iplImage->width)
 	{
-		fprintf(stderr, "[TamanoirApp]::%s:%d : CHANGED WIDTH => %dx%dx%dx%d => %dx%dx%dx%d\n",
+        fprintf(stderr, "[TamanoirApp]::%s:%d : CHANGED WIDTH => %dx%dx%dx%d => %dx%dx%d\n",
 				__func__, __LINE__,
 				iplImage->width, iplImage->height, iplImage->depth, iplImage->nChannels,
 				orig_width, iplImage->height, ( depth == 8 ? 1 :
