@@ -112,7 +112,7 @@ MacApp::MacApp(int & argc, char ** argv)
 	}
 	if(!MacAPP_Log) MacAPP_Log = fopen("/tmp/MacAPP.log", "w");
 
-#ifdef Q_WS_MACX
+#if defined(Q_WS_MACX) && !defined(Q_WS_MAC64)
 	AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments,
 							 NewAEEventHandlerUPP(handleOpenDocuments),
 							 0, false);

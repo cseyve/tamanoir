@@ -13,7 +13,7 @@ LIBSDIR =
 LIBS_EXT = dylib
 
 
-linux-g++: LIBS_EXT = so
+linux-g++*: LIBS_EXT = so
 unix: {
 	##################### OPENCV >= 2.2 #####################
 	# Test if OpenCV library is present
@@ -41,7 +41,22 @@ unix: {
 			LIBS += -L/usr/lib
 			LIBSDIR = /usr/lib
 		} else {
-			##################### OPENCV <= 2.1 #####################
+                    # for MacPorts
+                    exists( /opt/local/include/opencv2/core/core.hpp ) {
+                            message("OpenCV >= 2.2 found in /opt/local/include/opencv2/")
+
+                            DEFINES += OPENCV_22 OPENCV2
+
+                            #message("OpenCV found in /usr/include.")
+                            CVINSTPATH = /opt/local/
+                            CVINCPATH = /opt/local/include/opencv2
+                            INCLUDEPATH += /opt/local/include/opencv2
+                            INCLUDEPATH += /opt/local/include/
+
+                            LIBS += -L/opt/local/lib
+                            LIBSDIR = /opt/local/lib
+                    } else {
+                        ##################### OPENCV <= 2.1 #####################
 			# Test if OpenCV library is present
 			exists( /usr/local/include/opencv/cv.hpp ) {
 				DEFINES += OPENCV_21 OPENCV2
@@ -54,8 +69,7 @@ unix: {
 				LIBS += -L/usr/local/lib
 				LIBSDIR = /usr/local/lib
 			} else {
-				exists( /usr/include/opencv/cv.hpp )
-				{
+                                exists( /usr/include/opencv/cv.hpp ) {
 					DEFINES += OPENCV_21 OPENCV2
 					#message("OpenCV found in /usr/include.")
 					CVINSTPATH = /usr
@@ -71,11 +85,11 @@ unix: {
 		}
 	}
 
-
+}
 
 
 	CV22_LIB = $$LIBSDIR/libopencv_core.$$LIBS_EXT
-	message ( Testing CV lib = '$$CV22_LIB )
+        message ( Testing CV lib = '$$CV22_LIB' )
 	exists( $$CV22_LIB ) {
 		#message( " => Linking with -lcv ('$$CV_LIB' exists)")
 		LIBS += -lopencv_core -lopencv_imgproc -lopencv_legacy -lopencv_highgui 
@@ -128,13 +142,12 @@ unix: {
                 DEFINES += OPENCV_NONFREE
                 LIBS += -lopencv_nonfree
         }
-	exists($$CVINCPATH/photo/photo.hpp) {
+        exists($$CVINCPATH/photo/photo.hpp) {
                 message("Using photo in recent OpenCV functions")
                 INCLUDEPATH += $$CVINCPATH/photo
                 DEFINES += OPENCV_PHOTO
                 LIBS += -lopencv_photo
         }
-
 
 }
 
