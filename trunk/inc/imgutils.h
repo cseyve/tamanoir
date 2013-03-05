@@ -67,9 +67,16 @@ typedef HANDLE Mutex_t;
 #endif
 
 // For Open CV Functions
+#ifndef OPENCV_22
+// OpenCV <= 2.1
 #include <cv.h>
-#include <cv.hpp>
 #include <cvaux.h>
+#include <highgui.h>
+#else
+// From OpenCV 2.2, the headers have been organized differently
+#include <opencv.hpp>
+#include <legacy/compat.hpp>
+#endif
 
 #ifndef tmmin
 #define tmmin(a,b) ((a)<(b)?(a):(b))
@@ -221,6 +228,9 @@ IplImage * tmClone(IplImage * img_src);
 
 /** @brief Copy an IplImage into another */
 void tmCopyImage(IplImage * img_src, IplImage * img_dest);
+
+/** @brief Convert an IplImage into another, depending on nChannels */
+void tmConvert(IplImage * img_src, IplImage * img_dest);
 
 
 /** @brief Fast conversion from color/16bit image to 8bit grayscale image */

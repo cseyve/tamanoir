@@ -55,10 +55,7 @@
 
 
 // OpenCV
-#include <cv.h>
-#include <cv.hpp>
-#include <cvaux.hpp>
-#include <highgui.h>
+#include "imgutils.h"
 
 extern "C" {
 #include "tif_config.h"

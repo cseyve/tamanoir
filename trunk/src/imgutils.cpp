@@ -36,8 +36,6 @@
 
 #include "imgutils.h"
 
-#include <highgui.h>
-
 
 FILE * logfile = stderr;
 u8 g_debug_alloc = 0;
@@ -1017,6 +1015,108 @@ IplImage * tmClone(IplImage * img_src) {
 	tmCopyImage(img_src, img_dest);
 	return img_dest;
 }
+
+/* Convert an IplImage into another, depending on nChannels */
+void tmConvert(IplImage * img_src, IplImage * img_dest)
+{
+	if(!img_src || !img_dest) {
+		return;
+	}
+
+	if(img_src->depth == img_dest->depth)
+	{
+		if(img_src->nChannels==img_dest->nChannels)
+		{
+			cvCopy(img_src, img_dest);
+			return;
+		}
+
+		int code = 0;
+		switch(img_src->nChannels)
+		{
+		default:
+			fprintf(stderr, "[imgutils] %s:%d : Unsupported nChannels=%d for src",
+					__func__, __LINE__, img_src->nChannels);
+			break;
+		case 1:
+			switch(img_dest->nChannels)
+			{
+			default:
+				fprintf(stderr, "[imgutils] %s:%d : Unsupported nChannels=%d for dest",
+						__func__, __LINE__, img_dest->nChannels);
+				break;
+			case 3: // 1 -> 3
+				code = CV_GRAY2RGB;
+				break;
+			case 4: // 1 -> 4
+				code = CV_GRAY2BGRA;
+				break;
+			}
+			break;
+		case 3:
+			switch(img_dest->nChannels)
+			{
+			default:
+				fprintf(stderr, "[imgutils] %s:%d : Unsupported nChannels=%d for dest",
+						__func__, __LINE__, img_dest->nChannels);
+				break;
+			case 1: // 3 -> 1
+				code = CV_RGB2GRAY;
+				break;
+			case 4: // 3 -> 4
+				code = CV_RGB2BGRA;
+				break;
+			}
+			break;
+		case 4:
+			switch(img_dest->nChannels)
+			{
+			default:
+				fprintf(stderr, "[imgutils] %s:%d : Unsupported nChannels=%d for dest",
+						__func__, __LINE__, img_dest->nChannels);
+				break;
+			case 1: // 4 -> 1
+				code = CV_BGRA2GRAY;
+				break;
+			case 3: // 4 -> 3
+				code = CV_BGRA2RGB;
+				break;
+			case 4: // 4 -> 4???
+
+				cvCopy(img_src, img_dest);
+				break;
+			}
+			break;
+		}
+
+		if(code > 0)
+		{
+			try {
+				cvCvtColor(img_src, img_dest, code);
+			}
+			catch(cv::Exception)
+			{
+				fprintf(stderr, "[imgutils] %s:%d : Could not conver %dx%dx%dx%d => %dx%dx%dx%d with code=%d",
+						__func__, __LINE__,
+						 img_src->width, img_src->height, img_src->depth, img_src->nChannels,
+						 img_dest->width, img_dest->height, img_dest->depth, img_dest->nChannels,
+						 code
+						 );
+			}
+		}
+	}
+	else
+	{	// We need to convert the depth
+		// we convert into 8bit, any nChannels
+		IplImage * tmp = tmCreateImage(cvGetSize(img_src), IPL_DEPTH_8U, img_src->nChannels);
+		cvConvertScale(img_src, tmp, 1./16.);
+
+		// then we convert 8bit N channels => 8bit x 4 channels
+		tmConvert(tmp, img_dest);
+		tmReleaseImage(&tmp);
+	}
+}
+
 
 /*
  * Copy an image in another

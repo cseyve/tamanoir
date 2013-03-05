@@ -29,7 +29,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include <highgui.h>
 #include "imgutils.h"
 #include "imgproc.h"
 
@@ -1024,7 +1023,7 @@ int TamanoirImgProc::preProcessImage() {
 //	unsigned char * diffImageBuffer = (unsigned char *)diffImage->imageData;
 //	unsigned char * grayImageBuffer = (unsigned char *)grayImage->imageData;
 	//unused unsigned char * medianImageBuffer = (unsigned char *)medianImage->imageData;
-	int width = diffImage->widthStep;
+//unused	int width = diffImage->widthStep;
 	int height = diffImage->height;
 	int pos;
 
@@ -3731,7 +3730,7 @@ bool TamanoirImgProc::dilateDust(
 			}
 		}
 
-		int pitch = tmpCropImage->widthStep;
+//unused		int pitch = tmpCropImage->widthStep;
 		for(c=dust_cmin; c<dust_cmax; c++) {
 			//int crop_pos = dust_rmin*pitch + c;
 			u8 active = 0;
