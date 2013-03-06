@@ -470,9 +470,9 @@ void tmOpenImage(IplImage * src, IplImage * dst, IplImage * tmp, int iterations)
 	IplConvKernel *elt = tmCreateStructElt();
 
 	// perform open
-	cvMorphologyEx (src, dst, tmp, elt,
-					CV_MOP_OPEN,
-					iterations);
+    cvMorphologyEx(src, dst, tmp, elt,
+                   CV_MOP_OPEN,
+                   iterations);
 
 	cvReleaseStructuringElement(&elt);
 }
@@ -1064,7 +1064,7 @@ void tmConvert(IplImage * img_src, IplImage * img_dest)
 				code = CV_RGB2GRAY;
 				break;
 			case 4: // 3 -> 4
-				code = CV_RGB2BGRA;
+                code = CV_RGB2BGRA;
 				break;
 			}
 			break;
@@ -1082,7 +1082,6 @@ void tmConvert(IplImage * img_src, IplImage * img_dest)
 				code = CV_BGRA2RGB;
 				break;
 			case 4: // 4 -> 4???
-
 				cvCopy(img_src, img_dest);
 				break;
 			}
@@ -1103,6 +1102,11 @@ void tmConvert(IplImage * img_src, IplImage * img_dest)
 						 code
 						 );
 			}
+            if( code == CV_RGB2BGRA ) {
+                // Swap bytes
+                cvCvtColor(img_dest, img_dest, CV_RGBA2BGRA);
+            }
+
 		}
 	}
 	else
@@ -3069,7 +3073,8 @@ int tmGrowAllRegions(IplImage * inputImage, IplImage * growImage,
 
 extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);
 
-IplImage * tmLoadImage(const char *filename, int * dpi) {
+IplImage * tmLoadImage(const char *filename, int * dpi)
+{
 	IplImage * originalImage = NULL;
 	if(strcasestr(filename, ".tif")) {
 
@@ -3093,10 +3098,10 @@ IplImage * tmLoadImage(const char *filename, int * dpi) {
 		}
 	}
 	// load with OpenCV
-	originalImage = cvLoadImage(filename,
-					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
-					);
-	if(g_debug_importexport) {
+    originalImage = cvLoadImage(filename,
+                                (CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
+                                );
+    if(g_debug_importexport) {
 		// DEBUG
 		fprintf(stderr, "%s %s:%d : saving for debug : "
 				"%s/cvLoadImage.ppm",
@@ -3106,6 +3111,7 @@ IplImage * tmLoadImage(const char *filename, int * dpi) {
 				g_tmp_directory);
 		tmSaveImage(debug_file, originalImage);
 	}
+
 	return originalImage;
 }
 

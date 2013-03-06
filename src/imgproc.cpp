@@ -509,17 +509,17 @@ int TamanoirImgProc::loadFile(const char * filename) {
 	// Clear display and processing images
 	purge();
 
-	if(m_abortLoading) { // check if we need to abort this processing
-                TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT)
-                m_lock = false;
-                return TMIMG_ERR_ABORT;
-	}
+    if(m_abortLoading) { // check if we need to abort this processing
+        TMIMG_printf(TMLOG_INFO, "Aborted !! return err=%d", TMIMG_ERR_ABORT);
+        m_lock = false;
+        return TMIMG_ERR_ABORT;
+    }
 
 	/* Load with OpenCV cvLoadImage
 	IplImage* cvLoadImage( const char* filename, int iscolor CV_DEFAULT(1));
 	*/
 
-	TMIMG_printf(TMLOG_INFO, "loading '%s'...", filename)
+    TMIMG_printf(TMLOG_INFO, "loading '%s'...", filename);
 	struct timeval tvLoad1;
 	gettimeofday(&tvLoad1, NULL);
 	int file_dpi = 0;
