@@ -20,8 +20,7 @@ INCLUDEPATH += . \
     ui
 OBJECTS_DIR = .obj-simple
 
-DEFINES += SIMPLE_VIEW \
-    QT3_SUPPORT
+DEFINES += SIMPLE_VIEW 
 
 CONFIG += qt \
     warn_on
@@ -143,7 +142,7 @@ unix: {
     }
 }
 
-
+# libtool --mode=link g++ -o Tamanoir .obj-simple/imgproc.o .obj-simple/imgutils.o .obj-simple/main.o .obj-simple/tamanoir.o .obj-simple/qimagedisplay.o .obj-simple/cv2tiff.o .obj-simple/moc_tamanoir.o .obj-simple/moc_qimagedisplay.o .obj-simple/qrc_tamanoir.o -L/usr/lib /usr/lib/libtiff.a /usr/local/lib/libcxcore.la /usr/local/lib/libcv.la /usr/local/lib/libcvaux.la /usr/local/lib/libhighgui.la -lQtGui -lQtCore -lpthread
 
 # $$OPENCV_STATIC_LIBDIR/libjpeg.a
 # Build static if linked statically with a patched version of OpenCV for 16bit TIFF pictures
@@ -170,7 +169,7 @@ OTHER_FILES += build_mac_bundle.sh \
     build_mac_dmg.py \
     docs/Tamanoir-FR_AnnonceForums.txt \
     qss/tamanoir-Gray.qss \
-    opencv22.pri
+    opencv.pri
 macx: { 
     message("MacOS X specific options =================================================")
     
