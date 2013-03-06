@@ -3,6 +3,8 @@ tamanoir (1.svn20130305-1) unstable; urgency=high
   * Added support for OpenCV >= 2.3
   * Fix crash on amd64
 
+  -- Christophe Seyve <cseyve@free.fr>  Wed, 5 Mar 2013 06:16:00 +0200
+
 tamanoir (1.svn20101117-1) unstable; urgency=low
 
   * Minor GUI improvements
