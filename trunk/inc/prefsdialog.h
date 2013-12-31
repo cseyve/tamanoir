@@ -38,6 +38,21 @@ private slots:
 	void on_styleComboBox_activated(const QString & str);
 	void on_hideAutoCheckBox_toggled(bool on);
 	void on_exportLayerCheckBox_toggled(bool on);
+
+	// Debug options
+	void on_imgverbose_checkBox_toggled(bool checked);
+	void on_imgoutput_checkBox_toggled(bool checked);
+	void on_saveintmp_checkBox_toggled(bool checked);
+	void on_correlation_checkBox_toggled(bool checked);
+	void on_dataset_mode_checkBox_toggled(bool checked);
+	void on_evaluate_mode_checkBox_toggled(bool checked);
+	void on_displaylabel_checkBox_toggled(bool checked);
+	void on_dust_seek_checkBox_toggled(bool checked);
+	void on_dust_list_checkBox_toggled(bool checked);
+
+private:
+	void updateDebugOptionsToWidget();
+	void updateDebugOptionsFromWidget();
 };
 
 

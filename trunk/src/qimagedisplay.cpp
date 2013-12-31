@@ -89,15 +89,17 @@ void QImageDisplay::paintEvent(QPaintEvent * e)
 			src_x += off_x; src_y += off_y;
 			dest_x += off_x; dest_y += off_y;
 
+			// Gray brush for shadow, white for
 			QBrush grayBrush(qRgba(0,0,0,20));
+			QBrush whiteBrush(qRgba(255,255,255,180));
 			p.setPen( QPen(grayBrush, 2));
 			for(int pass=0; pass<2; pass++) {
 				if(pass==1) {
-					QBrush greenBrush(qRgba(255,255,255,180));
-					p.setPen( QPen(greenBrush, 2));
+					p.setPen( QPen(whiteBrush, 2));
 					src_x -= off_x; src_y -= off_y;
 					dest_x -= off_x; dest_y -= off_y;
 				}
+
 				int copy_vector_x = dest_x - src_x;
 				int copy_vector_y = dest_y - src_y;
 				int src_center_x = src_x;

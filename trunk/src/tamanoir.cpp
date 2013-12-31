@@ -343,23 +343,12 @@ void TamanoirApp::on_fullScreenButton_clicked() {
 void TamanoirApp::resizeEvent(QResizeEvent * e) {
 	// Resize components
 	if(!e) return;
-	int groupBoxWidth = e->size().width()/2 - ui.cropGroupBox->pos().x() - 10 * 3;
-	int groupBoxHeight = e->size().height()/2 - 10 * 3 -  180;
-
-	fprintf(stderr, "TamanoirApp::%s:%d : resize %dx%d => cropPixmapLabel= %d x %d  "
-			" cropGroupBox:%dx%d "
-			"->  groupbox : %dx%d\n",
-		__func__, __LINE__,
-		e->size().width(), e->size().height(),
-		ui.cropPixmapLabel->size().width(), ui.cropPixmapLabel->size().height(),
-		ui.cropGroupBox->size().width(), ui.cropGroupBox->size().height(),
-		groupBoxWidth, groupBoxHeight);
 
 	int size_w = ((int)(ui.cropPixmapLabel->size().width()/4) )*4;
 	int size_h = ((int)(ui.cropPixmapLabel->size().height()/4) )*4;
 	m_blockSize = cvSize(size_w, size_h);
-//	size_w += 2;
-//	size_h += 2;
+	size_w += 2;
+	size_h += 2;
 
 	ui.cropPixmapLabel->resize( size_w, size_h);
 	ui.correctPixmapLabel->resize( size_w, size_h);
@@ -869,11 +858,14 @@ void TamanoirApp::on_dustInfoButton_toggled(bool state) {
 	fprintf(stderr, "TamanoirApp::%s:%d : show info = %s\n",
 			__func__, __LINE__, state?"TRUE":"FALSE");
 }
+
+
 void TamanoirApp::on_searchCloneSrcCheckBox_toggled(bool state) {
 	m_searchCloneSrc = state;
 	fprintf(stderr, "TamanoirApp::%s:%d : m_searchCloneSrc = %s\n",
 			__func__, __LINE__, m_searchCloneSrc?"TRUE":"FALSE");
 }
+
 void TamanoirApp::on_inpaintButton_toggled(bool state) {
 	m_draw_on = (state ? TMMODE_INPAINT: TMMODE_NOFORCE);
 
@@ -1418,7 +1410,8 @@ void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 void TamanoirApp::updateCroppedCursor()
 {
 
-	if(m_draw_on == TMMODE_INPAINT) {
+	if(m_draw_on == TMMODE_INPAINT)
+	{
 		ui.cropPixmapLabel->showCopyVector(false);
 		t_correction * l_correction = &m_current_dust;
 		int radius = tmmin(l_correction->copy_width,
@@ -1446,6 +1439,7 @@ void TamanoirApp::updateCroppedCursor()
 		ui.cropPixmapLabel->setCursor( bmpcursor);
 	}
 	else {
+		// restore the show copy vector
 		ui.cropPixmapLabel->showCopyVector(true);
 	}
 }
@@ -1620,8 +1614,8 @@ int TamanoirApp::loadFile(QString s) {
 
 
 void TamanoirApp::lockTools(bool lock) {
-	ui.cropGroupBox->setDisabled(lock);
-	ui.dustGroupBox->setDisabled(lock);
+	ui.cropPixmapLabel->setDisabled(lock);
+	ui.correctPixmapLabel->setDisabled(lock);
 	ui.toolFrame->setDisabled(lock);
 	ui.saveButton->setDisabled(lock);
 }
@@ -2535,8 +2529,9 @@ void TamanoirApp::refreshMainDisplay() {
 
 void TamanoirApp::updateDisplay() {
 	if(m_pImgProc) {
-		updateMainDisplay();
-		updateCroppedDisplay();
+		updateMainDisplay(); // update the global display with grep rectangle on the area
+		updateCroppedDisplay(); // update the cropped areas
+		updateCroppedCursor(); // update the status of the vector display
 	}
 }
 
@@ -2851,7 +2846,7 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				m_current_dust.area,
 				width_mm, height_mm);
 			QString str = tr("Corrected: dust: ") + strinfo ;
-			ui.dustGroupBox->setTitle(str);
+			ui.dustGroupBoxLabel->setText(str);
 		}
 
 		// Bottom-right : Display diff image (neighbouring)

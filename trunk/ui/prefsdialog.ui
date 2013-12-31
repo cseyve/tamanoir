@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>417</width>
+    <width>424</width>
     <height>259</height>
    </rect>
   </property>
@@ -30,7 +30,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="processingTab">
       <property name="toolTip">
@@ -133,6 +133,119 @@
           </size>
          </property>
         </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="debugOptionsTab">
+      <attribute name="title">
+       <string>Debug options</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <property name="verticalSpacing">
+        <number>2</number>
+       </property>
+       <item row="6" column="0">
+        <widget class="QCheckBox" name="displaylabel_checkBox">
+         <property name="toolTip">
+          <string>Hide/show display label</string>
+         </property>
+         <property name="text">
+          <string>display label</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="saveintmp_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the image output in tmp option</string>
+         </property>
+         <property name="text">
+          <string>save in tmp</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="correlation_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the image correlation option</string>
+         </property>
+         <property name="text">
+          <string>correlation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QCheckBox" name="dataset_mode_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the dataset mode</string>
+         </property>
+         <property name="text">
+          <string>dataset mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QCheckBox" name="evaluate_mode_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the dataset evaluation mode</string>
+         </property>
+         <property name="text">
+          <string>evaluate mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="imgverbose_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the image verbose option</string>
+         </property>
+         <property name="text">
+          <string>imgverbose</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="imgoutput_checkBox">
+         <property name="toolTip">
+          <string>Enable/disable the image output in tmp option</string>
+         </property>
+         <property name="text">
+          <string>imgoutput</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="dust_seek_checkBox">
+         <property name="toolTip">
+          <string>Dust seeking debug</string>
+         </property>
+         <property name="text">
+          <string>dust seek</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QCheckBox" name="dust_list_checkBox">
+         <property name="toolTip">
+          <string>List of correction mngt</string>
+         </property>
+         <property name="text">
+          <string>dust list mngt</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" rowspan="8">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>This tab handles the activation on debug options in the software. The options can be activated by command line ob with this dialog</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

@@ -97,7 +97,7 @@ typedef HANDLE Mutex_t;
 // DEBUG IMAGES DIRECTORY AND EXTENSION
 #ifdef LINUX //not __X11_DARWIN__
 #define TMP_DIRECTORY	"/dev/shm/"
-#define IMG_EXTENSION	".pgm"
+#define IMG_EXTENSION	".png"
 #else
 #ifdef WIN32
 #define TMP_DIRECTORY	"c:/temp/"
