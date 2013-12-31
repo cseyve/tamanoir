@@ -956,8 +956,8 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
-              <height>20</height>
+              <width>10</width>
+              <height>10</height>
              </size>
             </property>
            </spacer>
@@ -1184,7 +1184,7 @@
   <customwidget>
    <class>QImageDisplay</class>
    <extends>QLabel</extends>
-   <header location="global">qimagedisplay.h</header>
+   <header location="global">inc/qimagedisplay.h</header>
   </customwidget>
  </customwidgets>
  <resources>
