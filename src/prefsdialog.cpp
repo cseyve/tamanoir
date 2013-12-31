@@ -59,3 +59,98 @@ void PrefsDialog::on_exportLayerCheckBox_toggled(bool on)
 	tmApp->saveOptions();
 }
 
+/* DEBUG OPTIONS */
+
+extern u8 g_debug_imgverbose;
+extern u8 g_debug_imgoutput;
+extern u8 g_debug_correlation;
+extern u8 g_dataset_mode;
+extern u8 g_evaluate_mode;
+extern u8 g_debug_savetmp;
+extern u8 g_debug_displaylabel;
+extern u8 g_debug_dust_seek;
+extern u8 g_debug_list; // debug dust list insert/remove
+
+#define SETTOWIDGET(_option,_checkbox) (_checkbox)->blockSignals(true); \
+	(_checkbox)->setChecked((_option)); \
+	(_checkbox)->blockSignals(false);
+
+void PrefsDialog::updateDebugOptionsToWidget()
+{
+	SETTOWIDGET(g_debug_imgverbose, imgverbose_checkBox);
+	SETTOWIDGET(g_debug_imgoutput, imgoutput_checkBox);
+	SETTOWIDGET(g_debug_savetmp, saveintmp_checkBox);
+	SETTOWIDGET(g_debug_correlation, correlation_checkBox);
+	SETTOWIDGET(g_dataset_mode, dataset_mode_checkBox);
+	SETTOWIDGET(g_evaluate_mode, evaluate_mode_checkBox);
+	SETTOWIDGET(g_debug_displaylabel, displaylabel_checkBox);
+	SETTOWIDGET(g_debug_dust_seek, dust_seek_checkBox);
+	SETTOWIDGET(g_debug_list, dust_list_checkBox);
+
+}
+
+void PrefsDialog::updateDebugOptionsFromWidget()
+{
+	g_debug_imgverbose = imgverbose_checkBox->isChecked();
+	g_debug_imgoutput = imgoutput_checkBox->isChecked();
+	g_debug_savetmp = saveintmp_checkBox->isChecked();
+	g_debug_correlation = correlation_checkBox->isChecked();
+	g_dataset_mode = dataset_mode_checkBox->isChecked();
+	g_evaluate_mode = evaluate_mode_checkBox->isChecked();
+	g_debug_displaylabel = displaylabel_checkBox->isChecked();
+	g_debug_dust_seek = dust_seek_checkBox->isChecked();
+	g_debug_list = dust_list_checkBox->isChecked();
+}
+
+void PrefsDialog::on_imgverbose_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_imgoutput_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_saveintmp_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_correlation_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_dataset_mode_checkBox_toggled(bool checked)
+{
+
+	updateDebugOptionsFromWidget();
+}
+
+void PrefsDialog::on_evaluate_mode_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_displaylabel_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_dust_seek_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+
+}
+
+void PrefsDialog::on_dust_list_checkBox_toggled(bool checked)
+{
+	updateDebugOptionsFromWidget();
+}

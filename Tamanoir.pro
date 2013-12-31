@@ -39,7 +39,10 @@ win32: {
 	RC_FILE = icon/tamanoir.rc
 	ICON = icon/tamanoir32.ico
 }
-linux-g++::ICON = icon/Tamanoir32.png
+linux-g++* {
+	ICON = icon/Tamanoir32.png
+}
+
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 
 # SOURCES -= paintwidget_win.cpp
@@ -50,8 +53,9 @@ HEADERS = inc/imgproc.h \
 	inc/qimagedisplay.h \
 	inc/prefsdialog.h \
 	inc/tamanoirwizard.h
+
 FORMS = ui/tamanoir_simple.ui \
-	ui/prefsdialog.ui \
+        ui/prefsdialog.ui \
 	ui/tamanoirwizard.ui
 
 SOURCES = src/imgproc.cpp \
@@ -77,12 +81,20 @@ linux-g++:TMAKE_CXXFLAGS += -W \
     -Wpointer-arith
 
 # -Wshadow
-linux-g++::DEFINES += LINUX
-LIBS_EXT = so
-macx::LIBS_EXT = dylib
-linux-g++::LIBS_EXT = so
-linux:LIBS_EXT = so
-win32:LIBS_EXT = lib
+linux-g++* {
+	DEFINES += LINUX
+	LIBS_EXT = so
+}
+macx* {
+	DEFINES += MACOSX
+	LIBS_EXT = dylib
+}
+
+win32* {
+	DEFINES += WIN32
+	LIBS_EXT = lib
+}
+
 message( "Installation directory = $(PWD) ")
 
 LIBS = 
