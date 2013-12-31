@@ -8,7 +8,7 @@ echo "Generating version = $SVNVERSION"
 sed s#VERSION#"$SVNVERSION"#g Info.plist > Tamanoir.app/Contents/Info.plist
 
 echo "Generate .app"
-cp Tamanoir_French.qm Agora.app/Contents/MacOS/
+cp Tamanoir_French.qm Tamanoir.app/Contents/MacOS/
 cp /Developer/Applications/Qt/translations/qt_fr.qm Tamanoir.app/Contents/MacOS/
 cp -r doc Tamanoir.app/Contents/MacOS/
 

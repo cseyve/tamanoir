@@ -650,6 +650,16 @@ IplImage * tmOpenTiffImage(const char * filename, int * dpi)
 		(void) TIFFClose(in);
 	}
 
+
+	if(out->nChannels>1) // test only for color pictures
+	{
+		// We're ok here but the R and B are swapped
+		IplImage * out2 = tmCreateImage(cvGetSize(out), out->depth, out->nChannels);
+		cvCvtColor(out, out2, CV_BGR2RGB);
+		tmReleaseImage(&out);
+		out = out2;
+	}
+
 	return out;
 }
 

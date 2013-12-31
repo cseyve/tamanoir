@@ -127,7 +127,7 @@
              <enum>Qt::TabFocus</enum>
             </property>
             <property name="toolTip">
-             <string>Film type : positive (from digital cameras or slides) or negative</string>
+             <string>Film type : positive (from digital cameras or slides, dusts are darker than the background) or negative (dusts are brighter than the background)</string>
             </property>
             <item>
              <property name="text">
@@ -159,7 +159,7 @@
           <item row="2" column="0">
            <widget class="QCheckBox" name="trustCheckBox">
             <property name="toolTip">
-             <string>Trust small dusts with very good correction proposal</string>
+             <string>Trust small dusts with very good correction proposal, eg correct them automatically</string>
             </property>
             <property name="text">
              <string>Trust</string>
@@ -429,7 +429,7 @@
      </widget>
     </item>
     <item row="0" column="1">
-     <widget class="QFrame" name="">
+     <widget class="QFrame" name="frame">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
@@ -462,6 +462,9 @@
          </property>
          <property name="text">
           <string/>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -1181,7 +1184,7 @@
   <customwidget>
    <class>QImageDisplay</class>
    <extends>QLabel</extends>
-   <header location="global">inc/qimagedisplay.h</header>
+   <header location="global">qimagedisplay.h</header>
   </customwidget>
  </customwidgets>
  <resources>
