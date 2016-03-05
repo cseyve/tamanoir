@@ -34,6 +34,7 @@
 // include files for QT
 #include <QFileInfo>
 #include <QSplashScreen>
+#include <QMessageBox>
 
 // Preferences UI
 #include "prefsdialog.h"
@@ -160,8 +161,8 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 	m_pProgressDialog = NULL;
 	force_mode = false;
 	cropPixmapLabel_last_button = Qt::NoButton;
-	is_src_selected = true;
-	m_searchCloneSrc = true; // search for clone src candidate
+    is_src_selected = true;
+    m_searchCloneSrc = true; // search for clone src candidate
 	m_unsaved_changes = false;
 
 	m_draw_on = TMMODE_NOFORCE;
@@ -194,16 +195,16 @@ TamanoirApp::TamanoirApp(QWidget * l_parent)
 
 	connect(&refreshTimer, SIGNAL(timeout()), this, SLOT(on_refreshTimer_timeout()));
 
-	ui.prevButton->setEnabled(TRUE);
+    ui.prevButton->setEnabled(true);
 	ui.loadingTextLabel->setText(QString(""));
-	ui.cloneButton->setCheckable(true);
+    ui.cloneButton->setCheckable(true);
 
 	m_resize_rect = false;
 
 	m_main_display_rect = ui.mainPixmapLabel->maximumSize();
 	m_nav_x_block = m_nav_y_block = 0;
 #ifdef SIMPLE_VIEW
-	ui.fullScreenButton->setCheckable(TRUE);
+    ui.fullScreenButton->setCheckable(true);
 	ui.diffPixmapLabel->hide();
 	ui.growPixmapLabel->hide();
 	ui.hotPixelsCheckBox->hide();
@@ -433,7 +434,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 						m_pImgProc->getOriginal()->depth != IPL_DEPTH_8U) {
 					ui.inpaintButton->setEnabled(false);
 				} else {
-					ui.inpaintButton->setEnabled(true);
+                    ui.inpaintButton->setEnabled(true);
 				}
 
 				// refresh main because we may have missed the end of load
@@ -491,7 +492,7 @@ void TamanoirApp::on_refreshTimer_timeout() {
 				ui.loadingTextLabel->setText( fi.fileName() );
 
 				// Guess dpi by image size and ratio
-				static bool do_guess_dpi = true;
+                static bool do_guess_dpi = true;
 				// Change resolution after reading in file
 				tm_options l_options = m_pImgProc->getOptions();
 
@@ -666,7 +667,7 @@ void TamanoirApp::on_mainPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 
 		// Indicate we are forcing the position of correction, and so
 		// we must not store in skipped dusts list
-		force_mode = true;
+        force_mode = true;
 
 		IplImage * origImage = m_pImgProc->getGrayscale();
 		if(!origImage)
@@ -856,21 +857,21 @@ void TamanoirApp::on_dustInfoButton_toggled(bool state) {
 	else
 		ui.infoFrame->hide();
 	fprintf(stderr, "TamanoirApp::%s:%d : show info = %s\n",
-			__func__, __LINE__, state?"TRUE":"FALSE");
+            __func__, __LINE__, state?"true":"FALSE");
 }
 
 
 void TamanoirApp::on_searchCloneSrcCheckBox_toggled(bool state) {
 	m_searchCloneSrc = state;
 	fprintf(stderr, "TamanoirApp::%s:%d : m_searchCloneSrc = %s\n",
-			__func__, __LINE__, m_searchCloneSrc?"TRUE":"FALSE");
+            __func__, __LINE__, m_searchCloneSrc?"true":"FALSE");
 }
 
 void TamanoirApp::on_inpaintButton_toggled(bool state) {
 	m_draw_on = (state ? TMMODE_INPAINT: TMMODE_NOFORCE);
 
 	if(state) {
-		ui.cloneButton->blockSignals(true);
+        ui.cloneButton->blockSignals(true);
 		ui.cloneButton->setChecked(false);
 		ui.cloneButton->blockSignals(false);
 	}
@@ -906,7 +907,7 @@ void TamanoirApp::on_cloneButton_toggled(bool state) {
 
 	m_draw_on = (state ? TMMODE_CLONE : TMMODE_NOFORCE);
 	if(state) {
-		ui.inpaintButton->blockSignals(true);
+        ui.inpaintButton->blockSignals(true);
 		ui.inpaintButton->setChecked(false);
 		ui.inpaintButton->blockSignals(false);
 	}
@@ -1038,7 +1039,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseReleaseEvent(QMouseEvent * ) {
 }
 
 void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
-	m_unsaved_changes = true;
+    m_unsaved_changes = true;
 
 	//fprintf(stderr, "TamanoirApp::%s:%d : ...\n", __func__, __LINE__);
 	if(e && m_pProcThread && m_pImgProc) {
@@ -1111,7 +1112,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 						m_resize_rect_xscale = 2.f*(float)ell_A/(float)fabsf(ell_x);
 					if(m_current_dust.copy_height > 0)
 						m_resize_rect_yscale = 2.f*(float)ell_B/(float)fabsf(ell_y);
-					m_resize_rect = true;
+                    m_resize_rect = true;
 
 //					fprintf(stderr, "%s:%d : FIXME : bad formula : resize ellipse => scale %g,%g\n",
 //							__func__ , __LINE__,m_resize_rect_xscale, m_resize_rect_yscale );
@@ -1126,7 +1127,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 			if(tmmin(dist_to_src, dist_to_dest) < tmmin(dist_to_border, 50)) {
 				if(dist_src < dist_dest) {
 					// Move src
-					is_src_selected = true;
+                    is_src_selected = true;
 				} else {
 					// Move dest
 					is_src_selected = false;
@@ -1163,16 +1164,16 @@ void TamanoirApp::on_cropPixmapLabel_signalMousePressEvent(QMouseEvent * e) {
 				if(m_draw_on == TMMODE_CLONE) {
 
 					/** No search when we click = click=apply clone **/
-					m_pImgProc->applyCorrection(m_current_dust, true);
+                    m_pImgProc->applyCorrection(m_current_dust, true);
 				} else {
 					// Move dest only if not in search mode
 					m_current_dust.rel_dest_x = m_current_dust.rel_seed_x = e->pos().x();
 					m_current_dust.rel_dest_y = m_current_dust.rel_seed_y = e->pos().y();
 					// draw in inpainting mask
-					m_pImgProc->lockInpaintDrawing(true);
+                    m_pImgProc->lockInpaintDrawing(true);
 					m_pImgProc->drawInpaintCircle(m_current_dust);
 					/** No search when we click = click=apply inpainting **/
-					//m_pImgProc->applyInpainting(current_dust, true);
+                    //m_pImgProc->applyInpainting(current_dust, true);
 				}
 			}
 
@@ -1288,7 +1289,7 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 								*/
 						m_current_dust = search_correct;
 
-						//m_pImgProc->applyCorrection(search_correct, true);
+                        //m_pImgProc->applyCorrection(search_correct, true);
 					}
 				}
 			}
@@ -1331,13 +1332,13 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 
 				/* No search when moving with the button down
 				just apply current src->dest correction */
-				m_pImgProc->applyCorrection(m_current_dust, true);
+                m_pImgProc->applyCorrection(m_current_dust, true);
 
 			} else if(m_draw_on == TMMODE_INPAINT) {
 				m_current_dust.rel_seed_x = m_current_dust.rel_dest_x = mouse_x;
 				m_current_dust.rel_seed_y = m_current_dust.rel_dest_y = mouse_y;
 				// draw in inpainting mask
-				m_pImgProc->lockInpaintDrawing(true);
+                m_pImgProc->lockInpaintDrawing(true);
 				m_pImgProc->drawInpaintCircle(m_current_dust);
 			}
 
@@ -1371,16 +1372,16 @@ void TamanoirApp::on_cropPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 
 void TamanoirApp::on_correctPixmapLabel_signalFocusInEvent(QFocusEvent * e) {
 	if(e && m_pProcThread && m_pImgProc) {
-		m_pImgProc->showDebug(true);
+        m_pImgProc->showDebug(true);
 		fprintf(stderr, "TmApp::%s:%d : focus in \n", __func__, __LINE__);
-		m_overCorrected = true;
+        m_overCorrected = true;
 
 		updateDisplay();
 	}
 }
 void TamanoirApp::on_correctPixmapLabel_signalFocusOutEvent(QFocusEvent * e) {
 	if(e && m_pProcThread && m_pImgProc) {
-		m_pImgProc->showDebug(true);
+        m_pImgProc->showDebug(true);
 
 		fprintf(stderr, "TmApp::%s:%d : focus out \n", __func__, __LINE__);
 		m_overCorrected = false;
@@ -1392,14 +1393,14 @@ void TamanoirApp::on_correctPixmapLabel_signalFocusOutEvent(QFocusEvent * e) {
 void TamanoirApp::on_correctPixmapLabel_signalMouseMoveEvent(QMouseEvent * e) {
 
 	if(e && m_pProcThread && m_pImgProc) {
-		m_pImgProc->showDebug(true);
+        m_pImgProc->showDebug(true);
 		m_overCorrected = false;
 		int mouse_x = e->pos().x();
 		int mouse_y = e->pos().y();
 
 		if( abs(mouse_x - ui.correctPixmapLabel->width() /2)< (ui.correctPixmapLabel->width() /2)-20
 			&& abs(mouse_y - ui.correctPixmapLabel->height() /2)< (ui.correctPixmapLabel->height() /2) -20) {
-			m_overCorrected = true;
+            m_overCorrected = true;
 		}
 
 		updateDisplay();
@@ -1440,7 +1441,7 @@ void TamanoirApp::updateCroppedCursor()
 	}
 	else {
 		// restore the show copy vector
-		ui.cropPixmapLabel->showCopyVector(true);
+        ui.cropPixmapLabel->showCopyVector(true);
 	}
 }
 
@@ -1604,7 +1605,7 @@ int TamanoirApp::loadFile(QString s) {
 	m_unsaved_changes = false;
 
 	// Lock tool frame
-	lockTools(true);
+    lockTools(true);
 
 	// Refresh timer while loading
 	refreshTimer.start(TMAPP_TIMEOUT);
@@ -1723,7 +1724,7 @@ void TamanoirApp::on_saveButton_clicked()
 	if(m_pImgProc) {
 		QString msg = tr("Saving ") + m_currentFile;
 
-		lockTools(true);
+        lockTools(true);
 
 		// Save a copy if it's not done yet
 		QFileInfo ficopy(copystr);
@@ -1863,19 +1864,19 @@ ExportLayer:T
 					}
 					if(strcasestr(cmd, "hide_wizard")) {
 						if(strstr(arg, "T"))
-							g_display_options.hide_wizard = true;
+                            g_display_options.hide_wizard = true;
 						else
 							g_display_options.hide_wizard = false;
 					}
 					if(strcasestr(cmd, "HideAuto")) {
 						if(strstr(arg, "T"))
-							g_display_options.hide_auto = true;
+                            g_display_options.hide_auto = true;
 						else
 							g_display_options.hide_auto = false;
 					}
 					if(strcasestr(cmd, "Export")) {
 						if(strstr(arg, "T"))
-							g_display_options.export_layer = true;
+                            g_display_options.export_layer = true;
 						else
 							g_display_options.export_layer = false;
 					}
@@ -1988,7 +1989,7 @@ void TamanoirApp::on_prevButton_clicked() {
 	TMAPP_printf(TMLOG_TRACE, "back for one dust")
 
 	if(skipped_list.isEmpty()) {
-		ui.prevButton->setEnabled(FALSE);
+        ui.prevButton->setEnabled(false);
 	}
 	updateDisplay();
 }
@@ -2034,7 +2035,7 @@ void TamanoirApp::on_skipButton_clicked()
 		   && m_current_dust.crop_width>0) {
 			if(skipped_list.isEmpty()) {
 				// enable previous button because we'll add one dust
-				ui.prevButton->setEnabled(TRUE);
+                ui.prevButton->setEnabled(true);
 			}
 
 			if(g_debug_list) {
@@ -2084,15 +2085,15 @@ void TamanoirApp::on_skipButton_clicked()
 					msg = tr("NONE");
 
 					t_perf_stats stats = m_pImgProc->getPerfs();
-					int sum = stats.true_positive+stats.no_proposal
+                    int sum = stats.true_positive+stats.no_proposal
 						+ stats.false_positive + stats.false_negative;
 
 					if(sum>0) {
 						msg += tr("After background processing => ");
 
-						msg += tr("True positive:");
-						s.sprintf("%d / %d = %g %%\n", stats.true_positive, sum,
-								  100.f * (float)stats.true_positive / sum);
+                        msg += tr("true positive:");
+                        s.sprintf("%d / %d = %g %%\n", stats.true_positive, sum,
+                                  100.f * (float)stats.true_positive / sum);
 						msg += s;
 
 						msg += tr("No proposal:");
@@ -2128,7 +2129,7 @@ void TamanoirApp::on_skipButton_clicked()
 			} else {
 				refreshTimer.start(TMAPP_TIMEOUT);
 
-				lockTools(true);
+                lockTools(true);
 			}
 		}
 	}
@@ -2144,7 +2145,7 @@ void TamanoirApp::on_correctButton_clicked()
 	if(m_pImgProc) {
 		m_pImgProc->forceCorrection(m_current_dust, force_mode);
 	}
-	m_unsaved_changes = true;
+    m_unsaved_changes = true;
 
 	// Clear current dust
 	memset(&m_current_dust, 0, sizeof(t_correction));
@@ -2174,7 +2175,7 @@ void TamanoirApp::on_autoButton_clicked()
 	if(ret == QMessageBox::Cancel)
 		return;
 
-	m_unsaved_changes = true;
+    m_unsaved_changes = true;
 
 	// update progress dialog
 /*	if(!m_pProgressDialog) {
@@ -2197,10 +2198,10 @@ void TamanoirApp::on_autoButton_clicked()
 	statusBar()->update();
 
 	// Lock control panel
-	lockTools(true);
+    lockTools(true);
 
 	TMAPP_printf(TMLOG_INFO, "Launch AUTO MODE processing...")
-	lockTools(true);
+    lockTools(true);
 		char logfilename[512] = TMP_DIRECTORY "tamanoir.txt";
 
 		QFileInfo fi(m_currentFile);
@@ -2228,7 +2229,7 @@ void TamanoirApp::on_autoButton_clicked()
 
 	// cancel previous correction
 	if(m_pProcThread) {
-		m_pProcThread->setModeAuto(true);
+        m_pProcThread->setModeAuto(true);
 		refreshTimer.start(TMAPP_TIMEOUT);
 	}
 	fflush(logfile);
@@ -2559,7 +2560,7 @@ void TamanoirApp::updateMainDisplay() {
 
 
 			QImage mainImage(gray_width, displayImage->height, QImage::Format_RGB32); //8*displayImage->nChannels);
-			mainImage = iplImageToQImage(displayImage, true, false).copy();
+            mainImage = iplImageToQImage(displayImage, true, false).copy();
 
 			QPixmap pixmap = QPixmap::fromImage( mainImage );
 			/* fprintf(stderr, "TamanoirApp::%s:%d : orginal rectangle : maxSize=%dx%d\n",
@@ -2699,8 +2700,10 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 			QImage grayQImage = iplImageToQImage(curImage,
 												 false); //.scaledToWidth(label_width);
 			if(grayQImage.depth() == 8) {
+#ifndef _QT5
 				grayQImage.setNumColors(256);
-				for(int c=0; c<255; c++) {
+#endif
+                for(int c=0; c<255; c++) {
 					grayQImage.setColor(c, qRgb(c,c,c));
 				}
 
@@ -2799,8 +2802,8 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 
 			// Display in frame
 			QImage grayQImage = iplImageToQImage(curImage,
-												 true, // false colors
-												 true // with only red as false color
+                                                 true, // false colors
+                                                 true // with only red as false color
 												 ); //.scaledToWidth(label_width);
 
 			QPixmap pixmap = QPixmap::fromImage(
@@ -2820,8 +2823,10 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				// Display in frame
 				QImage grayQImage = iplImageToQImage(curImage).scaledToWidth(pLabel->width());
 				if(grayQImage.depth() == 8) {
-					grayQImage.setNumColors(256);
-					for(int c=0; c<255; c++)
+#ifndef _QT5
+                    grayQImage.setNumColors(256);
+#endif
+                    for(int c=0; c<255; c++)
 						grayQImage.setColor(c, qRgb(c,c,c));
 
 					grayQImage.setColor(255, qRgb(255,0,0));
@@ -2863,7 +2868,9 @@ u8 neighbourhoodEmpty;			*! return of @see neighbourhoodEmpty(pcorrection); *
 				// Display in frame
 				QImage grayQImage = iplImageToQImage(curImage);
 				if(grayQImage.depth() == 8) {
-					grayQImage.setNumColors(256);
+#ifndef _QT5
+                    grayQImage.setNumColors(256);
+#endif
 					for(int c=0; c<256; c++) {
 						int R=c, G=c, B=c;
 						// False colors
@@ -2952,7 +2959,7 @@ void TamanoirThread::setModeAuto(bool on) {
 		m_req_command = PROTH_SEARCH;
 		m_options = m_pImgProc->getOptions();
 
-		m_options.mode_auto = true;
+        m_options.mode_auto = true;
 		m_no_more_dusts = false;
 
 		m_dust_list.clear();
@@ -3027,7 +3034,7 @@ int TamanoirThread::setOptions(tm_options options) {
 
 	if(restart_from_changes) {
 		// The user may have changed the options while loading
-		m_pImgProc->abortLoading(true);
+        m_pImgProc->abortLoading(true);
 
 		TMTHR_printf(TMLOG_INFO, "Apply changes, rewind to start")
 		m_dust_list.clear();
@@ -3203,8 +3210,8 @@ int TamanoirThread::getProgress() {
  * Background processing thread
  */
 void TamanoirThread::run() {
-	m_running = true;
-	m_run = true;
+    m_running = true;
+    m_run = true;
 
 	m_no_more_dusts = false;
 	while(m_run) {
@@ -3240,7 +3247,7 @@ void TamanoirThread::run() {
 				// If there are not too much dusts in list, continue to search
 				if(m_dust_list.count() < 100) {
 					//m_req_command = PROTH_SEARCH;
-					do_search = true;
+                    do_search = true;
 					TMTHR_printf(TMLOG_TRACE, "nothing => PROTH_SEARCH !!!")
 				}
 			}
@@ -3276,7 +3283,7 @@ void TamanoirThread::run() {
 
 		case PROTH_SEARCH:
 			TMTHR_printf(TMLOG_TRACE, "searching for next dust (while main frame is displaying)")
-			do_search = true;
+            do_search = true;
 
 			break;
 
@@ -3337,7 +3344,7 @@ void TamanoirThread::run() {
 			} else { // no more dust
 
 				if(ret == 0) {
-					m_no_more_dusts = true;
+                    m_no_more_dusts = true;
 					TMTHR_printf(TMLOG_INFO, "no more dust (ret=%d)", ret);
 
 					if(m_options.mode_auto) {

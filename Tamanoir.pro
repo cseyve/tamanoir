@@ -5,6 +5,10 @@ TEMPLATE = app
 
 # Use lowercase name for Linux
 TARGET = tamanoir
+greaterThan(QT_MAJOR_VERSION, 4): {
+    QT += widgets
+    DEFINES += _QT5
+}
 
 # and an uppercase first letter for Mac & Windows
 mac::TARGET = Tamanoir

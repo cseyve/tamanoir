@@ -40,7 +40,7 @@ PrefsDialog::PrefsDialog(QWidget * parent)
 
 void PrefsDialog::on_styleComboBox_activated(const QString & str)
 {
-	strcpy(g_display_options.stylesheet, str.toAscii().data() );
+    strcpy(g_display_options.stylesheet, qPrintable(str) );
 
 	tmApp->saveOptions();
 }
