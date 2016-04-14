@@ -22,7 +22,16 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
-    <property name="margin">
+    <property name="leftMargin">
+     <number>2</number>
+    </property>
+    <property name="topMargin">
+     <number>2</number>
+    </property>
+    <property name="rightMargin">
+     <number>2</number>
+    </property>
+    <property name="bottomMargin">
      <number>2</number>
     </property>
     <item row="0" column="0">
@@ -151,6 +160,9 @@
             <property name="toolTip">
              <string>Detect dusts only in empty areas (sky, ...)</string>
             </property>
+            <property name="statusTip">
+             <string>Detect dusts only in empty areas (sky, ...)</string>
+            </property>
             <property name="text">
              <string>Empty only</string>
             </property>
@@ -160,6 +172,9 @@
            <widget class="QCheckBox" name="trustCheckBox">
             <property name="toolTip">
              <string>Trust small dusts with very good correction proposal, eg correct them automatically</string>
+            </property>
+            <property name="statusTip">
+             <string>Trust small dusts with very good correction proposal, eg correct them automatically, since they are very small, no risk on image</string>
             </property>
             <property name="text">
              <string>Trust</string>
@@ -396,7 +411,16 @@
           <enum>QFrame::Raised</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="margin">
+          <property name="leftMargin">
+           <number>2</number>
+          </property>
+          <property name="topMargin">
+           <number>2</number>
+          </property>
+          <property name="rightMargin">
+           <number>2</number>
+          </property>
+          <property name="bottomMargin">
            <number>2</number>
           </property>
           <item>
@@ -596,7 +620,7 @@
             <x>0</x>
             <y>0</y>
             <width>705</width>
-            <height>33</height>
+            <height>36</height>
            </rect>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -717,7 +741,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>TextLabel</string>
+          <string>(growPixmapLabel)</string>
          </property>
         </widget>
        </item>
@@ -889,7 +913,16 @@
           </sizepolicy>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <property name="margin">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
            <number>0</number>
           </property>
           <item>
@@ -1057,12 +1090,12 @@
      <x>0</x>
      <y>0</y>
      <width>1035</width>
-     <height>29</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
-     <string>Options</string>
+     <string>Optio&amp;ns</string>
     </property>
     <addaction name="actionPreferences"/>
     <addaction name="actionFull_screen"/>
@@ -1078,7 +1111,7 @@
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Fi&amp;le</string>
     </property>
     <addaction name="actionOpen_2"/>
     <addaction name="actionSave"/>
@@ -1099,7 +1132,7 @@
      <normaloff>:/icon/preferences-system.png</normaloff>:/icon/preferences-system.png</iconset>
    </property>
    <property name="text">
-    <string>Preferences</string>
+    <string>&amp;Preferences</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -1108,7 +1141,7 @@
      <normaloff>:/icon/help-about.png</normaloff>:/icon/help-about.png</iconset>
    </property>
    <property name="text">
-    <string>About</string>
+    <string>&amp;About</string>
    </property>
    <property name="toolTip">
     <string>Display version information about Tamanoir</string>
@@ -1123,7 +1156,7 @@
      <normaloff>:/icon/input-keyboard.png</normaloff>:/icon/input-keyboard.png</iconset>
    </property>
    <property name="text">
-    <string>Shortcuts</string>
+    <string>&amp;Shortcuts</string>
    </property>
   </action>
   <action name="actionOpen">
@@ -1137,7 +1170,7 @@
      <normaloff>:/icon/view-fullscreen.png</normaloff>:/icon/view-fullscreen.png</iconset>
    </property>
    <property name="text">
-    <string>Full screen (Ctrl+F)</string>
+    <string>&amp;Full screen (Ctrl+F)</string>
    </property>
   </action>
   <action name="actionTutorial">
@@ -1146,7 +1179,7 @@
      <normaloff>:/icon/tools-wizard.png</normaloff>:/icon/tools-wizard.png</iconset>
    </property>
    <property name="text">
-    <string>Tutorial</string>
+    <string>&amp;Tutorial</string>
    </property>
    <property name="toolTip">
     <string>Tutorial for efficient use of Tamanoir</string>
@@ -1158,7 +1191,7 @@
      <normaloff>:/icon/document-open.png</normaloff>:/icon/document-open.png</iconset>
    </property>
    <property name="text">
-    <string>Open</string>
+    <string>&amp;Open</string>
    </property>
   </action>
   <action name="actionSave">
@@ -1167,7 +1200,7 @@
      <normaloff>:/icon/drive-harddisk.png</normaloff>:/icon/drive-harddisk.png</iconset>
    </property>
    <property name="text">
-    <string>Save</string>
+    <string>&amp;Save</string>
    </property>
   </action>
   <action name="actionQuit">
@@ -1176,7 +1209,7 @@
      <normaloff>:/icon/application-exit.png</normaloff>:/icon/application-exit.png</iconset>
    </property>
    <property name="text">
-    <string>Quit</string>
+    <string>&amp;Quit</string>
    </property>
   </action>
  </widget>

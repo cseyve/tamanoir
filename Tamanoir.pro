@@ -5,9 +5,13 @@ TEMPLATE = app
 
 # Use lowercase name for Linux
 TARGET = tamanoir
+message("Qt version $$QT_MAJOR_VERSION")
 greaterThan(QT_MAJOR_VERSION, 4): {
     QT += widgets
-    DEFINES += _QT5
+	QT += gui
+	QT -= network
+	# for use in the code to make the difference
+	DEFINES += _QT5
 }
 
 # and an uppercase first letter for Mac & Windows
