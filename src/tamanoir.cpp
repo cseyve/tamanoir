@@ -857,7 +857,7 @@ void TamanoirApp::on_dustInfoButton_toggled(bool state) {
 	else
 		ui.infoFrame->hide();
 	fprintf(stderr, "TamanoirApp::%s:%d : show info = %s\n",
-            __func__, __LINE__, state?"true":"FALSE");
+			__func__, __LINE__, state?"true":"FALSE");
 }
 
 

@@ -74,8 +74,12 @@ typedef HANDLE Mutex_t;
 #include <highgui.h>
 #else
 // From OpenCV 2.2, the headers have been organized differently
-#include <opencv.hpp>
-#include <legacy/compat.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/legacy/compat.hpp>
+#endif
+
+#ifdef OPENCV_24_PHOTO
+#include <opencv2/photo/photo.hpp>
 #endif
 
 #ifndef tmmin

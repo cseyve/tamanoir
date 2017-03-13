@@ -6,6 +6,18 @@ TEMPLATE = app
 # Use lowercase name for Linux
 TARGET = tamanoir
 
+message("Qt version $$QT_MAJOR_VERSION")
+# For Qt5
+greaterThan(QT_MAJOR_VERSION, 4): {
+	message("Qt >= 5")
+	QT += gui
+	QT += widgets
+	QT -= network
+	# for use in the code to make the difference
+	DEFINES += _QT5
+}
+
+
 # and an uppercase first letter for Mac & Windows
 mac::TARGET = Tamanoir
 win32::TARGET = Tamanoir
@@ -93,6 +105,7 @@ OPENCV_STATIC_LIBDIR =
 # opencv.pri check several directories to find where openCV is installed
 include(opencv.pri)
 
+# lib tiff for 16bit TIFF support
 unix: { 
     
     # Test if libtiff is installed ==============================
@@ -103,8 +116,7 @@ unix: {
         SOURCES += src/cv2tiff.cpp
         DEFINES += HAVE_LIBTIFF
         STATIC_LIBS += /usr/local/lib/libtiff.a
-    }
-    else { 
+    } else { 
         exists( /opt/local/include/tiffio.h ) { 
             INCLUDEPATH += /opt/local/include
             DYN_LIBS += -L/opt/local/lib \
@@ -112,8 +124,7 @@ unix: {
             SOURCES += src/cv2tiff.cpp
             DEFINES += HAVE_LIBTIFF
             STATIC_LIBS += /opt/local/lib/libtiff.a
-        }
-        else { 
+		} else {
             exists( /sw/include/tiffio.h ) { 
                 INCLUDEPATH += /sw/include
                 DYN_LIBS += -L/sw/lib \
@@ -121,14 +132,18 @@ unix: {
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
                 STATIC_LIBS += /sw/lib/libtiff.a
-            }
-            else:exists( /usr/include/tiffio.h ) { 
+			} else:exists( /usr/include/tiffio.h ) {
                 INCLUDEPATH += /usr/include
                 DYN_LIBS += -ltiff
                 SOURCES += src/cv2tiff.cpp
                 DEFINES += HAVE_LIBTIFF
                 STATIC_LIBS += /usr/lib/libtiff.a
-            }
+			} else:exists(/usr/include/x86_64-linux-gnu/tiffio.h) {
+				DYN_LIBS += -ltiff
+				SOURCES += src/cv2tiff.cpp
+				DEFINES += HAVE_LIBTIFF
+				STATIC_LIBS += /usr/lib/libtiff.a
+			}
         }
     }
     

@@ -4998,7 +4998,7 @@ bool testKnownDust(t_correction correction, int img_w, int img_h) {
 				known_dusts = new_tab;
 				max_known_dusts = new_nb;
 			}
-		} while(ret>0 && !feof(g_dataset_f));
+		} while(ret!=NULL && !feof(g_dataset_f));
 	}
 
 

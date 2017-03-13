@@ -362,6 +362,7 @@ public:
 
 	/** @brief Load input image file */
 	int loadFile(const char * filename);
+
 	/** @brief Abort preprocessing or loading */
 	int abortLoading(bool abort = true);
 

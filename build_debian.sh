@@ -1,7 +1,9 @@
 #!/bin/bash
 echo "Checkout in /tmp/..."
 cd /tmp
-svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
+#OLD VERSION, when it cas on GoogleCode:
+# svn checkout http://tamanoir.googlecode.com/svn/trunk/ tamanoir
+git clone https://github.com/cseyve/tamanoir.git
 cd tamanoir/
 
 echo "Building with fakeroot..."
