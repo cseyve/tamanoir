@@ -15,7 +15,7 @@ LIBS_EXT = dylib
 PKG=opencv
 system('pkg-config --exists $$PKG') {
 	PKGVERSION =  $$system(pkg-config $$PKG --modversion)
-	LIBS += $$system(pkg-config --libs $$PKG)
+	LIBS += $$system('pkg-config --libs-only-l $$PKG')
 
 	CVINC = $$system('pkg-config --cflags $$PKG | sed "s/\\-I//g"')
 	INCLUDEPATH += $$CVINC
